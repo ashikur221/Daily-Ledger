@@ -70,11 +70,15 @@ const transactionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Compound index: one localId per user
+// Compound indexes for optimal query performance
 transactionSchema.index({ userId: 1, localId: 1 }, { unique: true });
-
-// Index for efficient date range queries and delta sync
-transactionSchema.index({ userId: 1, date: -1 });
+transactionSchema.index({ userId: 1, isDeleted: 1, date: -1 });
+transactionSchema.index({ userId: 1, isDeleted: 1, type: 1, date: -1 });
+transactionSchema.index({ userId: 1, isDeleted: 1, account: 1, date: -1 });
+transactionSchema.index({ userId: 1, isDeleted: 1, category: 1 });
 transactionSchema.index({ userId: 1, isDeleted: 1, updatedAt: -1 });
+
+// Text index for fast multi-field note/category searches
+transactionSchema.index({ note: 'text', category: 'text' });
 
 module.exports = mongoose.model('Transaction', transactionSchema);
