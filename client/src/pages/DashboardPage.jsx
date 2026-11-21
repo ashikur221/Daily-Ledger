@@ -31,7 +31,6 @@ export default function DashboardPage() {
   });
   const [dayEntries, setDayEntries] = useState([]);
   const [dayTotal, setDayTotal] = useState(0);
-  const [backupStatus, setBackupStatus] = useState('No backup recorded yet. Tap "Export backup (JSON)" to keep a separate copy of your ledger.');
   const [loading, setLoading] = useState(true);
 
   // Editing state for entries
@@ -40,7 +39,6 @@ export default function DashboardPage() {
   const [editAmount, setEditAmount] = useState('');
 
   const formRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -240,95 +238,6 @@ export default function DashboardPage() {
     loadDashboardData();
   };
 
-  const handleExportBackup = async () => {
-    try {
-      const allTx = await db.transactions.toArray();
-      const allAcc = await db.accounts.toArray();
-      const allTools = await db.tools.toArray();
-
-      const exportData = {
-        app: 'Daily Ledger',
-        version: '2.0',
-        exportedAt: new Date().toISOString(),
-        transactions: allTx,
-        accounts: allAcc,
-        tools: allTools,
-      };
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `daily-ledger-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      const statusMsg = `Last backed up: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      setBackupStatus(statusMsg);
-      toast.success('Backup exported successfully!');
-    } catch (err) {
-      toast.error('Backup export failed');
-    }
-  };
-
-  const handleImportBackup = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!window.confirm('Import backup? This will merge records into your ledger.')) return;
-
-    try {
-      const text = await file.text();
-      const json = JSON.parse(text);
-
-      if (json.transactions && Array.isArray(json.transactions)) {
-        await db.transactions.bulkPut(json.transactions);
-      }
-      if (json.accounts && Array.isArray(json.accounts)) {
-        await db.accounts.bulkPut(json.accounts);
-      }
-      if (json.tools && Array.isArray(json.tools)) {
-        await db.tools.bulkPut(json.tools);
-      }
-
-      toast.success('Backup restored and merged successfully!');
-      loadDashboardData();
-    } catch (err) {
-      toast.error('Failed to import backup file');
-    }
-  };
-
-  const handleDeleteAll = async () => {
-    const prompt = window.prompt('Type "DELETE" to permanently erase all ledger transactions:');
-    if (prompt !== 'DELETE') {
-      toast.info('Action cancelled');
-      return;
-    }
-
-    // Preserve encrypted vault passwords so they are NEVER accidentally destroyed!
-    const vaultSecrets = await db.tools.where('toolType').equals('vault_item').toArray();
-
-    await db.transactions.clear();
-    await db.accounts.clear();
-    await db.tools.clear();
-    await db.syncQueue.clear();
-
-    // Safely restore private vault passwords
-    if (vaultSecrets.length > 0) {
-      await db.tools.bulkPut(vaultSecrets);
-    }
-
-    // Also purge seed dummy records from cloud database
-    try {
-      if (isOnline) {
-        await api.post('/transactions/purge-seed');
-      }
-    } catch {}
-
-    toast.warning('Ledger data cleared (Password vault preserved)');
-    loadDashboardData();
-  };
-
   const scrollToEntry = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -524,56 +433,6 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-
-      {/* 5. Data Safety Box */}
-      <div className="data-safety-card">
-        <div className="safety-title">Data safety</div>
-        <p className="safety-desc">
-          Your ledger is stored in this browser on this device. Export a backup regularly. Clearing browser data can remove your ledger.
-        </p>
-        <div className="safety-buttons">
-          <button id="exportBtn" className="secondary" type="button" onClick={handleExportBackup}>
-            Export backup (JSON)
-          </button>
-          <label className="secondary text-center cursor-pointer">
-            Import backup
-            <input
-              id="importFile"
-              type="file"
-              ref={fileInputRef}
-              accept="application/json,.json"
-              className="hidden-file-input"
-              onChange={handleImportBackup}
-            />
-          </label>
-        </div>
-        <p id="backupStatus" className="backup-status-text" aria-live="polite">
-          {backupStatus}
-        </p>
-      </div>
-
-      {/* 6. Danger Zone */}
-      <div className="danger-zone-panel">
-        <div className="danger-zone-left">
-          <div className="danger-icon-box">
-            <span aria-hidden="true">⚠</span>
-          </div>
-        </div>
-        <div className="danger-zone-content">
-          <h3 className="danger-title">Danger zone</h3>
-          <p className="danger-desc">
-            Permanently delete all expenses, deposits, bank transactions, and debt/repayment records. Your encrypted Bank &amp; bKash vault credentials will remain safely preserved.
-          </p>
-          <button id="deleteAllBtn" className="danger-btn" onClick={handleDeleteAll}>
-            Clear Ledger Data
-          </button>
-        </div>
-      </div>
-
-      {/* 7. Footer */}
-      <footer className="pitch-footer">
-        Daily Ledger · Private to this browser · {isOnline ? 'Cloud Synced' : 'Offline Mode'}
-      </footer>
     </div>
   );
 }
