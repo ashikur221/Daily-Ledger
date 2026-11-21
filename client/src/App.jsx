@@ -11,6 +11,7 @@ import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
 import DeveloperPage from './pages/DeveloperPage';
+import ProductivityPage from './pages/ProductivityPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { seedInitialDataIfNeeded } from './db/seedHelper';
@@ -89,6 +90,9 @@ function AppContent() {
         <NavLink to="/tools" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
           Debt / Loan
         </NavLink>
+        <NavLink to="/tasks" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
+          Tasks & Vault 🔒
+        </NavLink>
         <NavLink to="/reports" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
           Reports & Insights
         </NavLink>
@@ -114,6 +118,7 @@ function AppContent() {
           <Route path="/deposits" element={<DepositsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/tools" element={<ToolsPage />} />
+          <Route path="/tasks" element={<ProductivityPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/developer" element={<DeveloperPage />} />
@@ -185,6 +190,10 @@ function AppContent() {
         <NavLink to="/tools" className={({ isActive }) => (isActive ? 'active' : '')}>
           <span className="nav-icon">৳</span>
           <span className="nav-label-debt">Debt</span>
+        </NavLink>
+        <NavLink to="/tasks" className={({ isActive }) => (isActive ? 'active' : '')}>
+          <span className="nav-icon">🔒</span>
+          <span>Tasks</span>
         </NavLink>
         <NavLink to="/reports" className={({ isActive }) => (isActive ? 'active' : '')}>
           <span className="nav-icon">▥</span>
