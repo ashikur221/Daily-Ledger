@@ -10,6 +10,7 @@ import ToolsPage from './pages/ToolsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
+import DeveloperPage from './pages/DeveloperPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { seedInitialDataIfNeeded } from './db/seedHelper';
@@ -115,10 +116,53 @@ function AppContent() {
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/developer" element={<DeveloperPage />} />
           {user?.role === 'admin' && <Route path="/admin" element={<AdminPage />} />}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+
+      {/* Global App Footer */}
+      <footer
+        style={{
+          borderTop: '1px solid #141a27',
+          padding: '24px 16px 80px',
+          marginTop: 'auto',
+          textAlign: 'center',
+          fontSize: '0.82rem',
+          color: '#64748b',
+        }}
+      >
+        <div style={{ maxWidth: '980px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <span>Daily Ledger · Private in this browser · Cloud Synced</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <NavLink
+              to="/developer"
+              style={{
+                color: '#ef4444',
+                fontWeight: 700,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+              }}
+            >
+              <span>👨‍💻 Developer: Ashikur Rahman</span>
+            </NavLink>
+
+            <NavLink to="/settings" style={{ color: '#94a3b8', textDecoration: 'none' }}>
+              Settings
+            </NavLink>
+          </div>
+        </div>
+      </footer>
 
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
