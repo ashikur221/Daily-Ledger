@@ -34,6 +34,12 @@ export default function AccountsPage() {
 
   useEffect(() => {
     loadAllData();
+
+    const handleRemoteUpdate = () => {
+      loadAllData();
+    };
+    window.addEventListener('daily_ledger:data_updated', handleRemoteUpdate);
+    return () => window.removeEventListener('daily_ledger:data_updated', handleRemoteUpdate);
   }, []);
 
   const loadAllData = async () => {

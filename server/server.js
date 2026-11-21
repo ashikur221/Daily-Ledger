@@ -12,6 +12,7 @@ const transactionRoutes = require('./routes/transactions');
 const accountRoutes = require('./routes/accounts');
 const toolRoutes = require('./routes/tools');
 const adminRoutes = require('./routes/admin');
+const syncRoutes = require('./routes/sync');
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/tools', toolRoutes);
+app.use('/api/sync', syncRoutes);
 app.use('/api', adminRoutes);
 
 // Health check

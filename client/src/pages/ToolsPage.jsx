@@ -32,6 +32,12 @@ export default function ToolsPage() {
 
   useEffect(() => {
     loadToolsData();
+
+    const handleRemoteUpdate = () => {
+      loadToolsData();
+    };
+    window.addEventListener('daily_ledger:data_updated', handleRemoteUpdate);
+    return () => window.removeEventListener('daily_ledger:data_updated', handleRemoteUpdate);
   }, []);
 
   const loadToolsData = async () => {

@@ -39,5 +39,6 @@ const accountSchema = new mongoose.Schema(
 );
 
 accountSchema.index({ userId: 1, localId: 1 }, { unique: true });
+accountSchema.index({ userId: 1, isDeleted: 1, updatedAt: -1 });
 
 module.exports = mongoose.model('Account', accountSchema);

@@ -37,6 +37,12 @@ export default function LedgerPage({ initialType = '' }) {
 
   useEffect(() => {
     loadTransactions();
+
+    const handleRemoteUpdate = () => {
+      loadTransactions();
+    };
+    window.addEventListener('daily_ledger:data_updated', handleRemoteUpdate);
+    return () => window.removeEventListener('daily_ledger:data_updated', handleRemoteUpdate);
   }, []);
 
   const loadTransactions = async () => {

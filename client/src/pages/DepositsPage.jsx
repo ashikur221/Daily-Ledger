@@ -21,6 +21,12 @@ export default function DepositsPage() {
 
   useEffect(() => {
     loadDeposits();
+
+    const handleRemoteUpdate = () => {
+      loadDeposits();
+    };
+    window.addEventListener('daily_ledger:data_updated', handleRemoteUpdate);
+    return () => window.removeEventListener('daily_ledger:data_updated', handleRemoteUpdate);
   }, []);
 
   const loadDeposits = async () => {

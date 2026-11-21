@@ -44,6 +44,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadDashboardData();
+
+    // Listen for delta sync updates
+    const handleRemoteUpdate = () => {
+      loadDashboardData();
+    };
+    window.addEventListener('daily_ledger:data_updated', handleRemoteUpdate);
+    return () => window.removeEventListener('daily_ledger:data_updated', handleRemoteUpdate);
   }, [selectedDate]);
 
   const loadDashboardData = async () => {

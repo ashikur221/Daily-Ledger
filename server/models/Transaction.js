@@ -73,7 +73,8 @@ const transactionSchema = new mongoose.Schema(
 // Compound index: one localId per user
 transactionSchema.index({ userId: 1, localId: 1 }, { unique: true });
 
-// Index for efficient date range queries
+// Index for efficient date range queries and delta sync
 transactionSchema.index({ userId: 1, date: -1 });
+transactionSchema.index({ userId: 1, isDeleted: 1, updatedAt: -1 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

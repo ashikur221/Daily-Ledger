@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api, { setAccessToken, setOnTokenRefreshed } from '../services/api';
-import { flushSyncQueue, initNetworkSync } from '../services/syncService';
+import { syncTwoWay, initNetworkSync } from '../services/syncService';
 import { useToast } from './ToastContext';
 
 const AuthContext = createContext(null);
@@ -18,8 +18,13 @@ export const AuthProvider = ({ children }) => {
       const { data } = await api.post('/auth/refresh');
       setAccessToken(data.accessToken);
       setUser(data.user);
-      // Sync pending records after session restore
-      flushSyncQueue().then(() => refreshPendingCount());
+      // Run two-way delta sync on session restore (pull updates from other devices)
+      syncTwoWay().then(({ pulled, synced }) => {
+        refreshPendingCount();
+        if (pulled > 0) {
+          toast.info(`Updated with ${pulled} change(s) from cloud.`);
+        }
+      });
     } catch {
       setUser(null);
     } finally {
@@ -53,11 +58,15 @@ export const AuthProvider = ({ children }) => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Init auto-sync on reconnect
-    const cleanup = initNetworkSync(({ synced }) => {
-      if (synced > 0) {
-        refreshPendingCount();
-        toast.info(`Synced ${synced} record(s) to cloud.`);
+    // Init auto-sync on reconnect or focus
+    const cleanup = initNetworkSync(({ synced, pulled }) => {
+      refreshPendingCount();
+      if (synced > 0 || pulled > 0) {
+        toast.info(
+          `Sync complete: ${synced ? `${synced} uploaded` : ''}${
+            synced && pulled ? ', ' : ''
+          }${pulled ? `${pulled} updated from cloud` : ''}`
+        );
       }
     });
 
@@ -75,8 +84,13 @@ export const AuthProvider = ({ children }) => {
     const { data } = await api.post('/auth/login', { email, password });
     setAccessToken(data.accessToken);
     setUser(data.user);
-    // Flush any pending offline data
-    flushSyncQueue().then(() => refreshPendingCount());
+    // Two-way sync on login
+    syncTwoWay().then(({ pulled }) => {
+      refreshPendingCount();
+      if (pulled > 0) {
+        toast.info(`Synced ${pulled} record(s) from cloud.`);
+      }
+    });
     return data.user;
   };
 

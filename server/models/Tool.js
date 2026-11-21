@@ -37,5 +37,6 @@ const toolSchema = new mongoose.Schema(
 
 toolSchema.index({ userId: 1, localId: 1 }, { unique: true });
 toolSchema.index({ userId: 1, toolType: 1 });
+toolSchema.index({ userId: 1, isDeleted: 1, updatedAt: -1 });
 
 module.exports = mongoose.model('Tool', toolSchema);
