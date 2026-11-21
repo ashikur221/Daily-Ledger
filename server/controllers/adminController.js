@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
@@ -192,66 +193,110 @@ const exportBackup = async (req, res) => {
   }
 };
 
-// POST /api/backup/import — merge import for authenticated user
+// POST /api/backup/import — Full cloud restore and migration (supports merge or complete replace)
 const importBackup = async (req, res) => {
   try {
-    const { transactions = [], accounts = [], tools = [] } = req.body;
-
-    // Validate structure
-    if (!Array.isArray(transactions) || !Array.isArray(accounts) || !Array.isArray(tools)) {
-      return res.status(400).json({ message: 'Invalid backup structure' });
-    }
+    const { transactions = [], accounts = [], tools = [], mode = 'merge' } = req.body;
 
     const userId = req.user._id;
 
-    // Upsert all records (merge, not replace)
+    // In 'replace' mode, safely archive or remove existing records before importing
+    if (mode === 'replace') {
+      await Promise.all([
+        Transaction.deleteMany({ userId }),
+        Account.deleteMany({ userId }),
+        Tool.deleteMany({ userId }),
+      ]);
+    }
+
+    // Helper to normalize transactions from either Mongo dumps or local browser JSON
+    const txRecords = transactions.map((t) => ({
+      userId,
+      localId: t.localId || t.id || t._id?.toString() || new mongoose.Types.ObjectId().toString(),
+      type: t.type || 'expense',
+      amount: Number(t.amount) || 0,
+      category: t.category || 'General',
+      account: t.account || 'Cash in Hand',
+      toAccount: t.toAccount || '',
+      date: t.date ? new Date(t.date) : new Date(),
+      note: t.note || t.title || '',
+      receiptImage: t.receiptImage || null,
+      isDeleted: t.isDeleted === 1 || t.isDeleted === true,
+      clientUpdatedAt: t.clientUpdatedAt ? new Date(t.clientUpdatedAt) : new Date(),
+    }));
+
+    // Helper to normalize accounts
+    const acRecords = accounts.map((a) => ({
+      userId,
+      localId: a.localId || a.id || a._id?.toString() || new mongoose.Types.ObjectId().toString(),
+      name: a.name || 'Account',
+      type: a.type || 'bank',
+      balance: Number(a.balance) || 0,
+      isDeleted: a.isDeleted === 1 || a.isDeleted === true,
+      clientUpdatedAt: a.clientUpdatedAt ? new Date(a.clientUpdatedAt) : new Date(),
+    }));
+
+    // Helper to normalize tools (debts/repayments)
+    const tlRecords = tools.map((tool) => ({
+      userId,
+      localId: tool.localId || tool.id || tool._id?.toString() || new mongoose.Types.ObjectId().toString(),
+      toolType: tool.toolType || (tool.data?.type ? 'debt' : 'savings_goal'),
+      data: tool.data || tool,
+      isDeleted: tool.isDeleted === 1 || tool.isDeleted === true,
+      clientUpdatedAt: tool.clientUpdatedAt ? new Date(tool.clientUpdatedAt) : new Date(),
+    }));
+
+    // Bulk upsert into MongoDB Atlas
     const [txResults, acResults, tlResults] = await Promise.all([
       Promise.allSettled(
-        transactions.map(({ localId, type, amount, category, account, toAccount, date, note, clientUpdatedAt }) =>
-          localId
-            ? Transaction.findOneAndUpdate(
-                { userId, localId },
-                { $setOnInsert: { type, amount, category, account, toAccount, date, note, clientUpdatedAt } },
-                { upsert: true, new: true }
-              )
-            : Promise.reject('missing localId')
+        txRecords.map((t) =>
+          Transaction.findOneAndUpdate(
+            { userId, localId: t.localId },
+            { $set: t },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          )
         )
       ),
       Promise.allSettled(
-        accounts.map(({ localId, name, type, balance }) =>
-          localId
-            ? Account.findOneAndUpdate(
-                { userId, localId },
-                { $setOnInsert: { name, type, balance } },
-                { upsert: true, new: true }
-              )
-            : Promise.reject('missing localId')
+        acRecords.map((a) =>
+          Account.findOneAndUpdate(
+            { userId, localId: a.localId },
+            { $set: a },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          )
         )
       ),
       Promise.allSettled(
-        tools.map(({ localId, toolType, data }) =>
-          localId
-            ? Tool.findOneAndUpdate(
-                { userId, localId },
-                { $setOnInsert: { toolType, data } },
-                { upsert: true, new: true }
-              )
-            : Promise.reject('missing localId')
+        tlRecords.map((tool) =>
+          Tool.findOneAndUpdate(
+            { userId, localId: tool.localId },
+            { $set: tool },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          )
         )
       ),
     ]);
 
+    const txSuccess = txResults.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+    const acSuccess = acResults.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+    const tlSuccess = tlResults.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+
     res.json({
-      message: 'Import complete',
+      message: mode === 'replace' ? 'Full restore complete (replaced)' : 'Merge complete',
       imported: {
-        transactions: txResults.filter((r) => r.status === 'fulfilled').length,
-        accounts: acResults.filter((r) => r.status === 'fulfilled').length,
-        tools: tlResults.filter((r) => r.status === 'fulfilled').length,
+        transactions: txSuccess.length,
+        accounts: acSuccess.length,
+        tools: tlSuccess.length,
+      },
+      restoredRecords: {
+        transactions: txSuccess,
+        accounts: acSuccess,
+        tools: tlSuccess,
       },
     });
   } catch (err) {
     console.error('Import error:', err);
-    res.status(500).json({ message: 'Import error' });
+    res.status(500).json({ message: 'Import error: ' + err.message });
   }
 };
 

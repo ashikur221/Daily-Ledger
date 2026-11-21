@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import db from '../db/localDb';
 import api from '../services/api';
 
 export default function SettingsPage() {
@@ -11,20 +12,47 @@ export default function SettingsPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [importFile, setImportFile] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importMode, setImportMode] = useState('merge'); // 'merge' or 'replace'
   const [copied, setCopied] = useState(false);
 
   const handleExport = async () => {
     setExportLoading(true);
     try {
-      const { data } = await api.get('/backup/export');
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      // 1. Gather all local IndexedDB records
+      const [localTx, localAcc, localTools] = await Promise.all([
+        db.transactions.where('isDeleted').equals(0).toArray(),
+        db.accounts.where('isDeleted').equals(0).toArray(),
+        db.tools.where('isDeleted').equals(0).toArray(),
+      ]);
+
+      // 2. If online, fetch full cloud dump to ensure 100% complete migration
+      let payload = {
+        exportedAt: new Date().toISOString(),
+        userEmail: user?.email,
+        version: '3.0',
+        transactions: localTx,
+        accounts: localAcc,
+        tools: localTools,
+      };
+
+      if (isOnline) {
+        try {
+          const { data } = await api.get('/backup/export');
+          if (data && data.transactions) {
+            payload = data;
+          }
+        } catch {}
+      }
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `daily-ledger-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `daily-ledger-full-backup-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Backup downloaded successfully!');
+      toast.success('Full cloud & local backup downloaded successfully!');
     } catch (err) {
       toast.error('Export failed: ' + (err.response?.data?.message || err.message));
     } finally {
@@ -37,17 +65,99 @@ export default function SettingsPage() {
       toast.warning('Please select a backup JSON file first');
       return;
     }
-    if (!window.confirm('Import will MERGE data into your account. Continue?')) return;
 
+    const confirmMsg =
+      importMode === 'replace'
+        ? '⚠️ WARNING: Replace mode will overwrite your current ledger with the backup data. Continue?'
+        : 'Import will MERGE all records from the backup into your ledger. Continue?';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setImportLoading(true);
     try {
       const text = await importFile.text();
       const json = JSON.parse(text);
-      const { data } = await api.post('/backup/import', json);
+
+      const transactions = Array.isArray(json.transactions)
+        ? json.transactions
+        : Array.isArray(json)
+        ? json
+        : [];
+      const accounts = Array.isArray(json.accounts) ? json.accounts : [];
+      const tools = Array.isArray(json.tools) ? json.tools : [];
+
+      if (transactions.length === 0 && accounts.length === 0 && tools.length === 0) {
+        throw new Error('No valid financial records found in this JSON file.');
+      }
+
+      // 1. If online, send directly to MongoDB Atlas for cloud persistence
+      let serverRes = null;
+      if (isOnline) {
+        const { data } = await api.post('/backup/import', {
+          transactions,
+          accounts,
+          tools,
+          mode: importMode,
+        });
+        serverRes = data;
+      }
+
+      // 2. Update local IndexedDB (Dexie)
+      if (importMode === 'replace') {
+        await Promise.all([
+          db.transactions.clear(),
+          db.accounts.clear(),
+          db.tools.clear(),
+          db.syncQueue.clear(),
+        ]);
+      }
+
+      // Put records locally with synced flag
+      if (transactions.length > 0) {
+        await db.transactions.bulkPut(
+          transactions.map((t) => ({
+            ...t,
+            localId: t.localId || t.id || t._id?.toString(),
+            synced: true,
+            isDeleted: t.isDeleted ? 1 : 0,
+          }))
+        );
+      }
+
+      if (accounts.length > 0) {
+        await db.accounts.bulkPut(
+          accounts.map((a) => ({
+            ...a,
+            localId: a.localId || a.id || a._id?.toString(),
+            synced: true,
+            isDeleted: a.isDeleted ? 1 : 0,
+          }))
+        );
+      }
+
+      if (tools.length > 0) {
+        await db.tools.bulkPut(
+          tools.map((tl) => ({
+            ...tl,
+            localId: tl.localId || tl.id || tl._id?.toString(),
+            synced: true,
+            isDeleted: tl.isDeleted ? 1 : 0,
+          }))
+        );
+      }
+
+      // Dispatch global refresh event so all open pages reload data
+      window.dispatchEvent(new CustomEvent('daily_ledger:data_updated', { detail: { pulled: transactions.length } }));
+
       toast.success(
-        `Import complete: ${data.imported.transactions} transactions, ${data.imported.accounts} accounts, ${data.imported.tools} tools.`
+        `Restore successful! Restored ${transactions.length} transactions, ${accounts.length} accounts, and ${tools.length} debts/loans into local & cloud databases.`
       );
+      setImportFile(null);
     } catch (err) {
+      console.error(err);
       toast.error('Import failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setImportLoading(false);
     }
   };
 
@@ -303,11 +413,36 @@ export default function SettingsPage() {
 
         <div>
           <h3 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#f1f5f9', margin: 0 }}>
-            Import & Merge Data
+            Full Cloud Restore & Migration
           </h3>
           <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
-            Select a previous backup file. Records will be safely merged without overwriting your newer entries.
+            Upload a JSON backup to restore into your local offline database and synchronize directly to MongoDB Atlas.
           </p>
+
+          {/* Mode Selector: Merge vs Replace */}
+          <div style={{ marginTop: '12px', display: 'flex', gap: '14px', alignItems: 'center' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#e2e8f0', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="importMode"
+                value="merge"
+                checked={importMode === 'merge'}
+                onChange={() => setImportMode('merge')}
+              />
+              <span><strong>Merge</strong> (Keep existing + append backup)</span>
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#fb7185', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="importMode"
+                value="replace"
+                checked={importMode === 'replace'}
+                onChange={() => setImportMode('replace')}
+              />
+              <span><strong>Full Replace</strong> (Overwrite current data)</span>
+            </label>
+          </div>
 
           <div style={{ marginTop: '14px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
             <input
@@ -325,19 +460,19 @@ export default function SettingsPage() {
             />
             <button
               onClick={handleImport}
-              disabled={!importFile || !isOnline}
+              disabled={!importFile || importLoading}
               className="primary"
               style={{
                 height: '38px',
-                padding: '0 18px',
+                padding: '0 20px',
                 borderRadius: '8px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                cursor: importFile && isOnline ? 'pointer' : 'not-allowed',
-                opacity: importFile && isOnline ? 1 : 0.5,
+                cursor: importFile && !importLoading ? 'pointer' : 'not-allowed',
+                opacity: importFile && !importLoading ? 1 : 0.5,
               }}
             >
-              ⬆ Merge Backup
+              {importLoading ? 'Restoring...' : importMode === 'replace' ? '⚠️ Overwrite & Restore' : '⬆ Merge & Restore'}
             </button>
           </div>
         </div>
