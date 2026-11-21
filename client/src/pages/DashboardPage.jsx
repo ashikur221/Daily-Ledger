@@ -299,18 +299,33 @@ export default function DashboardPage() {
   };
 
   const handleDeleteAll = async () => {
-    const prompt = window.prompt('Type "DELETE" to permanently erase all local records:');
+    const prompt = window.prompt('Type "DELETE" to permanently erase all ledger transactions:');
     if (prompt !== 'DELETE') {
       toast.info('Action cancelled');
       return;
     }
+
+    // Preserve encrypted vault passwords so they are NEVER accidentally destroyed!
+    const vaultSecrets = await db.tools.where('toolType').equals('vault_item').toArray();
 
     await db.transactions.clear();
     await db.accounts.clear();
     await db.tools.clear();
     await db.syncQueue.clear();
 
-    toast.warning('All local data cleared');
+    // Safely restore private vault passwords
+    if (vaultSecrets.length > 0) {
+      await db.tools.bulkPut(vaultSecrets);
+    }
+
+    // Also purge seed dummy records from cloud database
+    try {
+      if (isOnline) {
+        await api.post('/transactions/purge-seed');
+      }
+    } catch {}
+
+    toast.warning('Ledger data cleared (Password vault preserved)');
     loadDashboardData();
   };
 
@@ -547,10 +562,10 @@ export default function DashboardPage() {
         <div className="danger-zone-content">
           <h3 className="danger-title">Danger zone</h3>
           <p className="danger-desc">
-            Permanently delete all expenses, deposits, bank transactions, and debt/repayment records saved in this browser. This cannot be undone. Export a JSON backup first if you may need the records later.
+            Permanently delete all expenses, deposits, bank transactions, and debt/repayment records. Your encrypted Bank &amp; bKash vault credentials will remain safely preserved.
           </p>
           <button id="deleteAllBtn" className="danger-btn" onClick={handleDeleteAll}>
-            Delete all data
+            Clear Ledger Data
           </button>
         </div>
       </div>

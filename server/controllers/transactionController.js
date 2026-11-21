@@ -1,4 +1,5 @@
 const Transaction = require('../models/Transaction');
+const Account = require('../models/Account');
 
 // GET /api/transactions
 // Query: ?page=1&limit=50&type=expense&account=bKash&startDate=&endDate=&search=
@@ -125,4 +126,32 @@ const syncTransactions = async (req, res) => {
   }
 };
 
-module.exports = { getTransactions, createTransaction, updateTransaction, deleteTransaction, syncTransactions };
+// POST /api/transactions/purge-seed
+// Deletes legacy dummy seed transactions and accounts for the authenticated user
+const purgeSeedData = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const [txRes, accRes] = await Promise.all([
+      Transaction.deleteMany({
+        userId,
+        localId: { $regex: '^seed_' },
+      }),
+      Account.deleteMany({
+        userId,
+        localId: { $in: ['acc_cash', 'acc_islami_bank', 'acc_prime_bank', 'acc_bkash', 'acc_nagad', 'acc_rocket'] },
+      }),
+    ]);
+
+    res.json({
+      message: 'Seed dummy data successfully purged from cloud',
+      deletedTransactions: txRes.deletedCount,
+      deletedAccounts: accRes.deletedCount,
+    });
+  } catch (err) {
+    console.error('Purge seed data error:', err);
+    res.status(500).json({ message: 'Error purging seed data' });
+  }
+};
+
+module.exports = { getTransactions, createTransaction, updateTransaction, deleteTransaction, syncTransactions, purgeSeedData };
