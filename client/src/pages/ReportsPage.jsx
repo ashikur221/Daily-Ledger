@@ -393,29 +393,29 @@ export default function ReportsPage() {
         </p>
       </div>
 
-      {/* 2. Top 3-Box Metrics */}
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        <div style={metricBoxStyle}>
-          <div style={tinyLabelStyle}>Itemized spending</div>
-          <div style={metricValStyle}>{fmt(itemizedTotal)}</div>
-          <p style={metricSubStyle}>{daysCount} days with itemized expenses</p>
+      {/* 2. Top 3-Box Metrics (Responsive CSS Grid: 1 col on mobile, 3 cols on desktop) */}
+      <div className="insights-metrics-grid">
+        <div className="insights-metric-card">
+          <div className="tiny-label">Itemized spending</div>
+          <div className="metric-val">{fmt(itemizedTotal)}</div>
+          <p className="metric-sub">{daysCount} days with itemized expenses</p>
         </div>
 
-        <div style={metricBoxStyle}>
-          <div style={tinyLabelStyle}>Average per recorded day</div>
-          <div style={metricValStyle}>৳{avgPerDay}</div>
-          <p style={metricSubStyle}>Days with itemized expenses</p>
+        <div className="insights-metric-card">
+          <div className="tiny-label">Average per recorded day</div>
+          <div className="metric-val">৳{avgPerDay}</div>
+          <p className="metric-sub">Days with itemized expenses</p>
         </div>
 
-        <div style={metricBoxStyle}>
-          <div style={tinyLabelStyle}>Highest-spend day</div>
-          <div style={metricValStyle}>
+        <div className="insights-metric-card">
+          <div className="tiny-label">Highest-spend day</div>
+          <div className="metric-val">
             {highestSpend.amount > 0 ? fmt(highestSpend.amount) : '—'}
           </div>
-          <p style={metricSubStyle}>
+          <p className="metric-sub">
             {highestSpend.date
               ? new Date(highestSpend.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-              : ''}
+              : 'No recorded day yet'}
           </p>
         </div>
       </div>
@@ -427,14 +427,14 @@ export default function ReportsPage() {
           Current calendar month compared with the previous month, using itemized expenses only.
         </p>
 
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={compCardStyle}>
+        <div className="insights-comp-grid">
+          <div className="insights-comp-card">
             <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{currentMonthLabel}</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f1f5f9', marginTop: '8px' }}>
               {fmt(currentMonthSpend)}
             </div>
           </div>
-          <div style={compCardStyle}>
+          <div className="insights-comp-card">
             <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{previousMonthLabel}</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f1f5f9', marginTop: '8px' }}>
               {fmt(previousMonthSpend)}
