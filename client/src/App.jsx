@@ -9,6 +9,7 @@ import AccountsPage from './pages/AccountsPage';
 import ToolsPage from './pages/ToolsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminPage from './pages/AdminPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { seedInitialDataIfNeeded } from './db/seedHelper';
@@ -90,6 +91,18 @@ function AppContent() {
         <NavLink to="/reports" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
           Reports & Insights
         </NavLink>
+        {user?.role === 'admin' && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
+            style={({ isActive }) => ({
+              color: isActive ? '#38bdf8' : '#f87171',
+              fontWeight: 700,
+            })}
+          >
+            🛡️ Admin
+          </NavLink>
+        )}
       </nav>
 
       {/* Main Routed Content Area */}
@@ -102,6 +115,7 @@ function AppContent() {
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          {user?.role === 'admin' && <Route path="/admin" element={<AdminPage />} />}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
