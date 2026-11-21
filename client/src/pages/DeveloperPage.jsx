@@ -63,13 +63,13 @@ export default function DeveloperPage() {
               }}
             >
               <img
-                src="/developer.jpg"
+                src="/developer.jpg?v=2"
                 alt="Ashikur Rahman"
                 style={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  objectPosition: 'center 15%',
+                  objectPosition: 'center 20%',
                 }}
                 onError={(e) => {
                   // Fallback to placeholder if asset load fails
