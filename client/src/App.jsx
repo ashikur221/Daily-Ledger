@@ -22,6 +22,7 @@ seedInitialDataIfNeeded();
 
 function AppContent() {
   const { user, loading, isOnline, pendingSync } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   if (loading) {
     return (
@@ -51,7 +52,18 @@ function AppContent() {
       {/* Top Masthead Header matching Screenshot */}
       <header className="masthead-header">
         <div className="masthead-left">
-          <img src="/app-logo.png" alt="Daily Ledger Logo" className="masthead-app-icon" />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+            <img src="/app-logo.png" alt="Daily Ledger Logo" className="masthead-app-icon" />
+            {/* Mobile Sidebar Trigger Button under Logo */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="mobile-side-toggle-btn"
+              title="Open Navigation Menu"
+            >
+              ☰ Menu
+            </button>
+          </div>
           <div>
             <div className="masthead-subtag">PERSONAL FINANCE</div>
             <h1 className="masthead-title">
@@ -191,15 +203,106 @@ function AppContent() {
           <span className="nav-icon">৳</span>
           <span className="nav-label-debt">Debt</span>
         </NavLink>
-        <NavLink to="/tasks" className={({ isActive }) => (isActive ? 'active' : '')}>
-          <span className="nav-icon">🔒</span>
-          <span>Tasks</span>
-        </NavLink>
         <NavLink to="/reports" className={({ isActive }) => (isActive ? 'active' : '')}>
           <span className="nav-icon">▥</span>
           <span>Reports</span>
         </NavLink>
       </nav>
+
+      {/* Mobile Drawer / Side Panel Modal */}
+      {mobileMenuOpen && (
+        <div className="mobile-drawer-overlay" onClick={() => setMobileMenuOpen(false)}>
+          <div className="mobile-drawer-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-drawer-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <img src="/app-logo.png" alt="Daily Ledger Logo" style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
+                <div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc' }}>Daily Ledger</div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Quick Access Panel</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="mobile-drawer-close"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mobile-drawer-body">
+              <div className="mobile-drawer-section-title">Productivity & Security</div>
+              
+              <NavLink
+                to="/tasks"
+                className={({ isActive }) => `mobile-drawer-link ${isActive ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '1.25rem' }}>🔒</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Tasks & Secure Vault</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>To-Do list & Bank/bKash password vault</div>
+                  </div>
+                </div>
+                <span>›</span>
+              </NavLink>
+
+              {user?.role === 'admin' && (
+                <>
+                  <div className="mobile-drawer-section-title" style={{ marginTop: '16px' }}>Administration</div>
+                  <NavLink
+                    to="/admin"
+                    className={({ isActive }) => `mobile-drawer-link admin-link ${isActive ? 'active' : ''}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '1.25rem' }}>🛡️</span>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#f87171' }}>Admin Control Center</div>
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Users overview & live ledger summaries</div>
+                      </div>
+                    </div>
+                    <span>›</span>
+                  </NavLink>
+                </>
+              )}
+
+              <div className="mobile-drawer-section-title" style={{ marginTop: '16px' }}>More Navigation</div>
+
+              <NavLink
+                to="/developer"
+                className={({ isActive }) => `mobile-drawer-link ${isActive ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '1.25rem' }}>👨‍💻</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>About Developer</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Ashikur Rahman Profile</div>
+                  </div>
+                </div>
+                <span>›</span>
+              </NavLink>
+
+              <NavLink
+                to="/settings"
+                className={({ isActive }) => `mobile-drawer-link ${isActive ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '1.25rem' }}>⚙️</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Settings & Backup</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Profile, invite & full cloud restore</div>
+                  </div>
+                </div>
+                <span>›</span>
+              </NavLink>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
