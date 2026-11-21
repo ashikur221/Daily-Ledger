@@ -35,6 +35,11 @@ export default function LedgerPage({ initialType = '' }) {
   // Track which date accordions are open (default all or first 5 open)
   const [openDates, setOpenDates] = useState({});
 
+  // Virtualization / Infinite Scroll: number of day groups to render
+  const INITIAL_BATCH_SIZE = 15;
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
+  const loadMoreRef = React.useRef(null);
+
   useEffect(() => {
     loadTransactions();
 
@@ -156,6 +161,31 @@ export default function LedgerPage({ initialType = '' }) {
     // Sort dates newest to oldest
     return Object.values(groups).sort((a, b) => b.date.localeCompare(a.date));
   }, [allExpenses, search]);
+
+  // Reset visibleCount when search changes so first matches show up immediately
+  useEffect(() => {
+    setVisibleCount(INITIAL_BATCH_SIZE);
+  }, [search]);
+
+  // Infinite Scroll / Virtual batching via IntersectionObserver
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + 10, groupedByDate.length));
+        }
+      },
+      { rootMargin: '250px' }
+    );
+
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [groupedByDate.length]);
+
+  const displayedGroups = useMemo(() => {
+    return groupedByDate.slice(0, visibleCount);
+  }, [groupedByDate, visibleCount]);
 
   const toggleDate = (dateKey) => {
     setOpenDates((prev) => ({
@@ -518,87 +548,115 @@ export default function LedgerPage({ initialType = '' }) {
             </p>
           </div>
         ) : (
-          groupedByDate.map((group) => {
-            const isOpen = openDates[group.date] ?? (search ? true : false);
+          <>
+            {displayedGroups.map((group) => {
+              const isOpen = openDates[group.date] ?? (search ? true : false);
 
-            return (
-              <div key={group.date} className="panel history-date-card">
-                {/* Clickable Date Summary Header */}
-                <div
-                  className="history-date-header"
-                  onClick={() => toggleDate(group.date)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div>
-                    <div className="history-date-title">
-                      {formatHeaderDate(group.date)}
+              return (
+                <div key={group.date} className="panel history-date-card">
+                  {/* Clickable Date Summary Header */}
+                  <div
+                    className="history-date-header"
+                    onClick={() => toggleDate(group.date)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div>
+                      <div className="history-date-title">
+                        {formatHeaderDate(group.date)}
+                      </div>
+                      <div className="history-date-meta">
+                        {group.items.length} itemized {group.items.length === 1 ? 'entry' : 'entries'}
+                      </div>
                     </div>
-                    <div className="history-date-meta">
-                      {group.items.length} itemized {group.items.length === 1 ? 'entry' : 'entries'}
+
+                    <div className="history-date-right">
+                      <span className="history-date-amount">{fmt(group.total)}</span>
+                      <span className={`accordion-chevron ${isOpen ? 'open' : ''}`}>
+                        ⌄
+                      </span>
                     </div>
                   </div>
 
-                  <div className="history-date-right">
-                    <span className="history-date-amount">{fmt(group.total)}</span>
-                    <span className={`accordion-chevron ${isOpen ? 'open' : ''}`}>
-                      ⌄
-                    </span>
-                  </div>
-                </div>
+                  {/* Collapsible itemized entries body */}
+                  {isOpen && (
+                    <div className="history-date-body">
+                      <div className="history-date-actions-top">
+                        <button
+                          type="button"
+                          className="primary text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenAddForDate(group.date);
+                          }}
+                        >
+                          + Add expense to this day
+                        </button>
+                      </div>
 
-                {/* Collapsible itemized entries body */}
-                {isOpen && (
-                  <div className="history-date-body">
-                    <div className="history-date-actions-top">
-                      <button
-                        type="button"
-                        className="primary text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenAddForDate(group.date);
-                        }}
-                      >
-                        + Add expense to this day
-                      </button>
-                    </div>
-
-                    <div className="entries-list">
-                      {group.items.map((item) => (
-                        <div key={item.localId} className="entry-row">
-                          <div className="entry-info">
-                            <div className="entry-title">{item.note || 'Expense'}</div>
-                            <div className="entry-category">{item.category || 'General'}</div>
-                          </div>
-                          <div className="entry-right">
-                            <span className="entry-amount">{fmt(item.amount)}</span>
-                            <div className="entry-actions">
-                              <button
-                                type="button"
-                                className="btn-link"
-                                onClick={() => handleOpenEdit(item)}
-                                title="Edit"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-link text-danger"
-                                onClick={() => handleDelete(item)}
-                                title="Delete"
-                              >
-                                ×
-                              </button>
+                      <div className="entries-list">
+                        {group.items.map((item) => (
+                          <div key={item.localId} className="entry-row">
+                            <div className="entry-info">
+                              <div className="entry-title">{item.note || 'Expense'}</div>
+                              <div className="entry-category">{item.category || 'General'}</div>
+                            </div>
+                            <div className="entry-right">
+                              <span className="entry-amount">{fmt(item.amount)}</span>
+                              <div className="entry-actions">
+                                <button
+                                  type="button"
+                                  className="btn-link"
+                                  onClick={() => handleOpenEdit(item)}
+                                  title="Edit"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-link text-danger"
+                                  onClick={() => handleDelete(item)}
+                                  title="Delete"
+                                >
+                                  ×
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Infinite Scroll trigger / Load more button */}
+            {visibleCount < groupedByDate.length && (
+              <div
+                ref={loadMoreRef}
+                style={{
+                  textAlign: 'center',
+                  padding: '18px 0',
+                }}
+              >
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setVisibleCount((prev) => Math.min(prev + 15, groupedByDate.length))}
+                  style={{
+                    height: '40px',
+                    padding: '0 20px',
+                    borderRadius: '10px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  Load older days ({groupedByDate.length - visibleCount} more)...
+                </button>
               </div>
-            );
-          })
+            )}
+          </>
         )}
       </div>
 
