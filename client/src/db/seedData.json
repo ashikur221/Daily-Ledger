@@ -1,0 +1,1450 @@
+{
+  "expenses": [
+    {
+      "id": "e001",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Bus ticket",
+      "amount": 610
+    },
+    {
+      "id": "e002",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Rickshaw",
+      "amount": 20
+    },
+    {
+      "id": "e003",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Rickshaw",
+      "amount": 20
+    },
+    {
+      "id": "e004",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Burger",
+      "amount": 90
+    },
+    {
+      "id": "e005",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Dinner",
+      "amount": 80
+    },
+    {
+      "id": "e006",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Sandel",
+      "amount": 100
+    },
+    {
+      "id": "e007",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Bag",
+      "amount": 170
+    },
+    {
+      "id": "e008",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Jange",
+      "amount": 150
+    },
+    {
+      "id": "e009",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Nailcutter",
+      "amount": 50
+    },
+    {
+      "id": "e010",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Fexiload",
+      "amount": 100
+    },
+    {
+      "id": "e011",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Room vara",
+      "amount": 2000
+    },
+    {
+      "id": "e012",
+      "date": "2026-09-14",
+      "dateLabel": "14-9-26",
+      "title": "Closed ----- 3390x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e013",
+      "date": "2026-09-15",
+      "dateLabel": "15-9-26",
+      "title": "Cha",
+      "amount": 40
+    },
+    {
+      "id": "e014",
+      "date": "2026-09-15",
+      "dateLabel": "15-9-26",
+      "title": "Fexiload",
+      "amount": 200
+    },
+    {
+      "id": "e015",
+      "date": "2026-09-15",
+      "dateLabel": "15-9-26",
+      "title": "Khata",
+      "amount": 150
+    },
+    {
+      "id": "e016",
+      "date": "2026-09-15",
+      "dateLabel": "15-9-26",
+      "title": "Multiplug",
+      "amount": 100
+    },
+    {
+      "id": "e017",
+      "date": "2026-09-15",
+      "dateLabel": "15-9-26",
+      "title": "Coil",
+      "amount": 90
+    },
+    {
+      "id": "e018",
+      "date": "2026-09-15",
+      "dateLabel": "15-9-26",
+      "title": "Sandel",
+      "amount": 50
+    },
+    {
+      "id": "e019",
+      "date": "2026-09-15",
+      "dateLabel": "15-9-26",
+      "title": "Dinner",
+      "amount": 75
+    },
+    {
+      "id": "e020",
+      "date": "2026-09-15",
+      "dateLabel": "15-9-26",
+      "title": "Closed -- 705x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e021",
+      "date": "2026-09-16",
+      "dateLabel": "16-9-2",
+      "title": "Burger",
+      "amount": 70
+    },
+    {
+      "id": "e022",
+      "date": "2026-09-16",
+      "dateLabel": "16-9-2",
+      "title": "Kichuri",
+      "amount": 100
+    },
+    {
+      "id": "e023",
+      "date": "2026-09-16",
+      "dateLabel": "16-9-2",
+      "title": "Cocacola",
+      "amount": 110
+    },
+    {
+      "id": "e024",
+      "date": "2026-09-16",
+      "dateLabel": "16-9-2",
+      "title": "Londri",
+      "amount": 70
+    },
+    {
+      "id": "e025",
+      "date": "2026-09-16",
+      "dateLabel": "16-9-2",
+      "title": "Closed --- 350x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e026",
+      "date": "2026-09-17",
+      "dateLabel": "17-9-26",
+      "title": "Cha",
+      "amount": 30
+    },
+    {
+      "id": "e027",
+      "date": "2026-09-17",
+      "dateLabel": "17-9-26",
+      "title": "Handwash",
+      "amount": 100
+    },
+    {
+      "id": "e028",
+      "date": "2026-09-17",
+      "dateLabel": "17-9-26",
+      "title": "Dress",
+      "amount": 350
+    },
+    {
+      "id": "e029",
+      "date": "2026-09-17",
+      "dateLabel": "17-9-26",
+      "title": "Dinner",
+      "amount": 210
+    },
+    {
+      "id": "e030",
+      "date": "2026-09-17",
+      "dateLabel": "17-9-26",
+      "title": "Closed --- 690x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e031",
+      "date": "2026-09-18",
+      "dateLabel": "18-9-2",
+      "title": "Bus",
+      "amount": 20
+    },
+    {
+      "id": "e032",
+      "date": "2026-09-18",
+      "dateLabel": "18-9-2",
+      "title": "Saline",
+      "amount": 60
+    },
+    {
+      "id": "e033",
+      "date": "2026-09-18",
+      "dateLabel": "18-9-2",
+      "title": "Lunch",
+      "amount": 300
+    },
+    {
+      "id": "e034",
+      "date": "2026-09-18",
+      "dateLabel": "18-9-2",
+      "title": "Dinner",
+      "amount": 200
+    },
+    {
+      "id": "e035",
+      "date": "2026-09-18",
+      "dateLabel": "18-9-2",
+      "title": "Bus",
+      "amount": 30
+    },
+    {
+      "id": "e036",
+      "date": "2026-09-18",
+      "dateLabel": "18-9-2",
+      "title": "Closed -- 610x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e037",
+      "date": "2026-09-19",
+      "dateLabel": "19-9-26",
+      "title": "Breakfast",
+      "amount": 40
+    },
+    {
+      "id": "e038",
+      "date": "2026-09-19",
+      "dateLabel": "19-9-26",
+      "title": "CNG wireless to Berdem",
+      "amount": 60
+    },
+    {
+      "id": "e039",
+      "date": "2026-09-19",
+      "dateLabel": "19-9-26",
+      "title": "Sosa",
+      "amount": 50
+    },
+    {
+      "id": "e040",
+      "date": "2026-09-19",
+      "dateLabel": "19-9-26",
+      "title": "Lunch",
+      "amount": 120
+    },
+    {
+      "id": "e041",
+      "date": "2026-09-19",
+      "dateLabel": "19-9-26",
+      "title": "Berdem to better life",
+      "amount": 25
+    },
+    {
+      "id": "e042",
+      "date": "2026-09-19",
+      "dateLabel": "19-9-26",
+      "title": "Closed --- 295x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e043",
+      "date": "2026-09-20",
+      "dateLabel": "20-9-26",
+      "title": "Cha photocopy",
+      "amount": 130
+    },
+    {
+      "id": "e044",
+      "date": "2026-09-20",
+      "dateLabel": "20-9-26",
+      "title": "Dinner",
+      "amount": 75
+    },
+    {
+      "id": "e045",
+      "date": "2026-09-20",
+      "dateLabel": "20-9-26",
+      "title": "Colsed -- 205x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e046",
+      "date": "2026-09-21",
+      "dateLabel": "21-9-26",
+      "title": "Bus+metro",
+      "amount": 40
+    },
+    {
+      "id": "e047",
+      "date": "2026-09-21",
+      "dateLabel": "21-9-26",
+      "title": "Juice",
+      "amount": 30
+    },
+    {
+      "id": "e048",
+      "date": "2026-09-21",
+      "dateLabel": "21-9-26",
+      "title": "Dinner",
+      "amount": 80
+    },
+    {
+      "id": "e049",
+      "date": "2026-09-21",
+      "dateLabel": "21-9-26",
+      "title": "Kismis",
+      "amount": 50
+    },
+    {
+      "id": "e050",
+      "date": "2026-09-21",
+      "dateLabel": "21-9-26",
+      "title": "Closed --- 200x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e051",
+      "date": "2026-09-22",
+      "dateLabel": "22-9-26",
+      "title": "Shoe polish",
+      "amount": 50
+    },
+    {
+      "id": "e052",
+      "date": "2026-09-22",
+      "dateLabel": "22-9-26",
+      "title": "Pen",
+      "amount": 30
+    },
+    {
+      "id": "e053",
+      "date": "2026-09-22",
+      "dateLabel": "22-9-26",
+      "title": "Dinner",
+      "amount": 110
+    },
+    {
+      "id": "e054",
+      "date": "2026-09-22",
+      "dateLabel": "22-9-26",
+      "title": "Antacid",
+      "amount": 30
+    },
+    {
+      "id": "e055",
+      "date": "2026-09-22",
+      "dateLabel": "22-9-26",
+      "title": "Clothing",
+      "amount": 30
+    },
+    {
+      "id": "e056",
+      "date": "2026-09-22",
+      "dateLabel": "22-9-26",
+      "title": "Closed --- 250x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e057",
+      "date": "2026-09-23",
+      "dateLabel": "23-9-26",
+      "title": "Pen",
+      "amount": 30
+    },
+    {
+      "id": "e058",
+      "date": "2026-09-23",
+      "dateLabel": "23-9-26",
+      "title": "Dinner",
+      "amount": 200
+    },
+    {
+      "id": "e059",
+      "date": "2026-09-23",
+      "dateLabel": "23-9-26",
+      "title": "Shirt",
+      "amount": 200
+    },
+    {
+      "id": "e060",
+      "date": "2026-09-23",
+      "dateLabel": "23-9-26",
+      "title": "Pant",
+      "amount": 200
+    },
+    {
+      "id": "e061",
+      "date": "2026-09-23",
+      "dateLabel": "23-9-26",
+      "title": "Recharge",
+      "amount": 100
+    },
+    {
+      "id": "e062",
+      "date": "2026-09-23",
+      "dateLabel": "23-9-26",
+      "title": "Closed --- 730x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e063",
+      "date": "2026-09-24",
+      "dateLabel": "24-9-26",
+      "title": "Kichuri",
+      "amount": 90
+    },
+    {
+      "id": "e064",
+      "date": "2026-09-24",
+      "dateLabel": "24-9-26",
+      "title": "Dinner",
+      "amount": 130
+    },
+    {
+      "id": "e065",
+      "date": "2026-09-24",
+      "dateLabel": "24-9-26",
+      "title": "Closed - 220x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e066",
+      "date": "2026-09-25",
+      "dateLabel": "25-9-26",
+      "title": "Breakfast ---",
+      "amount": 60
+    },
+    {
+      "id": "e067",
+      "date": "2026-09-25",
+      "dateLabel": "25-9-26",
+      "title": "Lunch",
+      "amount": 210
+    },
+    {
+      "id": "e068",
+      "date": "2026-09-25",
+      "dateLabel": "25-9-26",
+      "title": "Wash",
+      "amount": 70
+    },
+    {
+      "id": "e069",
+      "date": "2026-09-25",
+      "dateLabel": "25-9-26",
+      "title": "Rent",
+      "amount": 2000
+    },
+    {
+      "id": "e070",
+      "date": "2026-09-25",
+      "dateLabel": "25-9-26",
+      "title": "Dinner",
+      "amount": 170
+    },
+    {
+      "id": "e071",
+      "date": "2026-09-25",
+      "dateLabel": "25-9-26",
+      "title": "Closed --- 2510x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e072",
+      "date": "2026-09-26",
+      "dateLabel": "26-9-26",
+      "title": "Cha",
+      "amount": 30
+    },
+    {
+      "id": "e073",
+      "date": "2026-09-26",
+      "dateLabel": "26-9-26",
+      "title": "Dinner",
+      "amount": 75
+    },
+    {
+      "id": "e074",
+      "date": "2026-09-26",
+      "dateLabel": "26-9-26",
+      "title": "Salain",
+      "amount": 40
+    },
+    {
+      "id": "e075",
+      "date": "2026-09-26",
+      "dateLabel": "26-9-26",
+      "title": "Closed 145x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e076",
+      "date": "2026-09-27",
+      "dateLabel": "27-9-26",
+      "title": "Dinner",
+      "amount": 200
+    },
+    {
+      "id": "e077",
+      "date": "2026-09-27",
+      "dateLabel": "27-9-26",
+      "title": "Closed 200x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e078",
+      "date": "2026-09-28",
+      "dateLabel": "28-9-26",
+      "title": "Salone",
+      "amount": 100
+    },
+    {
+      "id": "e079",
+      "date": "2026-09-28",
+      "dateLabel": "28-9-26",
+      "title": "Nasta",
+      "amount": 100
+    },
+    {
+      "id": "e080",
+      "date": "2026-09-28",
+      "dateLabel": "28-9-26",
+      "title": "Dinner",
+      "amount": 160
+    },
+    {
+      "id": "e081",
+      "date": "2026-09-28",
+      "dateLabel": "28-9-26",
+      "title": "Khata",
+      "amount": 150
+    },
+    {
+      "id": "e082",
+      "date": "2026-09-28",
+      "dateLabel": "28-9-26",
+      "title": "Closed 510x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e083",
+      "date": "2026-09-29",
+      "dateLabel": "29-9-30",
+      "title": "Cha",
+      "amount": 35
+    },
+    {
+      "id": "e084",
+      "date": "2026-09-29",
+      "dateLabel": "29-9-30",
+      "title": "Juice",
+      "amount": 30
+    },
+    {
+      "id": "e085",
+      "date": "2026-09-29",
+      "dateLabel": "29-9-30",
+      "title": "Dinner",
+      "amount": 115
+    },
+    {
+      "id": "e086",
+      "date": "2026-09-29",
+      "dateLabel": "29-9-30",
+      "title": "Juice",
+      "amount": 60
+    },
+    {
+      "id": "e087",
+      "date": "2026-09-29",
+      "dateLabel": "29-9-30",
+      "title": "Vara",
+      "amount": 70
+    },
+    {
+      "id": "e088",
+      "date": "2026-09-29",
+      "dateLabel": "29-9-30",
+      "title": "Ysubgul",
+      "amount": 70
+    },
+    {
+      "id": "e089",
+      "date": "2026-09-29",
+      "dateLabel": "29-9-30",
+      "title": "Closed - 380x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e090",
+      "date": "2026-09-30",
+      "dateLabel": "30-9-26",
+      "title": "Trouser",
+      "amount": 300
+    },
+    {
+      "id": "e091",
+      "date": "2026-09-30",
+      "dateLabel": "30-9-26",
+      "title": "Juice",
+      "amount": 100
+    },
+    {
+      "id": "e092",
+      "date": "2026-09-30",
+      "dateLabel": "30-9-26",
+      "title": "Dinner",
+      "amount": 120
+    },
+    {
+      "id": "e093",
+      "date": "2026-09-30",
+      "dateLabel": "30-9-26",
+      "title": "Buldoser",
+      "amount": 40
+    },
+    {
+      "id": "e094",
+      "date": "2026-09-30",
+      "dateLabel": "30-9-26",
+      "title": "Recharge",
+      "amount": 150
+    },
+    {
+      "id": "e095",
+      "date": "2026-09-30",
+      "dateLabel": "30-9-26",
+      "title": "Closed 710x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e096",
+      "date": "2026-10-01",
+      "dateLabel": "Oct-1",
+      "title": "Cha",
+      "amount": 20
+    },
+    {
+      "id": "e097",
+      "date": "2026-10-01",
+      "dateLabel": "Oct-1",
+      "title": "Rickshaw",
+      "amount": 40
+    },
+    {
+      "id": "e098",
+      "date": "2026-10-01",
+      "dateLabel": "Oct-1",
+      "title": "Vwash",
+      "amount": 320
+    },
+    {
+      "id": "e099",
+      "date": "2026-10-01",
+      "dateLabel": "Oct-1",
+      "title": "Body spray",
+      "amount": 400
+    },
+    {
+      "id": "e100",
+      "date": "2026-10-01",
+      "dateLabel": "Oct-1",
+      "title": "Dinner",
+      "amount": 220
+    },
+    {
+      "id": "e101",
+      "date": "2026-10-01",
+      "dateLabel": "Oct-1",
+      "title": "Icha gum",
+      "amount": 20
+    },
+    {
+      "id": "e102",
+      "date": "2026-10-01",
+      "dateLabel": "Oct-1",
+      "title": "Closed 1020x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e103",
+      "date": "2026-10-02",
+      "dateLabel": "Oct - 2",
+      "title": "Breakfast",
+      "amount": 120
+    },
+    {
+      "id": "e104",
+      "date": "2026-10-02",
+      "dateLabel": "Oct - 2",
+      "title": "Taste me",
+      "amount": 50
+    },
+    {
+      "id": "e105",
+      "date": "2026-10-02",
+      "dateLabel": "Oct - 2",
+      "title": "Shirt wash",
+      "amount": 120
+    },
+    {
+      "id": "e106",
+      "date": "2026-10-02",
+      "dateLabel": "Oct - 2",
+      "title": "Pen",
+      "amount": 15
+    },
+    {
+      "id": "e107",
+      "date": "2026-10-02",
+      "dateLabel": "Oct - 2",
+      "title": "Dinner",
+      "amount": 65
+    },
+    {
+      "id": "e108",
+      "date": "2026-10-02",
+      "dateLabel": "Oct - 2",
+      "title": "Closed 370x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e109",
+      "date": "2026-10-03",
+      "dateLabel": "Oct-3",
+      "title": "Cha",
+      "amount": 45
+    },
+    {
+      "id": "e110",
+      "date": "2026-10-03",
+      "dateLabel": "Oct-3",
+      "title": "Dinner",
+      "amount": 200
+    },
+    {
+      "id": "e111",
+      "date": "2026-10-03",
+      "dateLabel": "Oct-3",
+      "title": "Closed 245x",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e112",
+      "date": "2026-10-04",
+      "dateLabel": "Oct - 4",
+      "title": "Dinner",
+      "amount": 480
+    },
+    {
+      "id": "e113",
+      "date": "2026-10-04",
+      "dateLabel": "Oct - 4",
+      "title": "T-shirts",
+      "amount": 150
+    },
+    {
+      "id": "e114",
+      "date": "2026-10-04",
+      "dateLabel": "Oct - 4",
+      "title": "Closed 630",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e115",
+      "date": "2026-10-05",
+      "dateLabel": "Oct -5",
+      "title": "Breakfast",
+      "amount": 80
+    },
+    {
+      "id": "e116",
+      "date": "2026-10-05",
+      "dateLabel": "Oct -5",
+      "title": "Razor",
+      "amount": 90
+    },
+    {
+      "id": "e117",
+      "date": "2026-10-05",
+      "dateLabel": "Oct -5",
+      "title": "Dinner",
+      "amount": 100
+    },
+    {
+      "id": "e118",
+      "date": "2026-10-05",
+      "dateLabel": "Oct -5",
+      "title": "Closed 270",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e119",
+      "date": "2026-10-06",
+      "dateLabel": "Oct-6",
+      "title": "Medicine",
+      "amount": 50
+    },
+    {
+      "id": "e120",
+      "date": "2026-10-06",
+      "dateLabel": "Oct-6",
+      "title": "Meatbox",
+      "amount": 120
+    },
+    {
+      "id": "e121",
+      "date": "2026-10-06",
+      "dateLabel": "Oct-6",
+      "title": "Dinner",
+      "amount": 60
+    },
+    {
+      "id": "e122",
+      "date": "2026-10-06",
+      "dateLabel": "Oct-6",
+      "title": "Closed 230",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e123",
+      "date": "2026-10-07",
+      "dateLabel": "Oct - 7",
+      "title": "Salaine-",
+      "amount": 100
+    },
+    {
+      "id": "e124",
+      "date": "2026-10-07",
+      "dateLabel": "Oct - 7",
+      "title": "Dinner",
+      "amount": 140
+    },
+    {
+      "id": "e125",
+      "date": "2026-10-07",
+      "dateLabel": "Oct - 7",
+      "title": "Closed 240",
+      "amount": null,
+      "note": true
+    },
+    {
+      "id": "e126",
+      "date": "2026-10-08",
+      "dateLabel": "Oct - 8",
+      "title": "Medicine",
+      "amount": 30
+    },
+    {
+      "id": "e127",
+      "date": "2026-10-08",
+      "dateLabel": "Oct - 8",
+      "title": "Mobile recharge",
+      "amount": 260
+    },
+    {
+      "id": "e1791522090055",
+      "date": "2026-10-08",
+      "dateLabel": "8 Oct 2026",
+      "title": "Transport",
+      "amount": 150,
+      "isNew": true
+    },
+    {
+      "id": "e1791522180752",
+      "date": "2026-10-09",
+      "dateLabel": "9 Oct 2026",
+      "title": "Breakfast",
+      "amount": 100,
+      "isNew": true
+    },
+    {
+      "id": "e1791522644996",
+      "date": "2026-10-09",
+      "dateLabel": "9 Oct 2026",
+      "title": "Jani na koi koroch hoilo",
+      "amount": 580,
+      "isNew": true
+    },
+    {
+      "id": "e1791631669857",
+      "date": "2026-10-09",
+      "dateLabel": "9 Oct 2026",
+      "title": "Launch",
+      "amount": 150,
+      "isNew": true
+    },
+    {
+      "id": "e1791631692660",
+      "date": "2026-10-09",
+      "dateLabel": "9 Oct 2026",
+      "title": "Dinner",
+      "amount": 75,
+      "isNew": true
+    },
+    {
+      "id": "e1791631705016",
+      "date": "2026-10-09",
+      "dateLabel": "9 Oct 2026",
+      "title": "Tea",
+      "amount": 40,
+      "isNew": true
+    },
+    {
+      "id": "e1791631720635",
+      "date": "2026-10-09",
+      "dateLabel": "9 Oct 2026",
+      "title": "Londry",
+      "amount": 60,
+      "isNew": true
+    },
+    {
+      "id": "e1791643998991",
+      "date": "2026-10-10",
+      "dateLabel": "10 Oct 2026",
+      "title": "Watermelon",
+      "amount": 40,
+      "isNew": true
+    },
+    {
+      "id": "e1791644006403",
+      "date": "2026-10-10",
+      "dateLabel": "10 Oct 2026",
+      "title": "Dinner",
+      "amount": 190,
+      "isNew": true
+    },
+    {
+      "id": "e1791644342112",
+      "date": "2026-10-10",
+      "dateLabel": "10 Oct 2026",
+      "title": "Notebook",
+      "amount": 80,
+      "isNew": true
+    },
+    {
+      "id": "e1791644391913",
+      "date": "2026-10-10",
+      "dateLabel": "10 Oct 2026",
+      "title": "Charity",
+      "amount": 20,
+      "isNew": true
+    },
+    {
+      "id": "e1791729564714",
+      "date": "2026-10-11",
+      "dateLabel": "11 Oct 2026",
+      "title": "Dinnner",
+      "amount": 140,
+      "isNew": true
+    },
+    {
+      "id": "e1791736416703",
+      "date": "2026-10-11",
+      "dateLabel": "11 Oct 2026",
+      "title": "House rent",
+      "amount": 1000,
+      "isNew": true
+    },
+    {
+      "id": "e1791719115317",
+      "date": "2026-10-11",
+      "dateLabel": "11 Oct 2026",
+      "title": "Underarm rolar",
+      "amount": 270,
+      "isNew": true
+    },
+    {
+      "id": "e1791719991714",
+      "date": "2026-10-11",
+      "dateLabel": "11 Oct 2026",
+      "title": "Juice",
+      "amount": 80,
+      "isNew": true
+    },
+    {
+      "id": "e1791816344291",
+      "date": "2026-10-12",
+      "dateLabel": "12 Oct 2026",
+      "title": "Dinner",
+      "amount": 180,
+      "isNew": true
+    },
+    {
+      "id": "e1791823053406",
+      "date": "2026-10-12",
+      "dateLabel": "12 Oct 2026",
+      "title": "Coil",
+      "amount": 20,
+      "isNew": true
+    },
+    {
+      "id": "e1791880977397",
+      "date": "2026-10-13",
+      "dateLabel": "13 Oct 2026",
+      "title": "DPS",
+      "amount": 50,
+      "isNew": true
+    },
+    {
+      "id": "e1791891689991",
+      "date": "2026-10-13",
+      "dateLabel": "13 Oct 2026",
+      "title": "Papaya",
+      "amount": 30,
+      "isNew": true
+    },
+    {
+      "id": "e1791903272117",
+      "date": "2026-10-13",
+      "dateLabel": "13 Oct 2026",
+      "title": "Dinner",
+      "amount": 150,
+      "isNew": true
+    },
+    {
+      "id": "e1791906622634",
+      "date": "2026-10-13",
+      "dateLabel": "13 Oct 2026",
+      "title": "Cake for Nafiz",
+      "amount": 120,
+      "isNew": true
+    },
+    {
+      "id": "e1791965241664",
+      "date": "2026-10-14",
+      "dateLabel": "14 Oct 2026",
+      "title": "Tea",
+      "amount": 40,
+      "isNew": true
+    },
+    {
+      "id": "e1791965465830",
+      "date": "2026-10-14",
+      "dateLabel": "14 Oct 2026",
+      "title": "Medicine",
+      "amount": 40,
+      "isNew": true
+    },
+    {
+      "id": "e1791977527287",
+      "date": "2026-10-14",
+      "dateLabel": "14 Oct 2026",
+      "title": "Tasteme",
+      "amount": 50,
+      "isNew": true
+    },
+    {
+      "id": "e1791982480505",
+      "date": "2026-10-14",
+      "dateLabel": "14 Oct 2026",
+      "title": "Repay to salman and biddut",
+      "amount": 20,
+      "isNew": true
+    },
+    {
+      "id": "e1791988795375",
+      "date": "2026-10-14",
+      "dateLabel": "14 Oct 2026",
+      "title": "Beli ful",
+      "amount": 20,
+      "isNew": true
+    },
+    {
+      "id": "e1791991573843",
+      "date": "2026-10-14",
+      "dateLabel": "14 Oct 2026",
+      "title": "Rickshaw",
+      "amount": 50,
+      "isNew": true
+    },
+    {
+      "id": "e1791991606083",
+      "date": "2026-10-14",
+      "dateLabel": "14 Oct 2026",
+      "title": "DPS",
+      "amount": 50,
+      "isNew": true
+    },
+    {
+      "id": "e1791999258882",
+      "date": "2026-10-14",
+      "dateLabel": "14 Oct 2026",
+      "title": "Lily soap",
+      "amount": 60,
+      "isNew": true
+    },
+    {
+      "id": "e1792030322368",
+      "date": "2026-10-15",
+      "dateLabel": "15 Oct 2026",
+      "title": "Breakfast",
+      "amount": 90,
+      "isNew": true
+    },
+    {
+      "id": "e1792050746966",
+      "date": "2026-10-15",
+      "dateLabel": "15 Oct 2026",
+      "title": "Medicine",
+      "amount": 150,
+      "isNew": true
+    },
+    {
+      "id": "e1792050979520",
+      "date": "2026-10-15",
+      "dateLabel": "15 Oct 2026",
+      "title": "Bou er Recharge",
+      "amount": 156,
+      "isNew": true
+    },
+    {
+      "id": "e1792075673186",
+      "date": "2026-10-15",
+      "dateLabel": "15 Oct 2026",
+      "title": "Dinner",
+      "amount": 210,
+      "isNew": true
+    },
+    {
+      "id": "e1792075741803",
+      "date": "2026-10-15",
+      "dateLabel": "15 Oct 2026",
+      "title": "Bkash transfer",
+      "amount": 844,
+      "isNew": true
+    },
+    {
+      "id": "e1792076446007",
+      "date": "2026-10-15",
+      "dateLabel": "15 Oct 2026",
+      "title": "Pepsi",
+      "amount": 20,
+      "isNew": true
+    },
+    {
+      "id": "e1792076590095",
+      "date": "2026-10-15",
+      "dateLabel": "15 Oct 2026",
+      "title": "DPS",
+      "amount": 20,
+      "isNew": true
+    },
+    {
+      "id": "e1792123157292",
+      "date": "2026-10-16",
+      "dateLabel": "16 Oct 2026",
+      "title": "Breakfast",
+      "amount": 60,
+      "isNew": true
+    },
+    {
+      "id": "e1792123321098",
+      "date": "2026-10-16",
+      "dateLabel": "16 Oct 2026",
+      "title": "Sprite",
+      "amount": 30,
+      "isNew": true
+    },
+    {
+      "id": "e1792139269684",
+      "date": "2026-10-16",
+      "dateLabel": "16 Oct 2026",
+      "title": "Launch",
+      "amount": 140,
+      "isNew": true
+    },
+    {
+      "id": "e1792164051106",
+      "date": "2026-10-16",
+      "dateLabel": "16 Oct 2026",
+      "title": "Dinner",
+      "amount": 190,
+      "isNew": true
+    },
+    {
+      "id": "e1792169798673",
+      "date": "2026-10-16",
+      "dateLabel": "16 Oct 2026",
+      "title": "Banana",
+      "amount": 30,
+      "isNew": true
+    },
+    {
+      "id": "e1792169806228",
+      "date": "2026-10-16",
+      "dateLabel": "16 Oct 2026",
+      "title": "Pen",
+      "amount": 40,
+      "isNew": true
+    },
+    {
+      "id": "e1792169885632",
+      "date": "2026-10-16",
+      "dateLabel": "16 Oct 2026",
+      "title": "Londry",
+      "amount": 10,
+      "isNew": true
+    },
+    {
+      "id": "e1792242964345",
+      "date": "2026-10-17",
+      "dateLabel": "17 Oct 2026",
+      "title": "Juice",
+      "amount": 50,
+      "isNew": true
+    },
+    {
+      "id": "e1792247564343",
+      "date": "2026-10-17",
+      "dateLabel": "17 Oct 2026",
+      "title": "Dinner",
+      "amount": 110,
+      "isNew": true
+    },
+    {
+      "id": "e1792247569558",
+      "date": "2026-10-17",
+      "dateLabel": "17 Oct 2026",
+      "title": "Cha",
+      "amount": 20,
+      "isNew": true
+    },
+    {
+      "id": "e1792248443755",
+      "date": "2026-10-17",
+      "dateLabel": "17 Oct 2026",
+      "title": "Icecream",
+      "amount": 210,
+      "isNew": true
+    },
+    {
+      "id": "e1792248470014",
+      "date": "2026-10-17",
+      "dateLabel": "17 Oct 2026",
+      "title": "Londry",
+      "amount": 70,
+      "isNew": true
+    },
+    {
+      "id": "e1792291598870",
+      "date": "2026-10-18",
+      "dateLabel": "18 Oct 2026",
+      "title": "Breakfast",
+      "amount": 65,
+      "isNew": true
+    },
+    {
+      "id": "e1792324091155",
+      "date": "2026-10-18",
+      "dateLabel": "18 Oct 2026",
+      "title": "Juice",
+      "amount": 50,
+      "isNew": true
+    }
+  ],
+  "deposits": [
+    {
+      "id": "d1",
+      "date": "",
+      "dateLabel": "Date not specified",
+      "source": "Abbu",
+      "amount": 10000
+    },
+    {
+      "id": "d2",
+      "date": "2026-09-16",
+      "dateLabel": "16 sept",
+      "source": "",
+      "amount": 6650
+    },
+    {
+      "id": "d3",
+      "date": "2026-09-19",
+      "dateLabel": "19 sept",
+      "source": "DA",
+      "amount": 2000
+    },
+    {
+      "id": "d4",
+      "date": "2026-10-04",
+      "dateLabel": "4 Oct",
+      "source": "DA",
+      "amount": 3000
+    },
+    {
+      "id": "d1791799661251",
+      "date": "2026-10-12",
+      "dateLabel": "12 Oct 2026",
+      "source": "DA",
+      "amount": 190,
+      "isNew": true
+    },
+    {
+      "id": "d1792079098459",
+      "date": "2026-10-15",
+      "dateLabel": "15 Oct 2026",
+      "source": "DA",
+      "amount": 3000,
+      "isNew": true
+    }
+  ],
+  "originalNotes": {
+    "incomeTotal": 21650,
+    "spentTotal": 13735,
+    "unmatched": 390,
+    "totalCost": 14125,
+    "bankBalance": 5000,
+    "cashBalance": 7515,
+    "rangeNote": "14 sept to Oct 3 13735",
+    "periodNote": "14 to 28 11010",
+    "allocationNotes": [
+      "Abbu er 10k ses",
+      "Field training er tk 1010 ses"
+    ]
+  },
+  "settings": {
+    "bankBalance": 5000,
+    "openingCashBalance": 7515
+  },
+  "bankTransactions": [
+    {
+      "id": "b1791723027785",
+      "account": "Islamic Bank",
+      "date": "2026-08-16",
+      "type": "deposit",
+      "amount": 20000,
+      "note": "Starting money from Ammu"
+    },
+    {
+      "id": "b1791723054549",
+      "account": "Islamic Bank",
+      "date": "2026-10-04",
+      "type": "deposit",
+      "amount": 5000,
+      "note": "Abbu dise"
+    },
+    {
+      "id": "b1791730000379",
+      "account": "Rocket",
+      "date": "2026-10-11",
+      "type": "deposit",
+      "amount": 8,
+      "note": ""
+    },
+    {
+      "id": "b1791730245626",
+      "account": "Nogod",
+      "date": "2026-10-11",
+      "type": "deposit",
+      "amount": 7,
+      "note": ""
+    },
+    {
+      "id": "b1791730522511",
+      "account": "Prime Bank",
+      "date": "2026-10-11",
+      "type": "deposit",
+      "amount": 20,
+      "note": ""
+    },
+    {
+      "id": "b1792075911770",
+      "account": "Bkash",
+      "date": "2026-10-15",
+      "type": "deposit",
+      "amount": 844,
+      "note": "Saved money"
+    },
+    {
+      "id": "b1792086760988",
+      "account": "Bkash",
+      "date": "2026-10-15",
+      "type": "withdrawal",
+      "amount": 44,
+      "note": "Mobile recharge"
+    },
+    {
+      "id": "b1792250909921",
+      "account": "Bkash",
+      "date": "2026-10-17",
+      "type": "deposit",
+      "amount": 1612,
+      "note": "Prime bank"
+    }
+  ],
+  "transfers": [],
+  "monthlyBudget": 0,
+  "categoryOverrides": {}
+}

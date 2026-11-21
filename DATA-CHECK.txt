@@ -1,0 +1,17 @@
+Latest JSON seed included in index.html.
+- Itemized expense records: 177
+- Expense amount total (itemized entries): BDT 21,815
+- Tk in/deposit records: 6
+- Tk in/deposit total: BDT 24,840
+- Separate bank transaction records: 8
+- Bank transaction net total: BDT 27,447
+- Money remaining (Tk in minus itemized expenses): BDT 3,025
+
+UI updates in this build:
+- Pitch-black page background and stronger button/text contrast.
+- Transfer form hidden to simplify bank workflow; existing transfer data/history is retained.
+- Account-wise list includes Edit balance; changes are stored as a balance-adjustment transaction to preserve history.
+- Debt list includes Edit and Delete.
+- Six-tab bottom navigation retained.
+
+Validation: inline JavaScript syntax checked with Node.js; ZIP structure checked. No real mobile browser runtime test performed.

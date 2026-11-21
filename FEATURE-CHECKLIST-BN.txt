@@ -1,0 +1,48 @@
+DAILY LEDGER — FEATURE TEST CHECKLIST
+
+Before testing
+[ ] Export the existing JSON backup from the current app.
+[ ] Keep the old app and backup file untouched until testing is complete.
+[ ] Deploy this ZIP to a NEW Netlify draft/site first; don't overwrite the only working site.
+[ ] Open once online and wait for the app to fully load before testing offline.
+
+Core finance
+[ ] Dashboard totals match the visible ledger entries.
+[ ] Account dashboard lists each recorded bank/MFS account.
+[ ] Transfer between two accounts reduces one and increases the other without counting as income/expense.
+[ ] Budget/monthly report matches a manually calculated test month.
+[ ] Search by keyword/date/account works.
+[ ] JSON backup downloads and opens as valid JSON.
+[ ] Restore/merge test uses a COPY of backup, never the only original.
+
+Advanced tools
+[ ] Monthly category budget saves and shows spent/limit progress.
+[ ] Savings goal saves and progress bar updates.
+[ ] Debt/lend-borrow record saves and can be deleted.
+[ ] Bill/reminder saves and due date is shown.
+[ ] Small image receipt can be attached to a transaction ID.
+[ ] Reconciliation shows recorded balance, actual balance and difference.
+[ ] expense share text downloads and opens with expected columns.
+[ ] Full JSON backup contains both ledger data and advanced tool data.
+[ ] Integrity audit reports likely duplicate-like entries for manual review only.
+[ ] PIN lock: set a test PIN, reload, unlock; do not use a PIN used elsewhere.
+[ ] Checklist ticks persist after reload.
+[ ] Offline test: after successful online load, enable airplane mode and reopen.
+
+Safety / known limitations
+[ ] Do not delete original data during tests.
+[ ] Duplicate warnings are only candidates; repeated same purchases can be genuine.
+[ ] Browser PIN is a deterrent, not encryption of localStorage.
+[ ] Receipt image storage is local and browser storage can fill up.
+[ ] This package has not yet been end-to-end tested on the user's Android/Netlify setup.
+
+BACKUP & RESTORE SAFETY (UPDATED)
+[ ] One-click JSON export (ledger-only)
+[ ] Full JSON export includes ledger + advanced tools
+[ ] Import preview shows filename, export timestamp, date range, row counts, totals
+[ ] Invalid backup structure/amounts rejected before changing current ledger
+[ ] Import asks for confirmation and explicitly says MERGE (not replace)
+[ ] Before import, app downloads a safety copy including advanced tools
+[ ] Before destructive reset, app downloads a full safety copy
+[ ] Reset requires typing BACKUP-SAVED and then DELETE; cancel either step to preserve data
+[ ] Test restore on a copy first; keep the safety JSON outside the phone
