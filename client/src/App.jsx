@@ -1,7 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { ToastProvider } from './context/ToastContext';
+import { ToastProvider, useToast } from './context/ToastContext';
+import { syncTwoWay } from './services/syncService';
 import DashboardPage from './pages/DashboardPage';
 import LedgerPage from './pages/LedgerPage';
 import DepositsPage from './pages/DepositsPage';
@@ -21,7 +22,8 @@ import './App.css';
 seedInitialDataIfNeeded();
 
 function AppContent() {
-  const { user, loading, isOnline, pendingSync } = useAuth();
+  const { user, loading, isOnline, pendingSync, refreshPendingCount } = useAuth();
+  const toast = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   if (loading) {
@@ -74,7 +76,23 @@ function AppContent() {
         </div>
 
         <div className="masthead-right">
-          <div className="offline-ready-badge">
+          <div
+            className="offline-ready-badge"
+            style={{ cursor: isOnline ? 'pointer' : 'default', userSelect: 'none' }}
+            title={isOnline ? 'Click to force full sync with cloud' : 'Offline mode · Saved locally'}
+            onClick={async () => {
+              if (isOnline) {
+                toast.info('Syncing all data with MongoDB Atlas...');
+                try {
+                  const res = await syncTwoWay(true);
+                  if (refreshPendingCount) refreshPendingCount();
+                  toast.success(`Cloud sync completed! (${res.pulled} downloaded, ${res.synced} uploaded)`);
+                } catch (e) {
+                  toast.error('Sync failed: ' + (e.response?.data?.message || e.message));
+                }
+              }
+            }}
+          >
             <span className={`status-indicator-dot ${isOnline ? 'online' : 'offline'}`} />
             {isOnline ? 'Cloud Synced' : 'Offline-ready · Saved on this device'}
             {pendingSync > 0 && <span className="sync-count">({pendingSync})</span>}

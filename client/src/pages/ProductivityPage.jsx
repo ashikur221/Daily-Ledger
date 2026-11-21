@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/localDb';
 import api from '../services/api';
-import { queueSync } from '../services/syncService';
+import { queueSync, pullDeltaChanges } from '../services/syncService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { encryptSecret, decryptSecret } from '../utils/cryptoVault';
@@ -50,11 +50,22 @@ export default function ProductivityPage() {
 
   const loadLocalData = async () => {
     try {
-      const allTools = await db.tools.where('isDeleted').equals(0).toArray();
-      const localTodos = allTools.filter((t) => t.toolType === 'todo');
-      const localVault = allTools.filter((t) => t.toolType === 'vault_item');
+      let allTools = await db.tools.where('isDeleted').equals(0).toArray();
+      let localTodos = allTools.filter((t) => t.toolType === 'todo');
+      let localVault = allTools.filter((t) => t.toolType === 'vault_item');
       setTodos(localTodos);
       setVaultItems(localVault);
+
+      // If local vault is empty and online, pull full delta from cloud to ensure any existing secrets stored in cloud are restored locally
+      if (localVault.length === 0 && isOnline) {
+        pullDeltaChanges(true).then(async (res) => {
+          if (res?.pulled > 0) {
+            allTools = await db.tools.where('isDeleted').equals(0).toArray();
+            setTodos(allTools.filter((t) => t.toolType === 'todo'));
+            setVaultItems(allTools.filter((t) => t.toolType === 'vault_item'));
+          }
+        });
+      }
     } catch (err) {
       console.error('Error loading tools:', err);
     }

@@ -57,10 +57,26 @@ export const flushSyncQueue = async () => {
 
 /**
  * 2. PULL: Fetch delta changes made from other devices and merge into IndexedDB
+ * @param {boolean} forceFull - When true, ignores LAST_SYNC_KEY and fetches full records from cloud
  */
-export const pullDeltaChanges = async () => {
+export const pullDeltaChanges = async (forceFull = false) => {
   try {
-    const since = localStorage.getItem(LAST_SYNC_KEY) || '';
+    let since = forceFull ? '' : (localStorage.getItem(LAST_SYNC_KEY) || '');
+
+    // Auto-detect empty local database: if user cleared local cache or tables have 0 items,
+    // don't use 'since', do a full pull so we don't leave local DB empty!
+    if (!forceFull && since) {
+      try {
+        const [txCount, toolCount] = await Promise.all([
+          db.transactions.count(),
+          db.tools.count(),
+        ]);
+        if (txCount === 0 && toolCount === 0) {
+          since = '';
+        }
+      } catch {}
+    }
+
     const endpoint = since ? `/sync/pull?since=${encodeURIComponent(since)}` : '/sync/pull';
 
     const { data } = await api.get(endpoint);
@@ -116,12 +132,13 @@ export const pullDeltaChanges = async () => {
 
 /**
  * 3. COMPLETE TWO-WAY SYNC: Push local changes first, then pull remote deltas
+ * @param {boolean} forceFull - When true, forces complete download of all records from cloud
  */
-export const syncTwoWay = async () => {
+export const syncTwoWay = async (forceFull = false) => {
   // Push upstream
   const pushRes = await flushSyncQueue();
   // Pull downstream
-  const pullRes = await pullDeltaChanges();
+  const pullRes = await pullDeltaChanges(forceFull);
 
   // Trigger custom window event so open pages can refresh data automatically
   if (pullRes.pulled > 0) {

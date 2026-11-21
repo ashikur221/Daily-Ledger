@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import db from '../db/localDb';
 import api from '../services/api';
+import { syncTwoWay } from '../services/syncService';
 
 export default function SettingsPage() {
   const { user, logout, isOnline } = useAuth();
@@ -15,6 +16,20 @@ export default function SettingsPage() {
   const [importLoading, setImportLoading] = useState(false);
   const [importMode, setImportMode] = useState('merge'); // 'merge' or 'replace'
   const [copied, setCopied] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+
+  const handleForceSync = async () => {
+    setSyncLoading(true);
+    try {
+      const res = await syncTwoWay(true);
+      toast.success(`Cloud sync completed! Pulled ${res.pulled} records from cloud.`);
+      window.dispatchEvent(new CustomEvent('daily_ledger:data_updated', { detail: res }));
+    } catch (err) {
+      toast.error('Sync failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   const handleExport = async () => {
     setExportLoading(true);
@@ -261,6 +276,46 @@ export default function SettingsPage() {
             onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(225, 29, 72, 0.1)')}
           >
             Sign Out
+          </button>
+        </div>
+      </div>
+
+      {/* Cloud Synchronization & Multi-Device Sync Card */}
+      <div className="panel" style={{ padding: '24px', borderRadius: '16px', background: '#050608', border: '1px solid #1a202c' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ flex: 1, minWidth: '240px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                🔄 Multi-Device Cloud Sync
+              </h2>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: isOnline ? '#38bdf8' : '#f59e0b', background: isOnline ? 'rgba(56, 189, 248, 0.12)' : 'rgba(245, 158, 11, 0.12)', border: isOnline ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '999px', padding: '2px 8px' }}>
+                {isOnline ? 'Online' : 'Offline'}
+              </span>
+            </div>
+            <p style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '6px', lineHeight: 1.5 }}>
+              Tap below to force a full re-sync from MongoDB Atlas. This pulls down all your accounts, transactions, and encrypted bank vault secrets if you switch devices or cleared phone data.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleForceSync}
+            disabled={syncLoading || !isOnline}
+            className="primary"
+            style={{
+              height: '42px',
+              padding: '0 20px',
+              borderRadius: '10px',
+              fontWeight: 650,
+              fontSize: '0.88rem',
+              cursor: isOnline ? 'pointer' : 'not-allowed',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+            }}
+          >
+            {syncLoading ? 'Syncing...' : '🔄 Pull from Cloud Now'}
           </button>
         </div>
       </div>
