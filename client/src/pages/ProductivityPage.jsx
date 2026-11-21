@@ -25,6 +25,8 @@ export default function ProductivityPage() {
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
   const [unlockedSecrets, setUnlockedSecrets] = useState({}); // localId -> decrypted object
   const [visiblePins, setVisiblePins] = useState({}); // localId -> boolean
+  const [vaultSearchQuery, setVaultSearchQuery] = useState('');
+  const [vaultCategoryFilter, setVaultCategoryFilter] = useState('all');
 
   // Form for new Bank / bKash secret
   const [vaultForm, setVaultForm] = useState({
@@ -285,6 +287,29 @@ export default function ProductivityPage() {
     return true;
   });
 
+  // Filtered Vault Secrets
+  const filteredVaultItems = vaultItems.filter((item) => {
+    const matchesCategory =
+      vaultCategoryFilter === 'all' || item.data?.category === vaultCategoryFilter;
+    if (!matchesCategory) return false;
+
+    if (!vaultSearchQuery.trim()) return true;
+
+    const q = vaultSearchQuery.toLowerCase().trim();
+    const dec = unlockedSecrets[item.localId] || {};
+    const title = (item.data?.title || '').toLowerCase();
+    const category = (item.data?.category || '').toLowerCase();
+    const accNum = (dec.accountNumber || '').toLowerCase();
+    const notes = (dec.notes || '').toLowerCase();
+
+    return (
+      title.includes(q) ||
+      category.includes(q) ||
+      accNum.includes(q) ||
+      notes.includes(q)
+    );
+  });
+
   return (
     <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '60px' }}>
       
@@ -528,6 +553,8 @@ export default function ProductivityPage() {
                   setIsVaultUnlocked(false);
                   setUnlockedSecrets({});
                   setMasterPin('');
+                  setVaultSearchQuery('');
+                  setVaultCategoryFilter('all');
                   toast.info('Vault Locked');
                 }}
                 style={{
@@ -596,10 +623,17 @@ export default function ProductivityPage() {
           ) : (
             // Unlocked State: View & Add Bank / bKash Credentials
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f1f5f9' }}>
-                  Stored Secrets ({vaultItems.length})
-                </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f1f5f9' }}>
+                    Stored Secrets ({vaultItems.length})
+                  </span>
+                  {(vaultSearchQuery || vaultCategoryFilter !== 'all') && (
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', background: '#090d15', padding: '2px 8px', borderRadius: '6px', border: '1px solid #1a202c' }}>
+                      {filteredVaultItems.length} found
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={() => setShowAddVaultModal(true)}
                   className="primary"
@@ -616,12 +650,127 @@ export default function ProductivityPage() {
                 </button>
               </div>
 
+              {/* Search Bar & Category Filter Pills */}
+              {vaultItems.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <span
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#64748b',
+                        fontSize: '0.95rem',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      🔍
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Search vault (e.g. bKash, City Bank, 017xx, card notes)..."
+                      value={vaultSearchQuery}
+                      onChange={(e) => setVaultSearchQuery(e.target.value)}
+                      className="field"
+                      style={{
+                        width: '100%',
+                        height: '42px',
+                        paddingLeft: '38px',
+                        paddingRight: vaultSearchQuery ? '36px' : '14px',
+                        borderRadius: '10px',
+                        background: '#090d15',
+                        border: '1px solid #1a202c',
+                        fontSize: '0.88rem',
+                      }}
+                    />
+                    {vaultSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setVaultSearchQuery('')}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          fontSize: '1rem',
+                          padding: '4px',
+                        }}
+                        title="Clear search"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Category Filter Pills */}
+                  <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+                    {['all', 'bKash', 'Nagad', 'Rocket', 'Bank', 'Debit / Credit Card', 'Private Note'].map((cat) => {
+                      const isSelected = vaultCategoryFilter === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setVaultCategoryFilter(cat)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '8px',
+                            fontSize: '0.74rem',
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                            border: '1px solid',
+                            borderColor: isSelected ? '#fb7185' : '#1f2937',
+                            background: isSelected ? 'rgba(225, 29, 72, 0.2)' : '#090d15',
+                            color: isSelected ? '#fda4af' : '#94a3b8',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {cat === 'all' ? 'All Secrets' : cat}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {vaultItems.length === 0 ? (
                 <div className="panel" style={{ padding: '36px', textAlign: 'center', background: '#050608', border: '1px solid #1a202c', borderRadius: '14px' }}>
                   <p style={{ color: '#64748b', fontSize: '0.88rem' }}>No credentials stored yet. Click "+ Add Bank / bKash Secret" to store one securely.</p>
                 </div>
+              ) : filteredVaultItems.length === 0 ? (
+                <div className="panel" style={{ padding: '36px', textAlign: 'center', background: '#050608', border: '1px solid #1a202c', borderRadius: '14px' }}>
+                  <p style={{ color: '#f87171', fontSize: '0.92rem', fontWeight: 600 }}>No matching secrets found</p>
+                  <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '4px' }}>
+                    No items match &quot;{vaultSearchQuery}&quot; {vaultCategoryFilter !== 'all' ? `in category "${vaultCategoryFilter}"` : ''}.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVaultSearchQuery('');
+                      setVaultCategoryFilter('all');
+                    }}
+                    style={{
+                      marginTop: '12px',
+                      background: '#151b23',
+                      border: '1px solid #283347',
+                      color: '#38bdf8',
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Reset Search & Filters
+                  </button>
+                </div>
               ) : (
-                vaultItems.map((item) => {
+                filteredVaultItems.map((item) => {
                   const dec = unlockedSecrets[item.localId] || {};
                   const isVisible = visiblePins[item.localId];
 
@@ -669,8 +818,28 @@ export default function ProductivityPage() {
                             </span>
                           </div>
                           {dec.accountNumber && (
-                            <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>
-                              Account / Phone: <strong style={{ color: '#e2e8f0' }}>{dec.accountNumber}</strong>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>
+                              <span>Account / Phone:</span>
+                              <strong style={{ color: '#e2e8f0' }}>{dec.accountNumber}</strong>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(dec.accountNumber);
+                                  toast.info('Account number copied!');
+                                }}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#38bdf8',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  padding: '0 4px',
+                                }}
+                                title="Copy Account Number"
+                              >
+                                📋 Copy
+                              </button>
                             </div>
                           )}
                         </div>
