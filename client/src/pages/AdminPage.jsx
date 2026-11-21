@@ -9,23 +9,55 @@ export default function AdminPage() {
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [resettingUser, setResettingUser] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
 
   useEffect(() => {
-    fetchUsers();
+    // 1. Initial fetch
+    fetchUsers(true);
+
+    // 2. Auto-polling interval: fetch fresh data silently every 8 seconds
+    const interval = setInterval(() => {
+      fetchUsers(false);
+    }, 8000);
+
+    // 3. Window focus trigger: instantly fetch fresh data when switching back to tab
+    const handleFocus = () => {
+      fetchUsers(false);
+    };
+    window.addEventListener('focus', handleFocus);
+
+    // 4. Custom sync listener: if any local sync event occurs, update immediately
+    const handleDataUpdated = () => {
+      fetchUsers(false);
+    };
+    window.addEventListener('daily_ledger:data_updated', handleDataUpdated);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('daily_ledger:data_updated', handleDataUpdated);
+    };
   }, []);
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  const fetchUsers = async (isFirstLoad = false) => {
+    if (isFirstLoad) {
+      setLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     try {
       const { data } = await api.get('/users');
       setUsers(data.users || []);
+      setLastUpdated(new Date());
     } catch (err) {
-      toast.error('Failed to fetch admin users data');
+      if (isFirstLoad) toast.error('Failed to fetch admin users data');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -110,13 +142,30 @@ export default function AdminPage() {
           </p>
         </div>
 
-        <button
-          onClick={fetchUsers}
-          className="secondary"
-          style={{ height: '38px', padding: '0 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 600 }}
-        >
-          ↻ Refresh Data
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#64748b' }}>
+            <span
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: '#10b981',
+                boxShadow: '0 0 10px #10b981',
+                display: 'inline-block',
+                animation: isRefreshing ? 'pulse 1s infinite' : 'none',
+              }}
+            />
+            <span>Live Sync Active</span>
+          </div>
+
+          <button
+            onClick={() => fetchUsers(false)}
+            className="secondary"
+            style={{ height: '38px', padding: '0 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 600 }}
+          >
+            {isRefreshing ? 'Syncing...' : '↻ Refresh Now'}
+          </button>
+        </div>
       </div>
 
       {/* 2. Platform Overview Metrics Grid */}
