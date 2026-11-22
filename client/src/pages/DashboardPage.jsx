@@ -4,12 +4,14 @@ import { v4 as uuidv4 } from 'uuid';
 import db from '../db/localDb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import { queueSync } from '../services/syncService';
 import api from '../services/api';
 
 export default function DashboardPage() {
   const { user, isOnline, refreshPendingCount } = useAuth();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const navigate = useNavigate();
 
   // Selected date for daily entry & entries for selected day (defaults to today)
@@ -222,7 +224,13 @@ export default function DashboardPage() {
   };
 
   const handleDeleteEntry = async (entry) => {
-    if (!window.confirm(`Delete "${entry.note || 'expense'}" of ৳${entry.amount}?`)) return;
+    const ok = await confirm({
+      title: 'Delete Expense',
+      message: `Are you sure you want to delete "${entry.note || 'expense'}" for ৳${entry.amount}?`,
+      confirmText: 'Delete Expense',
+      danger: true,
+    });
+    if (!ok) return;
 
     await db.transactions.update(entry.localId, { isDeleted: 1, synced: false });
     await queueSync('transactions', entry.localId);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import db from '../db/localDb';
 import api from '../services/api';
 import { syncTwoWay } from '../services/syncService';
@@ -8,6 +9,7 @@ import { syncTwoWay } from '../services/syncService';
 export default function SettingsPage() {
   const { user, logout, isOnline } = useAuth();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteResult, setInviteResult] = useState(null);
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -81,12 +83,16 @@ export default function SettingsPage() {
       return;
     }
 
-    const confirmMsg =
-      importMode === 'replace'
-        ? '⚠️ WARNING: Replace mode will overwrite your current ledger with the backup data. Continue?'
-        : 'Import will MERGE all records from the backup into your ledger. Continue?';
-
-    if (!window.confirm(confirmMsg)) return;
+    const isReplace = importMode === 'replace';
+    const ok = await confirm({
+      title: isReplace ? 'Replace All Ledger Data' : 'Merge Backup Records',
+      message: isReplace
+        ? '⚠️ WARNING: Replace mode will overwrite your current ledger and replace all transactions, accounts, and tools with the backup data. Are you sure you want to proceed?'
+        : 'Import will MERGE all records from the backup file into your existing ledger. Continue?',
+      confirmText: isReplace ? 'Replace Everything' : 'Merge Records',
+      danger: isReplace,
+    });
+    if (!ok) return;
 
     setImportLoading(true);
     try {

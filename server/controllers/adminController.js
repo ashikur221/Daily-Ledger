@@ -158,11 +158,36 @@ const deactivateUser = async (req, res) => {
     if (req.params.id === req.user._id.toString()) {
       return res.status(400).json({ message: 'Cannot deactivate yourself' });
     }
-    const user = await User.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json({ message: 'User deactivated', user });
+    const target = await User.findById(req.params.id);
+    if (!target) return res.status(404).json({ message: 'User not found' });
+    const user = await User.findByIdAndUpdate(req.params.id, { isActive: !target.isActive }, { new: true });
+    res.json({ message: `User ${user.isActive ? 'activated' : 'deactivated'}`, user });
   } catch (err) {
-    res.status(500).json({ message: 'Error deactivating user' });
+    res.status(500).json({ message: 'Error updating user status' });
+  }
+};
+
+// DELETE /api/admin/users/:id — Permanently delete user and their records
+const deleteUser = async (req, res) => {
+  try {
+    if (req.params.id === req.user._id.toString()) {
+      return res.status(400).json({ message: 'Cannot delete your own admin account' });
+    }
+    const targetUser = await User.findById(req.params.id);
+    if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+    // Permanently remove target user and all their transactions, accounts, and tools
+    await Promise.all([
+      Transaction.deleteMany({ userId: targetUser._id }),
+      Account.deleteMany({ userId: targetUser._id }),
+      Tool.deleteMany({ userId: targetUser._id }),
+      User.findByIdAndDelete(targetUser._id),
+    ]);
+
+    res.json({ message: `User account ${targetUser.email} permanently deleted` });
+  } catch (err) {
+    console.error('Delete user error:', err);
+    res.status(500).json({ message: 'Error deleting user account' });
   }
 };
 
@@ -300,4 +325,4 @@ const importBackup = async (req, res) => {
   }
 };
 
-module.exports = { createInvite, getUsers, deactivateUser, exportBackup, importBackup, resetUserPassword };
+module.exports = { createInvite, getUsers, deactivateUser, deleteUser, exportBackup, importBackup, resetUserPassword };

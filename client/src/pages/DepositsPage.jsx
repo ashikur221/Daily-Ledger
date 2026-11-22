@@ -5,10 +5,12 @@ import api from '../services/api';
 import { queueSync } from '../services/syncService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 export default function DepositsPage() {
   const { isOnline, refreshPendingCount } = useAuth();
   const toast = useToast();
+  const { confirm } = useConfirm();
 
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -174,7 +176,13 @@ export default function DepositsPage() {
   };
 
   const handleDelete = async (tx) => {
-    if (!window.confirm(`Delete deposit of ৳${tx.amount} (${tx.note || 'Deposit'})?`)) return;
+    const ok = await confirm({
+      title: 'Delete Deposit',
+      message: `Are you sure you want to delete the deposit of ৳${tx.amount} (${tx.note || 'Deposit'})?`,
+      confirmText: 'Delete Deposit',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       const updated = { ...tx, isDeleted: 1, synced: false, clientUpdatedAt: new Date() };
       await db.transactions.put(updated);

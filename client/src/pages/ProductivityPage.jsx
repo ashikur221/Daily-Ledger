@@ -5,11 +5,13 @@ import api from '../services/api';
 import { queueSync, pullDeltaChanges } from '../services/syncService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import { encryptSecret, decryptSecret } from '../utils/cryptoVault';
 
 export default function ProductivityPage() {
   const { isOnline, refreshPendingCount } = useAuth();
   const toast = useToast();
+  const { confirm } = useConfirm();
 
   const [activeTab, setActiveTab] = useState('todos'); // 'todos' | 'vault'
 
@@ -135,7 +137,18 @@ export default function ProductivityPage() {
     loadLocalData();
   };
 
-  const handleDeleteTodo = async (localId) => {
+  const handleDeleteTodo = async (item) => {
+    const localId = typeof item === 'object' ? item.localId : item;
+    const taskTitle = typeof item === 'object' ? item.data?.text : 'this task';
+
+    const ok = await confirm({
+      title: 'Delete Task',
+      message: `Are you sure you want to delete "${taskTitle}"?`,
+      confirmText: 'Delete Task',
+      danger: true,
+    });
+    if (!ok) return;
+
     await db.tools.update(localId, { isDeleted: 1, synced: false });
     await queueSync('tools', localId);
     refreshPendingCount();
@@ -259,8 +272,17 @@ export default function ProductivityPage() {
     }
   };
 
-  const handleDeleteVaultItem = async (localId) => {
-    if (!window.confirm('Delete this encrypted secret permanently?')) return;
+  const handleDeleteVaultItem = async (item) => {
+    const localId = typeof item === 'object' ? item.localId : item;
+    const itemTitle = typeof item === 'object' ? item.data?.title : 'this credential';
+
+    const ok = await confirm({
+      title: 'Delete Secret Credential',
+      message: `Are you sure you want to permanently delete "${itemTitle}" from your encrypted vault? This cannot be undone.`,
+      confirmText: 'Delete Credential',
+      danger: true,
+    });
+    if (!ok) return;
 
     await db.tools.update(localId, { isDeleted: 1, synced: false });
     await queueSync('tools', localId);
@@ -508,7 +530,7 @@ export default function ProductivityPage() {
                       </span>
 
                       <button
-                        onClick={() => handleDeleteTodo(t.localId)}
+                        onClick={() => handleDeleteTodo(t)}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -856,7 +878,7 @@ export default function ProductivityPage() {
                         </div>
 
                         <button
-                          onClick={() => handleDeleteVaultItem(item.localId)}
+                          onClick={() => handleDeleteVaultItem(item)}
                           style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.2rem' }}
                           title="Delete"
                         >

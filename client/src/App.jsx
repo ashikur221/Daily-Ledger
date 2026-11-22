@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider, useToast } from './context/ToastContext';
+import { ConfirmProvider } from './context/ConfirmContext';
 import { syncTwoWay } from './services/syncService';
 import DashboardPage from './pages/DashboardPage';
 import LedgerPage from './pages/LedgerPage';
@@ -329,9 +330,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
+        <ConfirmProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </ConfirmProvider>
       </ToastProvider>
     </BrowserRouter>
   );

@@ -5,10 +5,12 @@ import api from '../services/api';
 import { queueSync } from '../services/syncService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 export default function AccountsPage() {
   const { isOnline, refreshPendingCount } = useAuth();
   const toast = useToast();
+  const { confirm } = useConfirm();
 
   const [accounts, setAccounts] = useState([]);
   const [bankTransactions, setBankTransactions] = useState([]);
@@ -148,6 +150,29 @@ export default function AccountsPage() {
     } catch (err) {
       console.error(err);
       toast.error('Failed to update balance');
+    }
+  };
+
+  const handleDeleteAccount = async (acc) => {
+    const ok = await confirm({
+      title: 'Delete Account',
+      message: `Are you sure you want to delete the account "${acc.name}"? It will be removed from your accounts list.`,
+      confirmText: 'Delete Account',
+      danger: true,
+    });
+    if (!ok) return;
+
+    try {
+      const updated = { ...acc, isDeleted: 1, synced: false, clientUpdatedAt: new Date() };
+      await db.accounts.put(updated);
+      await queueSync('accounts', acc.localId, 'delete', { localId: acc.localId });
+      refreshPendingCount();
+
+      setAccounts((prev) => prev.filter((a) => a.localId !== acc.localId));
+      setEditingAccount(null);
+      toast.info(`Account "${acc.name}" deleted.`);
+    } catch (err) {
+      toast.error('Failed to delete account');
     }
   };
 
@@ -509,21 +534,39 @@ export default function AccountsPage() {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3">
+              <div className="flex justify-between items-center pt-3">
                 <button
                   type="button"
-                  onClick={() => setEditingAccount(null)}
-                  className="secondary px-4 py-2 text-sm rounded-lg"
+                  onClick={() => handleDeleteAccount(editingAccount)}
+                  style={{
+                    color: '#f87171',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
                 >
-                  Cancel
+                  🗑️ Delete Account
                 </button>
-                <button
-                  type="submit"
-                  className="deposit-submit-btn px-6"
-                  style={{ height: '42px', minWidth: '130px' }}
-                >
-                  Save Balance
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingAccount(null)}
+                    className="secondary px-4 py-2 text-sm rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="deposit-submit-btn px-6"
+                    style={{ height: '42px', minWidth: '130px' }}
+                  >
+                    Save Balance
+                  </button>
+                </div>
               </div>
             </form>
           </div>

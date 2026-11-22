@@ -5,10 +5,12 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { queueSync } from '../services/syncService';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 export default function ToolsPage() {
   const { isOnline, refreshPendingCount } = useAuth();
   const toast = useToast();
+  const { confirm } = useConfirm();
 
   const [tools, setTools] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -243,9 +245,19 @@ export default function ToolsPage() {
   };
 
   const handleDeleteDebt = async (debtId) => {
-    if (!window.confirm('Delete this debt record?')) return;
+    const record = tools.find((t) => t.localId === debtId);
+    const personName = record?.data?.person || 'this record';
+    const amountVal = record?.data?.amount ? ` (৳${record.data.amount})` : '';
+
+    const ok = await confirm({
+      title: 'Delete Debt Record',
+      message: `Are you sure you want to delete the debt record for "${personName}"${amountVal}?`,
+      confirmText: 'Delete Record',
+      danger: true,
+    });
+    if (!ok) return;
+
     try {
-      const record = tools.find((t) => t.localId === debtId);
       if (!record) return;
 
       const updated = { ...record, isDeleted: 1, synced: false, clientUpdatedAt: new Date() };
@@ -337,8 +349,14 @@ export default function ToolsPage() {
   };
 
   const handleDeleteRepayment = async (repayment) => {
-    if (!window.confirm('Delete this repayment record? The debt balance will be updated.'))
-      return;
+    const ok = await confirm({
+      title: 'Delete Repayment Record',
+      message: `Are you sure you want to delete this repayment of ৳${repayment.amount}? The associated debt balance will be recalculated.`,
+      confirmText: 'Delete Repayment',
+      danger: true,
+    });
+    if (!ok) return;
+
     try {
       const updatedRepay = {
         ...repayment.raw,

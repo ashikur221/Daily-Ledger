@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import api from '../services/api';
 
 export default function AdminPage() {
   const { user } = useAuth();
   const toast = useToast();
+  const { confirm } = useConfirm();
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,13 +64,40 @@ export default function AdminPage() {
   };
 
   const handleDeactivate = async (u) => {
-    if (!window.confirm(`Are you sure you want to toggle status for ${u.email}?`)) return;
+    const action = u.isActive ? 'deactivate' : 'reactivate';
+    const ok = await confirm({
+      title: `${u.isActive ? 'Deactivate' : 'Reactivate'} User Account`,
+      message: `Are you sure you want to ${action} access for ${u.email}?`,
+      confirmText: u.isActive ? 'Deactivate' : 'Reactivate',
+      danger: u.isActive,
+    });
+    if (!ok) return;
+
     try {
       await api.patch(`/users/${u._id}/deactivate`);
       toast.success(`User ${u.email} status updated`);
       fetchUsers();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Action failed');
+    }
+  };
+
+  const handleDeleteUser = async (u) => {
+    const ok = await confirm({
+      title: 'Delete User Account',
+      message: `Are you sure you want to permanently delete the account for "${u.name || u.email}" (${u.email})? All of their financial records, transactions, and accounts will be erased. This action cannot be undone.`,
+      confirmText: 'Delete User Account',
+      cancelText: 'Cancel',
+      danger: true,
+    });
+    if (!ok) return;
+
+    try {
+      await api.delete(`/users/${u._id}`);
+      toast.success(`User account ${u.email} permanently deleted`);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete user');
     }
   };
 
@@ -318,6 +347,26 @@ export default function AdminPage() {
                       }}
                     >
                       {u.isActive ? 'Deactivate' : 'Reactivate'}
+                    </button>
+                  )}
+                  {u._id !== user?._id && (
+                    <button
+                      onClick={() => handleDeleteUser(u)}
+                      style={{
+                        height: '34px',
+                        padding: '0 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        color: '#f87171',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      title="Permanently delete user account"
+                    >
+                      🗑️ Delete
                     </button>
                   )}
                 </div>

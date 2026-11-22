@@ -5,10 +5,12 @@ import api from '../services/api';
 import { queueSync } from '../services/syncService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 export default function LedgerPage({ initialType = '' }) {
   const { isOnline, refreshPendingCount } = useAuth();
   const toast = useToast();
+  const { confirm } = useConfirm();
 
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -261,7 +263,13 @@ export default function LedgerPage({ initialType = '' }) {
   };
 
   const handleDelete = async (tx) => {
-    if (!window.confirm(`Delete "${tx.note || 'expense'}" of ৳${tx.amount}?`)) return;
+    const ok = await confirm({
+      title: 'Delete Expense',
+      message: `Are you sure you want to delete "${tx.note || 'expense'}" for ৳${tx.amount}?`,
+      confirmText: 'Delete Expense',
+      danger: true,
+    });
+    if (!ok) return;
 
     await db.transactions.update(tx.localId, { isDeleted: 1, synced: false });
     await queueSync('transactions', tx.localId);
