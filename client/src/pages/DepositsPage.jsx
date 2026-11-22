@@ -373,23 +373,16 @@ export default function DepositsPage() {
       {/* 3. Modal: Add / Edit Income */}
       {showIncomeModal && (
         <div className="modal-overlay" onClick={() => setShowIncomeModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
-              <h2 className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>💰</span> {editingTx ? 'Edit Income Record' : 'Record Income'}
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">
+                {editingTx ? '✏️ Edit Income Record' : '💰 Record Income'}
               </h2>
               <button
                 type="button"
+                className="modal-close-btn"
                 onClick={() => setShowIncomeModal(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#94a3b8',
-                  fontSize: '1.25rem',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  lineHeight: 1,
-                }}
+                title="Close modal"
               >
                 ✕
               </button>
@@ -397,9 +390,9 @@ export default function DepositsPage() {
 
             <form onSubmit={handleSaveIncome} className="modal-form">
               <div className="form-item">
-                <label className="form-label" htmlFor="deposit-date">Date</label>
+                <label className="form-label" htmlFor="income-date">Date</label>
                 <input
-                  id="deposit-date"
+                  id="income-date"
                   type="date"
                   className="field"
                   value={incomeForm.date}
@@ -409,9 +402,11 @@ export default function DepositsPage() {
               </div>
 
               <div className="form-item">
-                <label className="form-label" htmlFor="deposit-source">From / Source Note</label>
+                <label className="form-label" htmlFor="income-source">
+                  From / Source Note
+                </label>
                 <input
-                  id="deposit-source"
+                  id="income-source"
                   type="text"
                   placeholder="e.g. Salary, DA, Freelance Client, Gift"
                   value={incomeForm.source}
@@ -423,9 +418,9 @@ export default function DepositsPage() {
               </div>
 
               <div className="form-item">
-                <label className="form-label" htmlFor="deposit-amount">Amount (৳)</label>
+                <label className="form-label" htmlFor="income-amount">Amount (৳)</label>
                 <input
-                  id="deposit-amount"
+                  id="income-amount"
                   type="number"
                   min="0.01"
                   step="any"
@@ -438,9 +433,11 @@ export default function DepositsPage() {
               </div>
 
               <div className="form-item">
-                <label className="form-label" htmlFor="deposit-account">Deposit Into / Account</label>
+                <label className="form-label" htmlFor="income-account">
+                  Deposit Into / Account
+                </label>
                 <input
-                  id="deposit-account"
+                  id="income-account"
                   type="text"
                   list="depositModalAccountSuggestions"
                   value={incomeForm.account}
@@ -461,7 +458,7 @@ export default function DepositsPage() {
                 </datalist>
               </div>
 
-              <div className="modal-actions" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: '18px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '10px' }}>
                 {editingTx ? (
                   <button
                     type="button"
@@ -477,7 +474,7 @@ export default function DepositsPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    🗑️ Delete Record
+                    🗑️ Delete
                   </button>
                 ) : <div />}
 
@@ -486,20 +483,22 @@ export default function DepositsPage() {
                     type="button"
                     onClick={() => setShowIncomeModal(false)}
                     className="secondary"
+                    style={{ height: '42px', padding: '0 18px', borderRadius: '10px' }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="primary"
+                    className="deposit-submit-btn"
                     style={{
-                      minWidth: '130px',
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      border: 'none',
+                      height: '42px',
+                      padding: '0 22px',
+                      borderRadius: '10px',
+                      fontWeight: 700,
                     }}
                   >
-                    {isSubmitting ? 'Saving...' : editingTx ? 'Save Changes' : '+ Add Income'}
+                    {isSubmitting ? 'Saving...' : editingTx ? 'Save Changes' : '+ Record Income'}
                   </button>
                 </div>
               </div>

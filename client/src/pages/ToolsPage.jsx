@@ -714,23 +714,16 @@ export default function ToolsPage() {
       {/* Modal 1: Add / Edit Debt or Loan */}
       {showDebtModal && (
         <div className="modal-overlay" onClick={() => setShowDebtModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
-              <h2 className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>৳</span> {editingDebt ? `Edit Record for "${editingDebt.person}"` : 'New Debt or Loan'}
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">
+                {editingDebt ? `✏️ Edit "${editingDebt.person}"` : '৳ New Debt or Loan'}
               </h2>
               <button
                 type="button"
+                className="modal-close-btn"
                 onClick={() => setShowDebtModal(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#94a3b8',
-                  fontSize: '1.25rem',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  lineHeight: 1,
-                }}
+                title="Close modal"
               >
                 ✕
               </button>
@@ -855,23 +848,16 @@ export default function ToolsPage() {
       {/* Modal 2: Record Repayment */}
       {showRepayModal && (
         <div className="modal-overlay" onClick={() => setShowRepayModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
-              <h2 className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>💳</span> Record a Repayment
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">
+                💳 Record a Repayment
               </h2>
               <button
                 type="button"
+                className="modal-close-btn"
                 onClick={() => setShowRepayModal(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#94a3b8',
-                  fontSize: '1.25rem',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  lineHeight: 1,
-                }}
+                title="Close modal"
               >
                 ✕
               </button>

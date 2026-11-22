@@ -657,16 +657,17 @@ export default function AccountsPage() {
 
       {/* 4. Modal: Inter-Account Transfer */}
       {showTransferModal && (
-        <div className="modal-backdrop" onClick={() => setShowTransferModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                <span>⇄</span> Inter-Account Transfer
-              </h3>
+        <div className="modal-overlay" onClick={() => setShowTransferModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">
+                ⇄ Inter-Account Transfer
+              </h2>
               <button
                 type="button"
+                className="modal-close-btn"
                 onClick={() => setShowTransferModal(false)}
-                className="text-slate-400 hover:text-white"
+                title="Close modal"
               >
                 ✕
               </button>
@@ -797,16 +798,17 @@ export default function AccountsPage() {
 
       {/* 5. Modal: Add / Edit Account or Asset */}
       {showAddModal && (
-        <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-slate-100">
-                {editingAccount ? `Edit "${editingAccount.name}"` : 'Add New Account or Asset'}
-              </h3>
+        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">
+                {editingAccount ? `✏️ Edit "${editingAccount.name}"` : '➕ Add Account or Asset'}
+              </h2>
               <button
                 type="button"
+                className="modal-close-btn"
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-white"
+                title="Close modal"
               >
                 ✕
               </button>
@@ -961,18 +963,18 @@ export default function AccountsPage() {
 
       {/* 6. Statement & History Drawer Modal */}
       {selectedStatementAccount && (
-        <div className="modal-backdrop" onClick={() => setSelectedStatementAccount(null)}>
+        <div className="modal-overlay" onClick={() => setSelectedStatementAccount(null)}>
           <div
-            className="modal-content"
+            className="modal"
             onClick={(e) => e.stopPropagation()}
             style={{ maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
           >
             {/* Drawer Header */}
-            <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+            <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ fontSize: '1.5rem' }}>{getTypeMeta(selectedStatementAccount.type).icon}</span>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                  <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {selectedStatementAccount.name}
                     <span
                       style={{

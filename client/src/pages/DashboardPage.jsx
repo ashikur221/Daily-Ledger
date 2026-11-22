@@ -421,23 +421,16 @@ export default function DashboardPage() {
       {/* 4. Add / Edit Expense Modal */}
       {showExpenseModal && (
         <div className="modal-overlay" onClick={() => setShowExpenseModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
-              <h2 className="modal-title" style={{ margin: 0 }}>
-                {editingTx ? 'Edit Expense' : 'Add Expense'}
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">
+                {editingTx ? '✏️ Edit Expense' : '💸 Add Expense'}
               </h2>
               <button
                 type="button"
+                className="modal-close-btn"
                 onClick={() => setShowExpenseModal(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#94a3b8',
-                  fontSize: '1.25rem',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  lineHeight: 1,
-                }}
+                title="Close modal"
               >
                 ✕
               </button>
@@ -445,9 +438,9 @@ export default function DashboardPage() {
 
             <form onSubmit={handleSaveExpenseModal} className="modal-form">
               <div className="form-item">
-                <label className="form-label" htmlFor="dash-modal-date">Date</label>
+                <label className="form-label" htmlFor="dash-expense-date">Date</label>
                 <input
-                  id="dash-modal-date"
+                  id="dash-expense-date"
                   type="date"
                   className="field"
                   value={expenseForm.date}
@@ -457,9 +450,9 @@ export default function DashboardPage() {
               </div>
 
               <div className="form-item">
-                <label className="form-label" htmlFor="dash-modal-title">Expense Title</label>
+                <label className="form-label" htmlFor="dash-expense-title">Expense Title</label>
                 <input
-                  id="dash-modal-title"
+                  id="dash-expense-title"
                   type="text"
                   className="field"
                   placeholder="e.g. Cha, Rickshaw, Lunch, Groceries"
@@ -470,46 +463,48 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <div className="form-item">
-                <label className="form-label" htmlFor="dash-modal-amount">Amount (৳)</label>
-                <input
-                  id="dash-modal-amount"
-                  type="number"
-                  min="0.01"
-                  step="any"
-                  className="field"
-                  placeholder="35"
-                  value={expenseForm.amount}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                  required
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-item">
+                  <label className="form-label" htmlFor="dash-expense-amount">Amount (৳)</label>
+                  <input
+                    id="dash-expense-amount"
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    className="field"
+                    placeholder="35"
+                    value={expenseForm.amount}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-item">
+                  <label className="form-label" htmlFor="dash-expense-category">Category</label>
+                  <select
+                    id="dash-expense-category"
+                    className="field"
+                    value={expenseForm.category}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                  >
+                    <option value="Food & drinks">Food & Drinks</option>
+                    <option value="Transport">Transport / Fare</option>
+                    <option value="Phone & communication">Phone & Internet</option>
+                    <option value="Health">Health & Medicine</option>
+                    <option value="Personal care">Personal Care</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Study & supplies">Study & Supplies</option>
+                    <option value="Housing">Housing & Rent</option>
+                    <option value="Laundry & household">Household & Utilities</option>
+                    <option value="General">General / Other</option>
+                  </select>
+                </div>
               </div>
 
               <div className="form-item">
-                <label className="form-label" htmlFor="dash-modal-category">Category</label>
-                <select
-                  id="dash-modal-category"
-                  className="field"
-                  value={expenseForm.category}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                >
-                  <option value="Food & drinks">Food & Drinks</option>
-                  <option value="Transport">Transport / Fare</option>
-                  <option value="Phone & communication">Phone & Internet</option>
-                  <option value="Health">Health & Medicine</option>
-                  <option value="Personal care">Personal Care</option>
-                  <option value="Clothing">Clothing</option>
-                  <option value="Study & supplies">Study & Supplies</option>
-                  <option value="Housing">Housing & Rent</option>
-                  <option value="Laundry & household">Household & Utilities</option>
-                  <option value="General">General / Other</option>
-                </select>
-              </div>
-
-              <div className="form-item">
-                <label className="form-label" htmlFor="dash-modal-account">Paid From Account</label>
+                <label className="form-label" htmlFor="dash-expense-account">Paid From Account</label>
                 <input
-                  id="dash-modal-account"
+                  id="dash-expense-account"
                   type="text"
                   list="dashModalAccountSuggestions"
                   className="field"
@@ -525,14 +520,17 @@ export default function DashboardPage() {
                   <option value="Cash in Hand" />
                   <option value="bKash" />
                   <option value="Nagad" />
+                  <option value="City Bank" />
+                  <option value="Dutch-Bangla Bank" />
                 </datalist>
               </div>
 
-              <div className="modal-actions" style={{ marginTop: '18px' }}>
+              <div className="modal-actions" style={{ marginTop: '16px' }}>
                 <button
                   type="button"
                   onClick={() => setShowExpenseModal(false)}
                   className="secondary"
+                  style={{ height: '42px', padding: '0 20px', borderRadius: '10px' }}
                 >
                   Cancel
                 </button>
@@ -540,7 +538,7 @@ export default function DashboardPage() {
                   type="submit"
                   disabled={isSubmitting}
                   className="primary"
-                  style={{ minWidth: '130px' }}
+                  style={{ height: '42px', padding: '0 24px', borderRadius: '10px', fontWeight: 700 }}
                 >
                   {isSubmitting ? 'Saving...' : editingTx ? 'Save Changes' : '+ Add Expense'}
                 </button>
