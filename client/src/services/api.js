@@ -48,8 +48,20 @@ api.interceptors.response.use(
 
       isRefreshing = true;
       try {
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+        let refreshBody = {};
+        const storedAuth = localStorage.getItem('daily_ledger_auth');
+        if (storedAuth) {
+          try {
+            const parsed = JSON.parse(storedAuth);
+            if (parsed.refreshToken) refreshBody.refreshToken = parsed.refreshToken;
+          } catch {}
+        }
+
+        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, refreshBody, { withCredentials: true });
         _accessToken = data.accessToken;
+        if (data.refreshToken && localStorage.getItem('daily_ledger_remember_me') === 'true') {
+          localStorage.setItem('daily_ledger_auth', JSON.stringify({ refreshToken: data.refreshToken, user: data.user }));
+        }
         if (_onTokenRefreshed) _onTokenRefreshed(data);
         onRefreshed(data.accessToken);
         isRefreshing = false;
@@ -58,6 +70,7 @@ api.interceptors.response.use(
       } catch (refreshErr) {
         isRefreshing = false;
         _accessToken = null;
+        localStorage.removeItem('daily_ledger_auth');
         window.dispatchEvent(new Event('auth:logout'));
         return Promise.reject(refreshErr);
       }

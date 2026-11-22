@@ -9,8 +9,9 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [email, setEmail] = useState(searchParams.get('email') || '');
+  const [email, setEmail] = useState(searchParams.get('email') || localStorage.getItem('daily_ledger_remembered_email') || '');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,7 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      await login(cleanEmail, password);
+      await login(cleanEmail, password, rememberMe);
       toast.success('Welcome back! Logged in successfully.');
       navigate('/');
     } catch (err) {
@@ -113,6 +114,19 @@ export default function LoginPage() {
                 {showPassword ? '👁️' : '👁️‍🗨️'}
               </button>
             </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0 16px', userSelect: 'none' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.86rem', color: '#cbd5e1' }}>
+              <input
+                type="checkbox"
+                id="login-remember-me"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ width: '16px', height: '16px', accentColor: '#38bdf8', cursor: 'pointer' }}
+              />
+              <span>Remember me on this device</span>
+            </label>
           </div>
 
           <button

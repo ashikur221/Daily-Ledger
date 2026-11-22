@@ -12,12 +12,26 @@ export const AuthProvider = ({ children }) => {
   const [pendingSync, setPendingSync] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Try to restore session via refresh token (httpOnly cookie)
+  // Try to restore session via refresh token (cookie or stored token if remember me was checked)
   const restoreSession = useCallback(async () => {
     try {
-      const { data } = await api.post('/auth/refresh');
+      let refreshBody = {};
+      const storedAuth = localStorage.getItem('daily_ledger_auth');
+      if (storedAuth) {
+        try {
+          const parsed = JSON.parse(storedAuth);
+          if (parsed.refreshToken) refreshBody.refreshToken = parsed.refreshToken;
+        } catch {}
+      }
+
+      const { data } = await api.post('/auth/refresh', refreshBody);
       setAccessToken(data.accessToken);
       setUser(data.user);
+
+      if (data.refreshToken && localStorage.getItem('daily_ledger_remember_me') === 'true') {
+        localStorage.setItem('daily_ledger_auth', JSON.stringify({ refreshToken: data.refreshToken, user: data.user }));
+      }
+
       // Run two-way delta sync on session restore (pull updates from other devices)
       syncTwoWay().then(({ pulled, synced }) => {
         refreshPendingCount();
@@ -26,6 +40,7 @@ export const AuthProvider = ({ children }) => {
         }
       });
     } catch {
+      localStorage.removeItem('daily_ledger_auth');
       setUser(null);
     } finally {
       setLoading(false);
@@ -80,10 +95,23 @@ export const AuthProvider = ({ children }) => {
     };
   }, [restoreSession]);
 
-  const login = async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password });
+  const login = async (email, password, rememberMe = true) => {
+    const { data } = await api.post('/auth/login', { email, password, rememberMe });
     setAccessToken(data.accessToken);
     setUser(data.user);
+
+    if (rememberMe) {
+      localStorage.setItem('daily_ledger_remember_me', 'true');
+      localStorage.setItem('daily_ledger_remembered_email', email);
+      if (data.refreshToken) {
+        localStorage.setItem('daily_ledger_auth', JSON.stringify({ refreshToken: data.refreshToken, user: data.user }));
+      }
+    } else {
+      localStorage.removeItem('daily_ledger_remember_me');
+      localStorage.removeItem('daily_ledger_remembered_email');
+      localStorage.removeItem('daily_ledger_auth');
+    }
+
     // Two-way sync on login
     syncTwoWay().then(({ pulled }) => {
       refreshPendingCount();
@@ -102,7 +130,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    try { await api.post('/auth/logout'); } catch {}
+    try {
+      let refreshBody = {};
+      const storedAuth = localStorage.getItem('daily_ledger_auth');
+      if (storedAuth) {
+        try {
+          const parsed = JSON.parse(storedAuth);
+          if (parsed.refreshToken) refreshBody.refreshToken = parsed.refreshToken;
+        } catch {}
+      }
+      await api.post('/auth/logout', refreshBody);
+    } catch {}
+    localStorage.removeItem('daily_ledger_auth');
     setAccessToken(null);
     setUser(null);
     toast.info('Signed out successfully');

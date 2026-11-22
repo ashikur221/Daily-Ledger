@@ -3,22 +3,24 @@ const { v4: uuidv4 } = require('uuid');
 const User = require('../models/User');
 
 // Generate access + refresh tokens
-const generateTokens = (userId) => {
+const generateTokens = (userId, rememberMe = true) => {
   const accessToken = jwt.sign({ id: userId }, process.env.JWT_ACCESS_SECRET, {
     expiresIn: process.env.JWT_ACCESS_EXPIRES || '15m',
   });
+  const refreshExpires = rememberMe ? (process.env.JWT_REFRESH_EXPIRES || '90d') : '1d';
   const refreshToken = jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES || '7d',
+    expiresIn: refreshExpires,
   });
   return { accessToken, refreshToken };
 };
 
-const setRefreshCookie = (res, token) => {
+const setRefreshCookie = (res, token, rememberMe = true) => {
+  const maxAge = rememberMe ? 90 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000; // 90 days or 1 day
   res.cookie('refreshToken', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge,
   });
 };
 
@@ -63,17 +65,17 @@ const register = async (req, res) => {
 };
 
 // POST /api/auth/login
-// Body: { email, password }
+// Body: { email, password, rememberMe }
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe = true } = req.body;
     if (!email || !password) {
       console.log('Login failed: missing email or password');
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    console.log(`[AUTH] Login attempt for: "${cleanEmail}" (raw: "${email}")`);
+    console.log(`[AUTH] Login attempt for: "${cleanEmail}" (raw: "${email}", rememberMe: ${rememberMe})`);
 
     const user = await User.findOne({ email: cleanEmail });
     if (!user) {
@@ -98,14 +100,14 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const { accessToken, refreshToken } = generateTokens(user._id);
+    const { accessToken, refreshToken } = generateTokens(user._id, rememberMe);
     user.refreshToken = refreshToken;
     user.lastLoginAt = new Date();
     await user.save();
 
-    setRefreshCookie(res, refreshToken);
+    setRefreshCookie(res, refreshToken, rememberMe);
     console.log(`[AUTH] Login successful for: "${cleanEmail}"`);
-    res.json({ accessToken, user });
+    res.json({ accessToken, refreshToken, user });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ message: 'Server error during login' });
@@ -115,7 +117,7 @@ const login = async (req, res) => {
 // POST /api/auth/refresh
 const refreshAccessToken = async (req, res) => {
   try {
-    const token = req.cookies.refreshToken;
+    const token = req.cookies.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'];
     if (!token) return res.status(401).json({ message: 'No refresh token' });
 
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
@@ -125,12 +127,12 @@ const refreshAccessToken = async (req, res) => {
       return res.status(401).json({ message: 'Invalid refresh token' });
     }
 
-    const { accessToken, refreshToken } = generateTokens(user._id);
+    const { accessToken, refreshToken } = generateTokens(user._id, true);
     user.refreshToken = refreshToken;
     await user.save();
 
-    setRefreshCookie(res, refreshToken);
-    res.json({ accessToken, user });
+    setRefreshCookie(res, refreshToken, true);
+    res.json({ accessToken, refreshToken, user });
   } catch (err) {
     res.status(401).json({ message: 'Refresh token expired or invalid' });
   }
@@ -139,7 +141,7 @@ const refreshAccessToken = async (req, res) => {
 // POST /api/auth/logout
 const logout = async (req, res) => {
   try {
-    const token = req.cookies.refreshToken;
+    const token = req.cookies.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'];
     if (token) {
       await User.findOneAndUpdate({ refreshToken: token }, { refreshToken: null });
     }
