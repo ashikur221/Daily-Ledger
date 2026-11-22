@@ -51,6 +51,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json,jpg,jpeg,webp}'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             // Google Fonts cache
