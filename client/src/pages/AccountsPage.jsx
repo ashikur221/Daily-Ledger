@@ -410,24 +410,20 @@ export default function AccountsPage() {
         </div>
 
         {/* Quick Actions Bar */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '18px', flexWrap: 'wrap' }}>
+        <div className="bank-action-btn-row">
           <button
             type="button"
             onClick={handleOpenTransfer}
-            className="bank-add-action-btn"
-            style={{
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-              boxShadow: '0 4px 18px rgba(245, 158, 11, 0.35)',
-            }}
+            className="bank-add-action-btn transfer-btn"
           >
-            <span>⇄</span> Inter-Account Transfer
+            <span>⇄</span> Transfer Funds
           </button>
           <button
             type="button"
             onClick={handleOpenAddAccount}
-            className="bank-add-action-btn"
+            className="bank-add-action-btn add-btn"
           >
-            <span>+</span> Add Account or Asset
+            <span>+</span> Add Account
           </button>
         </div>
       </div>
@@ -486,20 +482,14 @@ export default function AccountsPage() {
           </div>
 
           {/* Classification Filter Tabs */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div className="bank-tabs-scroll">
             <button
               type="button"
               onClick={() => setActiveTab('all')}
+              className="bank-tab-btn"
               style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '0.82rem',
-                fontWeight: 650,
-                cursor: 'pointer',
                 background: activeTab === 'all' ? '#38bdf8' : '#141a27',
                 color: activeTab === 'all' ? '#000' : '#94a3b8',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                transition: 'all 0.15s ease',
               }}
             >
               All ({accounts.length})
@@ -507,16 +497,10 @@ export default function AccountsPage() {
             <button
               type="button"
               onClick={() => setActiveTab('liquid')}
+              className="bank-tab-btn"
               style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '0.82rem',
-                fontWeight: 650,
-                cursor: 'pointer',
                 background: activeTab === 'liquid' ? '#38bdf8' : '#141a27',
                 color: activeTab === 'liquid' ? '#000' : '#94a3b8',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                transition: 'all 0.15s ease',
               }}
             >
               💳 Liquid ({liquidAccounts.length})
@@ -524,16 +508,10 @@ export default function AccountsPage() {
             <button
               type="button"
               onClick={() => setActiveTab('fdr')}
+              className="bank-tab-btn"
               style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '0.82rem',
-                fontWeight: 650,
-                cursor: 'pointer',
                 background: activeTab === 'fdr' ? '#a855f7' : '#141a27',
                 color: activeTab === 'fdr' ? '#fff' : '#94a3b8',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                transition: 'all 0.15s ease',
               }}
             >
               📜 Fixed Deposits ({fdrAccounts.length})
@@ -541,16 +519,10 @@ export default function AccountsPage() {
             <button
               type="button"
               onClick={() => setActiveTab('asset')}
+              className="bank-tab-btn"
               style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '0.82rem',
-                fontWeight: 650,
-                cursor: 'pointer',
                 background: activeTab === 'asset' ? '#f59e0b' : '#141a27',
                 color: activeTab === 'asset' ? '#000' : '#94a3b8',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                transition: 'all 0.15s ease',
               }}
             >
               🏆 Assets ({assetAccounts.length})
@@ -594,26 +566,27 @@ export default function AccountsPage() {
                 >
                   <div className="bank-account-card-main">
                     <div className="bank-account-info">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '1.2rem' }}>{meta.icon}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>{meta.icon}</span>
                         <span className="bank-account-name">{acc.name}</span>
                         <span
                           style={{
-                            fontSize: '0.68rem',
+                            fontSize: '0.66rem',
                             fontWeight: 750,
                             letterSpacing: '0.04em',
-                            padding: '2px 8px',
+                            padding: '2px 7px',
                             borderRadius: '6px',
                             color: meta.color,
                             background: meta.bg,
                             border: `1px solid ${meta.color}40`,
+                            whiteSpace: 'nowrap',
                           }}
                         >
                           {meta.label}
                         </span>
                       </div>
 
-                      <div className="bank-account-meta" style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                      <div className="bank-account-meta">
                         {acc.institution && <span>🏛️ {acc.institution}</span>}
                         {acc.accountNumber && <span>🔢 {acc.accountNumber}</span>}
                         {acc.maturityDate && (
@@ -625,16 +598,16 @@ export default function AccountsPage() {
                       </div>
                     </div>
 
-                    <div className="bank-account-right" style={{ textAlign: 'right' }}>
-                      <span className="bank-account-amount" style={{ fontSize: '1.35rem', fontWeight: 800 }}>
+                    <div className="bank-account-right">
+                      <span className="bank-account-amount">
                         {fmt(acc.balance)}
                       </span>
                     </div>
                   </div>
 
-                  <div className="bank-account-action-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #141a27', paddingTop: '10px', marginTop: '6px' }}>
-                    <span style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 600 }}>
-                      📋 Click to view statement & history ›
+                  <div className="bank-account-action-row">
+                    <span style={{ fontSize: '0.76rem', color: '#38bdf8', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      📋 Statement & history ›
                     </span>
 
                     <button
@@ -645,7 +618,7 @@ export default function AccountsPage() {
                       }}
                       className="bank-edit-balance-pill"
                     >
-                      ✏️ Edit / Adjust
+                      ✏️ Edit
                     </button>
                   </div>
                 </div>
