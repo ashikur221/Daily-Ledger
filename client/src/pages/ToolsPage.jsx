@@ -713,16 +713,24 @@ export default function ToolsPage() {
 
       {/* Modal 1: Add / Edit Debt or Loan */}
       {showDebtModal && (
-        <div className="modal-backdrop" onClick={() => setShowDebtModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+        <div className="modal-overlay" onClick={() => setShowDebtModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
+              <h2 className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>৳</span> {editingDebt ? `Edit Record for "${editingDebt.person}"` : 'New Debt or Loan'}
-              </h3>
+              </h2>
               <button
                 type="button"
                 onClick={() => setShowDebtModal(false)}
-                className="text-slate-400 hover:text-white"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  lineHeight: 1,
+                }}
               >
                 ✕
               </button>
@@ -846,16 +854,24 @@ export default function ToolsPage() {
 
       {/* Modal 2: Record Repayment */}
       {showRepayModal && (
-        <div className="modal-backdrop" onClick={() => setShowRepayModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+        <div className="modal-overlay" onClick={() => setShowRepayModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
+              <h2 className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>💳</span> Record a Repayment
-              </h3>
+              </h2>
               <button
                 type="button"
                 onClick={() => setShowRepayModal(false)}
-                className="text-slate-400 hover:text-white"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  lineHeight: 1,
+                }}
               >
                 ✕
               </button>

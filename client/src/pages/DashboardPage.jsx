@@ -420,38 +420,48 @@ export default function DashboardPage() {
 
       {/* 4. Add / Edit Expense Modal */}
       {showExpenseModal && (
-        <div className="modal-backdrop" onClick={() => setShowExpenseModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-slate-100">
+        <div className="modal-overlay" onClick={() => setShowExpenseModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
+              <h2 className="modal-title" style={{ margin: 0 }}>
                 {editingTx ? 'Edit Expense' : 'Add Expense'}
-              </h3>
+              </h2>
               <button
                 type="button"
                 onClick={() => setShowExpenseModal(false)}
-                className="text-slate-400 hover:text-white"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  lineHeight: 1,
+                }}
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveExpenseModal} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">Date</label>
+            <form onSubmit={handleSaveExpenseModal} className="modal-form">
+              <div className="form-item">
+                <label className="form-label" htmlFor="dash-modal-date">Date</label>
                 <input
+                  id="dash-modal-date"
                   type="date"
-                  className="field w-full"
+                  className="field"
                   value={expenseForm.date}
                   onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">Expense Title</label>
+              <div className="form-item">
+                <label className="form-label" htmlFor="dash-modal-title">Expense Title</label>
                 <input
+                  id="dash-modal-title"
                   type="text"
-                  className="field w-full"
+                  className="field"
                   placeholder="e.g. Cha, Rickshaw, Lunch, Groceries"
                   value={expenseForm.title}
                   onChange={(e) => setExpenseForm({ ...expenseForm, title: e.target.value })}
@@ -460,48 +470,49 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">Amount (৳)</label>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="any"
-                    className="field w-full"
-                    placeholder="35"
-                    value={expenseForm.amount}
-                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">Category</label>
-                  <select
-                    className="field w-full"
-                    value={expenseForm.category}
-                    onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                  >
-                    <option value="Food & drinks">Food & Drinks</option>
-                    <option value="Transport">Transport / Fare</option>
-                    <option value="Phone & communication">Phone & Internet</option>
-                    <option value="Health">Health & Medicine</option>
-                    <option value="Personal care">Personal Care</option>
-                    <option value="Clothing">Clothing</option>
-                    <option value="Study & supplies">Study & Supplies</option>
-                    <option value="Housing">Housing & Rent</option>
-                    <option value="Laundry & household">Household & Utilities</option>
-                    <option value="General">General / Other</option>
-                  </select>
-                </div>
+              <div className="form-item">
+                <label className="form-label" htmlFor="dash-modal-amount">Amount (৳)</label>
+                <input
+                  id="dash-modal-amount"
+                  type="number"
+                  min="0.01"
+                  step="any"
+                  className="field"
+                  placeholder="35"
+                  value={expenseForm.amount}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                  required
+                />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">Paid From Account</label>
+              <div className="form-item">
+                <label className="form-label" htmlFor="dash-modal-category">Category</label>
+                <select
+                  id="dash-modal-category"
+                  className="field"
+                  value={expenseForm.category}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                >
+                  <option value="Food & drinks">Food & Drinks</option>
+                  <option value="Transport">Transport / Fare</option>
+                  <option value="Phone & communication">Phone & Internet</option>
+                  <option value="Health">Health & Medicine</option>
+                  <option value="Personal care">Personal Care</option>
+                  <option value="Clothing">Clothing</option>
+                  <option value="Study & supplies">Study & Supplies</option>
+                  <option value="Housing">Housing & Rent</option>
+                  <option value="Laundry & household">Household & Utilities</option>
+                  <option value="General">General / Other</option>
+                </select>
+              </div>
+
+              <div className="form-item">
+                <label className="form-label" htmlFor="dash-modal-account">Paid From Account</label>
                 <input
+                  id="dash-modal-account"
                   type="text"
                   list="dashModalAccountSuggestions"
-                  className="field w-full"
+                  className="field"
                   placeholder="e.g. Cash in Hand, bKash, City Bank"
                   value={expenseForm.account}
                   onChange={(e) => setExpenseForm({ ...expenseForm, account: e.target.value })}
@@ -517,19 +528,19 @@ export default function DashboardPage() {
                 </datalist>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3">
+              <div className="modal-actions" style={{ marginTop: '18px' }}>
                 <button
                   type="button"
                   onClick={() => setShowExpenseModal(false)}
-                  className="secondary px-4 py-2 text-sm rounded-lg"
+                  className="secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="primary px-6"
-                  style={{ height: '42px', minWidth: '130px' }}
+                  className="primary"
+                  style={{ minWidth: '130px' }}
                 >
                   {isSubmitting ? 'Saving...' : editingTx ? 'Save Changes' : '+ Add Expense'}
                 </button>

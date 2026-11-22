@@ -372,73 +372,81 @@ export default function DepositsPage() {
 
       {/* 3. Modal: Add / Edit Income */}
       {showIncomeModal && (
-        <div className="modal-backdrop" onClick={() => setShowIncomeModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+        <div className="modal-overlay" onClick={() => setShowIncomeModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
+              <h2 className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>💰</span> {editingTx ? 'Edit Income Record' : 'Record Income'}
-              </h3>
+              </h2>
               <button
                 type="button"
                 onClick={() => setShowIncomeModal(false)}
-                className="text-slate-400 hover:text-white"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  lineHeight: 1,
+                }}
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveIncome} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">Date</label>
+            <form onSubmit={handleSaveIncome} className="modal-form">
+              <div className="form-item">
+                <label className="form-label" htmlFor="deposit-date">Date</label>
                 <input
+                  id="deposit-date"
                   type="date"
-                  className="field w-full"
+                  className="field"
                   value={incomeForm.date}
                   onChange={(e) => setIncomeForm({ ...incomeForm, date: e.target.value })}
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
-                  From / Source Note
-                </label>
+              <div className="form-item">
+                <label className="form-label" htmlFor="deposit-source">From / Source Note</label>
                 <input
+                  id="deposit-source"
                   type="text"
                   placeholder="e.g. Salary, DA, Freelance Client, Gift"
                   value={incomeForm.source}
                   onChange={(e) => setIncomeForm({ ...incomeForm, source: e.target.value })}
-                  className="field w-full"
+                  className="field"
                   required
                   autoFocus
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">Amount (৳)</label>
+              <div className="form-item">
+                <label className="form-label" htmlFor="deposit-amount">Amount (৳)</label>
                 <input
+                  id="deposit-amount"
                   type="number"
                   min="0.01"
                   step="any"
                   placeholder="1000"
                   value={incomeForm.amount}
                   onChange={(e) => setIncomeForm({ ...incomeForm, amount: e.target.value })}
-                  className="field w-full"
+                  className="field"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
-                  Deposit Into / Account
-                </label>
+              <div className="form-item">
+                <label className="form-label" htmlFor="deposit-account">Deposit Into / Account</label>
                 <input
+                  id="deposit-account"
                   type="text"
                   list="depositModalAccountSuggestions"
                   value={incomeForm.account}
                   onChange={(e) => setIncomeForm({ ...incomeForm, account: e.target.value })}
                   placeholder="e.g. Cash in Hand, bKash, City Bank"
-                  className="field w-full"
+                  className="field"
                   required
                 />
                 <datalist id="depositModalAccountSuggestions">
@@ -453,7 +461,7 @@ export default function DepositsPage() {
                 </datalist>
               </div>
 
-              <div className="flex justify-between items-center pt-3">
+              <div className="modal-actions" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: '18px' }}>
                 {editingTx ? (
                   <button
                     type="button"
@@ -473,22 +481,22 @@ export default function DepositsPage() {
                   </button>
                 ) : <div />}
 
-                <div className="flex gap-3">
+                <div style={{ display: 'flex', gap: '10px' }}>
                   <button
                     type="button"
                     onClick={() => setShowIncomeModal(false)}
-                    className="secondary px-4 py-2 text-sm rounded-lg"
+                    className="secondary"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="deposit-submit-btn px-6"
+                    className="primary"
                     style={{
-                      height: '42px',
                       minWidth: '130px',
                       background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      border: 'none',
                     }}
                   >
                     {isSubmitting ? 'Saving...' : editingTx ? 'Save Changes' : '+ Add Income'}
