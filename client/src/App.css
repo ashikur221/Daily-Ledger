@@ -456,20 +456,15 @@ html, body {
 /* Metrics Grid (4-box summary) */
 .metrics-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
   margin-bottom: 20px;
-}
-
-@media (min-width: 640px) {
-  .metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 @media (min-width: 900px) {
   .metrics-grid {
     grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
   }
 }
 
@@ -799,11 +794,31 @@ html, body {
   gap: 14px;
 }
 
+.modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .modal-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
 .modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 14px;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-top: 18px !important;
+}
+
+.modal-actions button {
+  height: 42px;
+  border-radius: 10px;
 }
 
 /* Entries for Selected Day */

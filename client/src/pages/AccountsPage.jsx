@@ -647,7 +647,7 @@ export default function AccountsPage() {
             </div>
 
             <form onSubmit={handleExecuteTransfer} className="modal-form">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="modal-grid-2">
                 <div className="form-item">
                   <label className="form-label" htmlFor="tf-from">
                     From Account
@@ -691,7 +691,7 @@ export default function AccountsPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="modal-grid-2">
                 <div className="form-item">
                   <label className="form-label" htmlFor="tf-amt">
                     Amount (৳)
@@ -754,12 +754,11 @@ export default function AccountsPage() {
                 />
               </div>
 
-              <div className="modal-actions" style={{ marginTop: '16px' }}>
+              <div className="modal-actions">
                 <button
                   type="button"
                   onClick={() => setShowTransferModal(false)}
                   className="secondary"
-                  style={{ height: '42px', padding: '0 20px', borderRadius: '10px' }}
                 >
                   Cancel
                 </button>
@@ -767,9 +766,6 @@ export default function AccountsPage() {
                   type="submit"
                   className="primary"
                   style={{
-                    height: '42px',
-                    padding: '0 24px',
-                    borderRadius: '10px',
                     fontWeight: 700,
                     background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                     borderColor: '#f59e0b',
@@ -818,7 +814,7 @@ export default function AccountsPage() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="modal-grid-2">
                 <div className="form-item">
                   <label className="form-label" htmlFor="acc-type">
                     Classification / Type
@@ -854,7 +850,7 @@ export default function AccountsPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="modal-grid-2">
                 <div className="form-item">
                   <label className="form-label" htmlFor="acc-inst">
                     Institution (optional)
@@ -913,7 +909,13 @@ export default function AccountsPage() {
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '10px' }}>
+              <div
+                className="modal-actions"
+                style={{
+                  justifyContent: editingAccount ? 'space-between' : 'flex-end',
+                  width: '100%',
+                }}
+              >
                 {editingAccount ? (
                   <button
                     type="button"
@@ -931,21 +933,20 @@ export default function AccountsPage() {
                   >
                     🗑️ Delete Account
                   </button>
-                ) : <div />}
+                ) : null}
 
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
                     className="secondary"
-                    style={{ height: '42px', padding: '0 20px', borderRadius: '10px' }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     className="primary"
-                    style={{ height: '42px', padding: '0 24px', borderRadius: '10px', fontWeight: 700 }}
+                    style={{ fontWeight: 700 }}
                   >
                     {editingAccount ? 'Save Changes' : '+ Add Account'}
                   </button>

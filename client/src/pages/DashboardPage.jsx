@@ -37,6 +37,7 @@ export default function DashboardPage() {
   // Data states
   const [stats, setStats] = useState({
     balance: 0,
+    cashInHand: 0,
     todayTotal: 0,
     allExpenses: 0,
     recordedDays: 0,
@@ -108,8 +109,13 @@ export default function DashboardPage() {
     const liquidAccs = accountsList.filter((a) => a.type !== 'fdr' && a.type !== 'asset');
     const accountsTotal = liquidAccs.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
 
+    // Cash in Hand: accounts of type 'cash' or name containing 'cash'
+    const cashAccs = accountsList.filter((a) => a.type === 'cash' || /cash/i.test(a.name));
+    const cashTotal = cashAccs.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+
     // If user has set up accounts, use the real liquid accounts total; otherwise fallback to deposits - expenses
     const trueLiquidBalance = liquidAccs.length > 0 ? accountsTotal : Math.max(0, totalDepositAmount - totalExpenseAmount);
+    const cashInHand = cashAccs.length > 0 ? cashTotal : (accountsList.length === 0 ? trueLiquidBalance : 0);
 
     // Days with expense records count
     const uniqueDays = new Set(
@@ -136,6 +142,7 @@ export default function DashboardPage() {
 
     setStats({
       balance: trueLiquidBalance,
+      cashInHand,
       todayTotal,
       allExpenses: totalExpenseAmount,
       recordedDays: uniqueDays.size,
@@ -318,6 +325,32 @@ export default function DashboardPage() {
               {fmt(stats.balance)}
             </div>
             <div className="balance-subtitle">Current Available Balance</div>
+
+            {/* Prominent Cash In Hand Sub-Badge */}
+            <div
+              onClick={() => navigate('/accounts')}
+              title="Click to view Cash in Hand in Banks & Assets"
+              style={{
+                marginTop: '10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 14px',
+                borderRadius: '20px',
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span style={{ fontSize: '0.85rem' }}>💵</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Cash in Hand:
+              </span>
+              <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#34d399' }}>
+                {fmt(stats.cashInHand)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -343,6 +376,25 @@ export default function DashboardPage() {
           <div id="todayDateLabel" className="metric-sub">{todayLabel}</div>
         </div>
 
+        <div
+          className="panel p-4"
+          onClick={() => navigate('/accounts')}
+          style={{
+            cursor: 'pointer',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 6, 8, 0.6) 100%)',
+          }}
+          title="Click to view Cash accounts"
+        >
+          <div className="tiny-label" style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>💵</span> Cash in hand
+          </div>
+          <div id="homeCashInHand" className="metric-value" style={{ color: '#34d399' }}>
+            {fmt(stats.cashInHand)}
+          </div>
+          <div className="metric-sub">Physical wallet & pocket cash</div>
+        </div>
+
         <div className="panel p-4">
           <div className="tiny-label">All recorded expenses</div>
           <div id="allTotal" className="metric-value">{fmt(stats.allExpenses)}</div>
@@ -353,12 +405,6 @@ export default function DashboardPage() {
           <div className="tiny-label">Recorded days</div>
           <div id="dayCount" className="metric-value">{stats.recordedDays}</div>
           <div className="metric-sub">Days with expense records</div>
-        </div>
-
-        <div className="panel p-4">
-          <div className="tiny-label">Money remaining</div>
-          <div id="homeRemaining" className="metric-value">{fmt(stats.remaining)}</div>
-          <div className="metric-sub">Liquid capital across active accounts</div>
         </div>
       </div>
 
