@@ -4,6 +4,7 @@ import db from '../db/localDb';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { queueSync } from '../services/syncService';
+import { adjustAccountBalance, getAllAccounts } from '../services/accountService';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
 
@@ -14,6 +15,7 @@ export default function ToolsPage() {
 
   const [tools, setTools] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [availableAccounts, setAvailableAccounts] = useState([]);
 
   // Form states
   const [person, setPerson] = useState('');
@@ -26,6 +28,7 @@ export default function ToolsPage() {
   // Repayment form states
   const [repayDebtId, setRepayDebtId] = useState('');
   const [repayAmount, setRepayAmount] = useState('');
+  const [repayAccount, setRepayAccount] = useState('Cash in Hand');
   const [repayDate, setRepayDate] = useState(new Date().toISOString().split('T')[0]);
   const [repayNote, setRepayNote] = useState('');
 
@@ -47,6 +50,11 @@ export default function ToolsPage() {
     try {
       const local = await db.tools.where('isDeleted').equals(0).toArray();
       setTools(local);
+
+      // Load accounts for repayment linkage
+      getAllAccounts().then((accs) => {
+        setAvailableAccounts(accs);
+      });
 
       if (isOnline) {
         api
@@ -297,6 +305,7 @@ export default function ToolsPage() {
 
     try {
       const repayLocalId = uuidv4();
+      const chosenAcc = (repayAccount || '').trim();
       const repayRecord = {
         localId: repayLocalId,
         toolType: 'repayment',
@@ -305,6 +314,7 @@ export default function ToolsPage() {
           person: targetDebt.person,
           type: targetDebt.type,
           amount: num,
+          account: chosenAcc,
           date: repayDate,
           note: repayNote.trim(),
         },
@@ -314,6 +324,17 @@ export default function ToolsPage() {
       };
       await db.tools.put(repayRecord);
       await queueSync('tools', repayLocalId, 'create', repayRecord);
+
+      // Reconcile with account if chosen
+      if (chosenAcc) {
+        if (targetDebt.type === 'owe') {
+          // They owe me, so I received cash!
+          await adjustAccountBalance(chosenAcc, num);
+        } else {
+          // I owe them, so I paid cash!
+          await adjustAccountBalance(chosenAcc, -num);
+        }
+      }
 
       const newRepaid = (Number(targetDebt.repaid) || 0) + num;
       const newRemaining = Math.max(0, (Number(targetDebt.amount) || 0) - newRepaid);
@@ -366,6 +387,16 @@ export default function ToolsPage() {
       };
       await db.tools.put(updatedRepay);
       await queueSync('tools', repayment.localId, 'delete', { localId: repayment.localId });
+
+      // Revert account adjustment if any
+      const repAcc = repayment.account || repayment.raw?.data?.account;
+      if (repAcc) {
+        if (repayment.type === 'owe') {
+          await adjustAccountBalance(repAcc, -Number(repayment.amount));
+        } else {
+          await adjustAccountBalance(repAcc, Number(repayment.amount));
+        }
+      }
 
       if (repayment.debtId) {
         const targetDebt = debtsList.find((d) => d.localId === repayment.debtId);
@@ -793,13 +824,36 @@ export default function ToolsPage() {
             </div>
 
             <div className="debt-input-group">
+              <label className="debt-input-label" htmlFor="repayAccount">
+                Deposit into / Pay from Account
+              </label>
+              <input
+                id="repayAccount"
+                type="text"
+                list="debtAccountSuggestions"
+                value={repayAccount}
+                onChange={(e) => setRepayAccount(e.target.value)}
+                placeholder="e.g. Cash in Hand, bKash, City Bank"
+                className="debt-text-input"
+              />
+              <datalist id="debtAccountSuggestions">
+                {availableAccounts.map((a) => (
+                  <option key={a.localId || a.name} value={a.name} />
+                ))}
+                <option value="Cash in Hand" />
+                <option value="bKash" />
+                <option value="Nagad" />
+              </datalist>
+            </div>
+
+            <div className="debt-input-group">
               <label className="debt-input-label" htmlFor="repayNote">
-                Payment method / note (optional)
+                Note (optional)
               </label>
               <input
                 id="repayNote"
                 type="text"
-                placeholder="e.g. bKash, Cash in hand"
+                placeholder="e.g. Partial repayment via mobile"
                 value={repayNote}
                 onChange={(e) => setRepayNote(e.target.value)}
                 className="debt-text-input"

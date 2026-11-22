@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
 import { queueSync } from '../services/syncService';
+import { adjustAccountBalance, getAllAccounts } from '../services/accountService';
 import api from '../services/api';
 
 export default function DashboardPage() {
@@ -21,15 +22,17 @@ export default function DashboardPage() {
   // Form state
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
+  const [expenseAccount, setExpenseAccount] = useState('Cash in Hand');
+  const [availableAccounts, setAvailableAccounts] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Data states
   const [stats, setStats] = useState({
-    balance: 3025,
+    balance: 0,
     todayTotal: 0,
-    allExpenses: 21815,
-    recordedDays: 35,
-    remaining: 3025,
+    allExpenses: 0,
+    recordedDays: 0,
+    remaining: 0,
   });
   const [dayEntries, setDayEntries] = useState([]);
   const [dayTotal, setDayTotal] = useState(0);
@@ -55,10 +58,14 @@ export default function DashboardPage() {
 
   const loadDashboardData = async () => {
     try {
-      // Load all active transactions from IndexedDB
-      const allTx = await db.transactions.where('isDeleted').equals(0).toArray();
+      // 1. Load active transactions and accounts
+      const [allTx, allAccounts] = await Promise.all([
+        db.transactions.where('isDeleted').equals(0).toArray(),
+        getAllAccounts(),
+      ]);
 
-      calculateMetrics(allTx, selectedDate);
+      setAvailableAccounts(allAccounts);
+      calculateMetrics(allTx, selectedDate, allAccounts);
 
       // Background sync from server if online
       if (isOnline) {
@@ -72,8 +79,12 @@ export default function DashboardPage() {
                 isDeleted: t.isDeleted ? 1 : 0,
               }))
             );
-            const refreshed = await db.transactions.where('isDeleted').equals(0).toArray();
-            calculateMetrics(refreshed, selectedDate);
+            const [refreshedTx, refreshedAcc] = await Promise.all([
+              db.transactions.where('isDeleted').equals(0).toArray(),
+              getAllAccounts(),
+            ]);
+            setAvailableAccounts(refreshedAcc);
+            calculateMetrics(refreshedTx, selectedDate, refreshedAcc);
           }
         }).catch(() => {});
       }
@@ -84,7 +95,7 @@ export default function DashboardPage() {
     }
   };
 
-  const calculateMetrics = (txs, targetDate) => {
+  const calculateMetrics = (txs, targetDate, accountsList = []) => {
     // Everyday Tk in (deposits / allowances) vs Everyday expenses (excluding bank transfers/bank balance)
     const everydayExpenses = txs.filter((t) => t.type === 'expense' && t.category !== 'Banking');
     const everydayDeposits = txs.filter((t) => t.type === 'income' && t.category !== 'Banking');
@@ -92,7 +103,12 @@ export default function DashboardPage() {
     const totalExpenseAmount = everydayExpenses.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
     const totalDepositAmount = everydayDeposits.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-    const balanceLeft = Math.max(0, totalDepositAmount - totalExpenseAmount);
+    // Liquid balance from registered accounts (Bank, MFS, Cash)
+    const liquidAccs = accountsList.filter((a) => a.type !== 'fdr' && a.type !== 'asset');
+    const accountsTotal = liquidAccs.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+
+    // If user has set up accounts, use the real liquid accounts total; otherwise fallback to deposits - expenses
+    const trueLiquidBalance = liquidAccs.length > 0 ? accountsTotal : Math.max(0, totalDepositAmount - totalExpenseAmount);
 
     // Days with expense records count
     const uniqueDays = new Set(
@@ -118,11 +134,11 @@ export default function DashboardPage() {
     const selectedTotal = selectedEntries.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
     setStats({
-      balance: balanceLeft,
+      balance: trueLiquidBalance,
       todayTotal,
       allExpenses: totalExpenseAmount,
       recordedDays: uniqueDays.size,
-      remaining: balanceLeft,
+      remaining: trueLiquidBalance,
     });
     setDayEntries(selectedEntries);
     setDayTotal(selectedTotal);
@@ -141,12 +157,13 @@ export default function DashboardPage() {
     }
 
     const localId = uuidv4();
+    const chosenAcc = (expenseAccount || 'Cash in Hand').trim();
     const newTx = {
       localId,
       type: 'expense',
       amount: numAmount,
       category: 'General',
-      account: 'Cash in Hand',
+      account: chosenAcc,
       date: new Date(selectedDate),
       note: expenseTitle.trim(),
       synced: false,
@@ -158,6 +175,9 @@ export default function DashboardPage() {
       // Write locally immediately
       await db.transactions.put(newTx);
       await queueSync('transactions', localId);
+
+      // Deduct from the selected account balance
+      await adjustAccountBalance(chosenAcc, -numAmount);
 
       // If online, send to cloud
       if (isOnline) {
@@ -200,6 +220,10 @@ export default function DashboardPage() {
       return;
     }
 
+    // Dynamic Balance Adjustment
+    await adjustAccountBalance(entry.account || 'Cash in Hand', Number(entry.amount));
+    await adjustAccountBalance(entry.account || 'Cash in Hand', -num);
+
     await db.transactions.update(entry.localId, {
       note: editTitle.trim(),
       amount: num,
@@ -234,6 +258,9 @@ export default function DashboardPage() {
 
     await db.transactions.update(entry.localId, { isDeleted: 1, synced: false });
     await queueSync('transactions', entry.localId);
+
+    // Revert account deduction so money returns to account balance
+    await adjustAccountBalance(entry.account || 'Cash in Hand', Number(entry.amount));
 
     if (isOnline) {
       try {
@@ -282,7 +309,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="balance-note">
-          Tk in − recorded expenses · Bank accounts shown separately
+          Liquid money across Cash, Bank & Mobile Wallets · Real-time synced
         </div>
       </div>
 
@@ -333,6 +360,28 @@ export default function DashboardPage() {
               onChange={(e) => setExpenseAmount(e.target.value)}
               required
             />
+          </div>
+
+          <div className="form-item">
+            <label htmlFor="expenseAccount" className="form-label">Paid from account</label>
+            <input
+              id="expenseAccount"
+              type="text"
+              list="dashAccountSuggestions"
+              className="field"
+              placeholder="e.g. Cash in Hand, bKash, City Bank"
+              value={expenseAccount}
+              onChange={(e) => setExpenseAccount(e.target.value)}
+              required
+            />
+            <datalist id="dashAccountSuggestions">
+              {availableAccounts.map((a) => (
+                <option key={a.localId || a.name} value={a.name} />
+              ))}
+              <option value="Cash in Hand" />
+              <option value="bKash" />
+              <option value="Nagad" />
+            </datalist>
           </div>
 
           <button className="primary w-full" type="submit" disabled={isSubmitting}>
@@ -410,7 +459,22 @@ export default function DashboardPage() {
                     <>
                       <div className="entry-info">
                         <div className="entry-title">{entry.note || 'Expense'}</div>
-                        <div className="entry-category">{entry.category || 'General'}</div>
+                        <div className="entry-category">
+                          <span>{entry.category || 'General'}</span>
+                          <span style={{ margin: '0 5px', opacity: 0.35 }}>•</span>
+                          <span
+                            style={{
+                              fontSize: '0.74rem',
+                              padding: '1px 6px',
+                              borderRadius: '5px',
+                              background: 'rgba(56, 189, 248, 0.08)',
+                              color: '#38bdf8',
+                              border: '1px solid rgba(56, 189, 248, 0.2)',
+                            }}
+                          >
+                            💳 {entry.account || 'Cash in Hand'}
+                          </span>
+                        </div>
                       </div>
                       <div className="entry-right">
                         <div className="entry-amount">{fmt(entry.amount)}</div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/localDb';
 import api from '../services/api';
@@ -13,7 +14,8 @@ export default function ProductivityPage() {
   const toast = useToast();
   const { confirm } = useConfirm();
 
-  const [activeTab, setActiveTab] = useState('todos'); // 'todos' | 'vault'
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'todos');
 
   // --- 1. To-Do State ---
   const [todos, setTodos] = useState([]);
@@ -27,7 +29,7 @@ export default function ProductivityPage() {
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
   const [unlockedSecrets, setUnlockedSecrets] = useState({}); // localId -> decrypted object
   const [visiblePins, setVisiblePins] = useState({}); // localId -> boolean
-  const [vaultSearchQuery, setVaultSearchQuery] = useState('');
+  const [vaultSearchQuery, setVaultSearchQuery] = useState(() => searchParams.get('search') || '');
   const [vaultCategoryFilter, setVaultCategoryFilter] = useState('all');
 
   // Form for new Bank / bKash secret

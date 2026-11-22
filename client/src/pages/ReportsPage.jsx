@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import db from '../db/localDb';
+import { queueSync } from '../services/syncService';
 
 const INSIGHT_CATEGORIES = [
   'Food & drinks',
@@ -79,6 +80,10 @@ export default function ReportsPage() {
   };
 
   const getCategory = (e) => {
+    // 1. If explicit category exists on the transaction, respect it first
+    if (e.category && e.category !== 'General' && e.category !== 'Deposit / Allowance') {
+      return e.category;
+    }
     const id = e.localId || e.id || e._id;
     if (categoryOverrides[id]) {
       return categoryOverrides[id];
@@ -86,10 +91,17 @@ export default function ReportsPage() {
     return suggestedCategory(e.note || e.title);
   };
 
-  const handleCategoryChange = (id, newCat) => {
+  const handleCategoryChange = async (id, newCat) => {
     const updated = { ...categoryOverrides, [id]: newCat };
     setCategoryOverrides(updated);
     localStorage.setItem('daily_ledger_cat_overrides', JSON.stringify(updated));
+
+    // Also persist directly into IndexedDB and cloud sync queue
+    try {
+      await db.transactions.update(id, { category: newCat, synced: false, clientUpdatedAt: new Date() });
+      await queueSync('transactions', id, 'update', { localId: id, category: newCat });
+      window.dispatchEvent(new CustomEvent('daily_ledger:data_updated'));
+    } catch {}
   };
 
   const fmt = (n) => `৳${Number(n || 0).toLocaleString('en-US')}`;

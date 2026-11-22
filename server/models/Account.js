@@ -19,12 +19,31 @@ const accountSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['bank', 'mfs', 'cash', 'other'],
+      enum: ['bank', 'mfs', 'cash', 'fdr', 'asset', 'other'],
       default: 'bank',
     },
     balance: {
       type: Number,
       default: 0,
+    },
+    institution: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    accountNumber: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    maturityDate: {
+      type: Date,
+      default: null,
+    },
+    notes: {
+      type: String,
+      default: '',
+      trim: true,
     },
     isDeleted: {
       type: Boolean,

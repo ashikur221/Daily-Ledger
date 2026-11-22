@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import db from '../db/localDb';
 import api from '../services/api';
 import { queueSync } from '../services/syncService';
+import { adjustAccountBalance, getAllAccounts } from '../services/accountService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
@@ -19,6 +20,8 @@ export default function DepositsPage() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [source, setSource] = useState('');
   const [amount, setAmount] = useState('');
+  const [account, setAccount] = useState('Cash in Hand');
+  const [availableAccounts, setAvailableAccounts] = useState([]);
   const [editingTx, setEditingTx] = useState(null);
 
   useEffect(() => {
@@ -40,6 +43,11 @@ export default function DepositsPage() {
         .reverse()
         .sortBy('date');
       setTransactions(local);
+
+      // Load available accounts
+      getAllAccounts().then((accs) => {
+        setAvailableAccounts(accs);
+      });
 
       if (isOnline) {
         api
@@ -106,11 +114,14 @@ export default function DepositsPage() {
     }
 
     try {
+      const chosenAcc = (account || 'Cash in Hand').trim();
+
       if (editingTx) {
         // Update existing deposit
         const updated = {
           ...editingTx,
           amount: numAmount,
+          account: chosenAcc,
           note: source.trim(),
           date: new Date(date),
           synced: false,
@@ -119,6 +130,11 @@ export default function DepositsPage() {
 
         await db.transactions.put(updated);
         await queueSync('transactions', updated.localId, 'update', updated);
+
+        // Balance reconciliation
+        await adjustAccountBalance(editingTx.account || 'Cash in Hand', -Number(editingTx.amount));
+        await adjustAccountBalance(chosenAcc, numAmount);
+
         refreshPendingCount();
 
         setTransactions((prev) =>
@@ -133,7 +149,7 @@ export default function DepositsPage() {
           type: 'income',
           amount: numAmount,
           category: 'Deposit / Allowance',
-          account: 'Cash in Hand',
+          account: chosenAcc,
           date: new Date(date),
           note: source.trim(),
           synced: false,
@@ -143,6 +159,10 @@ export default function DepositsPage() {
 
         await db.transactions.add(newRecord);
         await queueSync('transactions', newRecord.localId, 'create', newRecord);
+
+        // Credit to the chosen account balance
+        await adjustAccountBalance(chosenAcc, numAmount);
+
         refreshPendingCount();
 
         setTransactions((prev) => [newRecord, ...prev]);
@@ -152,6 +172,7 @@ export default function DepositsPage() {
       // Reset form
       setSource('');
       setAmount('');
+      setAccount('Cash in Hand');
       setDate(new Date().toISOString().split('T')[0]);
     } catch (err) {
       console.error(err);
@@ -163,6 +184,7 @@ export default function DepositsPage() {
     setEditingTx(tx);
     setSource(tx.note ? tx.note.replace(/^From\s+/i, '') : '');
     setAmount(tx.amount);
+    setAccount(tx.account || 'Cash in Hand');
     const dStr = tx.date ? new Date(tx.date).toISOString().split('T')[0] : '';
     setDate(dStr || new Date().toISOString().split('T')[0]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -172,6 +194,7 @@ export default function DepositsPage() {
     setEditingTx(null);
     setSource('');
     setAmount('');
+    setAccount('Cash in Hand');
     setDate(new Date().toISOString().split('T')[0]);
   };
 
@@ -187,6 +210,10 @@ export default function DepositsPage() {
       const updated = { ...tx, isDeleted: 1, synced: false, clientUpdatedAt: new Date() };
       await db.transactions.put(updated);
       await queueSync('transactions', tx.localId, 'delete', { localId: tx.localId });
+
+      // Revert account addition
+      await adjustAccountBalance(tx.account || 'Cash in Hand', -Number(tx.amount));
+
       refreshPendingCount();
 
       setTransactions((prev) => prev.filter((t) => t.localId !== tx.localId));
@@ -284,6 +311,34 @@ export default function DepositsPage() {
               </div>
             </div>
 
+            <div className="deposit-field-group">
+              <label className="deposit-label" htmlFor="depositAccount">
+                Deposit into / Account
+              </label>
+              <div className="deposit-input-wrap">
+                <input
+                  id="depositAccount"
+                  type="text"
+                  list="depositAccountSuggestions"
+                  value={account}
+                  onChange={(e) => setAccount(e.target.value)}
+                  placeholder="e.g. Cash in Hand, bKash, City Bank"
+                  className="deposit-input"
+                  required
+                />
+                <datalist id="depositAccountSuggestions">
+                  {availableAccounts.map((a) => (
+                    <option key={a.localId || a.name} value={a.name} />
+                  ))}
+                  <option value="Cash in Hand" />
+                  <option value="bKash" />
+                  <option value="Nagad" />
+                  <option value="City Bank" />
+                  <option value="Dutch-Bangla Bank" />
+                </datalist>
+              </div>
+            </div>
+
             <div className="deposit-actions-row">
               <button
                 type="submit"
@@ -346,7 +401,20 @@ export default function DepositsPage() {
                         {displaySource}
                       </div>
                       <div className="deposit-date-tag">
-                        {formatDateLabel(d.date)}
+                        <span>{formatDateLabel(d.date)}</span>
+                        <span style={{ margin: '0 6px', opacity: 0.35 }}>•</span>
+                        <span
+                          style={{
+                            fontSize: '0.74rem',
+                            padding: '1px 6px',
+                            borderRadius: '5px',
+                            background: 'rgba(16, 185, 129, 0.1)',
+                            color: '#34d399',
+                            border: '1px solid rgba(16, 185, 129, 0.25)',
+                          }}
+                        >
+                          📥 {d.account || 'Cash in Hand'}
+                        </span>
                       </div>
                     </div>
 

@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import db from '../db/localDb';
 import api from '../services/api';
 import { queueSync } from '../services/syncService';
+import { adjustAccountBalance, getAllAccounts } from '../services/accountService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
@@ -25,12 +26,14 @@ export default function LedgerPage({ initialType = '' }) {
   const [shareStatus, setShareStatus] = useState('');
 
   // Modal / Form state for Add / Edit
+  const [availableAccounts, setAvailableAccounts] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editTx, setEditTx] = useState(null);
   const [form, setForm] = useState({
     title: '',
     amount: '',
-    category: 'General',
+    category: 'Food',
+    account: 'Cash in Hand',
     date: new Date().toISOString().split('T')[0],
   });
 
@@ -62,6 +65,11 @@ export default function LedgerPage({ initialType = '' }) {
         .reverse()
         .sortBy('date');
       setTransactions(local);
+
+      // Load available accounts for the payment selector
+      getAllAccounts().then((accs) => {
+        setAvailableAccounts(accs);
+      });
 
       // Set default date range for export (earliest to latest date)
       const expensesOnly = local.filter((t) => t.type === 'expense');
@@ -201,7 +209,8 @@ export default function LedgerPage({ initialType = '' }) {
     setForm({
       title: '',
       amount: '',
-      category: 'General',
+      category: 'Food & drinks',
+      account: availableAccounts[0]?.name || 'Cash in Hand',
       date: dateKey || new Date().toISOString().split('T')[0],
     });
     setShowModal(true);
@@ -213,6 +222,7 @@ export default function LedgerPage({ initialType = '' }) {
       title: tx.note || '',
       amount: tx.amount,
       category: tx.category || 'General',
+      account: tx.account || 'Cash in Hand',
       date: new Date(tx.date).toISOString().split('T')[0],
     });
     setShowModal(true);
@@ -227,12 +237,13 @@ export default function LedgerPage({ initialType = '' }) {
     }
 
     const localId = editTx?.localId || uuidv4();
+    const chosenAccount = (form.account || 'Cash in Hand').trim();
     const record = {
       localId,
       type: 'expense',
       amount: num,
       category: form.category || 'General',
-      account: 'Cash in Hand',
+      account: chosenAccount,
       date: new Date(form.date),
       note: form.title.trim(),
       synced: false,
@@ -242,6 +253,14 @@ export default function LedgerPage({ initialType = '' }) {
 
     await db.transactions.put(record);
     await queueSync('transactions', localId);
+
+    // Dynamic Balance Adjustment across Accounts
+    if (editTx) {
+      // Revert previous account deduction
+      await adjustAccountBalance(editTx.account || 'Cash in Hand', Number(editTx.amount));
+    }
+    // Apply new expense deduction
+    await adjustAccountBalance(chosenAccount, -num);
 
     if (isOnline) {
       try {
@@ -273,6 +292,9 @@ export default function LedgerPage({ initialType = '' }) {
 
     await db.transactions.update(tx.localId, { isDeleted: 1, synced: false });
     await queueSync('transactions', tx.localId);
+
+    // Revert account deduction so money returns to account balance
+    await adjustAccountBalance(tx.account || 'Cash in Hand', Number(tx.amount));
 
     if (isOnline) {
       try {
@@ -607,7 +629,22 @@ export default function LedgerPage({ initialType = '' }) {
                           <div key={item.localId} className="entry-row">
                             <div className="entry-info">
                               <div className="entry-title">{item.note || 'Expense'}</div>
-                              <div className="entry-category">{item.category || 'General'}</div>
+                              <div className="entry-category">
+                                <span>{item.category || 'General'}</span>
+                                <span style={{ margin: '0 5px', opacity: 0.35 }}>•</span>
+                                <span
+                                  style={{
+                                    fontSize: '0.74rem',
+                                    padding: '1px 6px',
+                                    borderRadius: '5px',
+                                    background: 'rgba(56, 189, 248, 0.08)',
+                                    color: '#38bdf8',
+                                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                                  }}
+                                >
+                                  💳 {item.account || 'Cash in Hand'}
+                                </span>
+                              </div>
                             </div>
                             <div className="entry-right">
                               <span className="entry-amount">{fmt(item.amount)}</span>
@@ -717,6 +754,30 @@ export default function LedgerPage({ initialType = '' }) {
               </div>
 
               <div className="form-item">
+                <label className="form-label" htmlFor="modal-account">Paid From / Account</label>
+                <input
+                  id="modal-account"
+                  type="text"
+                  list="expenseAccountSuggestions"
+                  className="field"
+                  placeholder="e.g. Cash in Hand, bKash, City Bank"
+                  value={form.account || 'Cash in Hand'}
+                  onChange={(e) => setForm({ ...form, account: e.target.value })}
+                  required
+                />
+                <datalist id="expenseAccountSuggestions">
+                  {availableAccounts.map((a) => (
+                    <option key={a.localId || a.name} value={a.name} />
+                  ))}
+                  <option value="Cash in Hand" />
+                  <option value="bKash" />
+                  <option value="Nagad" />
+                  <option value="City Bank" />
+                  <option value="Dutch-Bangla Bank" />
+                </datalist>
+              </div>
+
+              <div className="form-item">
                 <label className="form-label" htmlFor="modal-category">Category</label>
                 <select
                   id="modal-category"
@@ -724,14 +785,16 @@ export default function LedgerPage({ initialType = '' }) {
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                 >
-                  <option value="General">General</option>
-                  <option value="Food">Food & Snacks</option>
+                  <option value="Food & drinks">Food & Drinks</option>
                   <option value="Transport">Transport / Fare</option>
-                  <option value="Utilities">Utilities & Bills</option>
-                  <option value="Shopping">Shopping & Clothes</option>
-                  <option value="Medical">Medical & Health</option>
+                  <option value="Phone & communication">Phone & Internet</option>
+                  <option value="Health">Health & Medicine</option>
+                  <option value="Personal care">Personal Care</option>
+                  <option value="Clothing">Clothing</option>
+                  <option value="Study & supplies">Study & Supplies</option>
                   <option value="Housing">Housing & Rent</option>
-                  <option value="Other">Other</option>
+                  <option value="Laundry & household">Household & Utilities</option>
+                  <option value="General">General / Other</option>
                 </select>
               </div>
 

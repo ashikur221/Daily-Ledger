@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/localDb';
 import api from '../services/api';
 import { queueSync } from '../services/syncService';
+import { recordInterAccountTransfer } from '../services/accountService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
@@ -11,28 +13,44 @@ export default function AccountsPage() {
   const { isOnline, refreshPendingCount } = useAuth();
   const toast = useToast();
   const { confirm } = useConfirm();
+  const navigate = useNavigate();
 
   const [accounts, setAccounts] = useState([]);
-  const [bankTransactions, setBankTransactions] = useState([]);
-  const [expenses, setExpenses] = useState([]);
-  const [deposits, setDeposits] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modals & Forms
-  const [showTxModal, setShowTxModal] = useState(false);
-  const [editingAccount, setEditingAccount] = useState(null); // for edit balance modal
-  const [editBalanceValue, setEditBalanceValue] = useState('');
+  // Active Category Tab: 'all' | 'liquid' | 'fdr' | 'asset'
+  const [activeTab, setActiveTab] = useState('all');
 
-  // Bank Transaction form state
-  const [txAccount, setTxAccount] = useState('');
-  const [txDate, setTxDate] = useState(new Date().toISOString().split('T')[0]);
-  const [txType, setTxType] = useState('deposit');
-  const [txAmount, setTxAmount] = useState('');
-  const [txNote, setTxNote] = useState('');
+  // Modals
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [selectedStatementAccount, setSelectedStatementAccount] = useState(null);
+  const [editingAccount, setEditingAccount] = useState(null);
 
-  // Global search state
-  const [globalSearch, setGlobalSearch] = useState('');
-  const [hasSearched, setHasSearched] = useState(false);
+  // Statement Drawer Search
+  const [statementSearch, setStatementSearch] = useState('');
+
+  // Transfer Form State
+  const [transferForm, setTransferForm] = useState({
+    fromAccount: '',
+    toAccount: '',
+    amount: '',
+    fee: '',
+    date: new Date().toISOString().split('T')[0],
+    note: '',
+  });
+
+  // Account Add/Edit Form State
+  const [accountForm, setAccountForm] = useState({
+    name: '',
+    type: 'bank', // 'bank' | 'mfs' | 'cash' | 'fdr' | 'asset'
+    balance: '',
+    institution: '',
+    accountNumber: '',
+    maturityDate: '',
+    notes: '',
+  });
 
   useEffect(() => {
     loadAllData();
@@ -52,14 +70,8 @@ export default function AccountsPage() {
       setAccounts(localAcc);
 
       // 2. Load all transactions
-      const allTx = await db.transactions.where('isDeleted').equals(0).toArray();
-      const bTx = allTx.filter((t) => t.category === 'Banking');
-      const expTx = allTx.filter((t) => t.type === 'expense' && t.category !== 'Banking');
-      const depTx = allTx.filter((t) => t.type === 'income' && t.category !== 'Banking');
-
-      setBankTransactions(bTx);
-      setExpenses(expTx);
-      setDeposits(depTx);
+      const txs = await db.transactions.where('isDeleted').equals(0).toArray();
+      setAllTransactions(txs);
 
       if (isOnline) {
         api
@@ -84,75 +96,164 @@ export default function AccountsPage() {
     }
   };
 
-  // Derive account names list
-  const accountList = useMemo(() => {
-    const map = new Map();
-    accounts.forEach((a) => map.set(a.name, a));
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  // Group accounts by classification
+  const liquidAccounts = useMemo(() => {
+    return accounts.filter((a) => a.type === 'bank' || a.type === 'mfs' || a.type === 'cash' || !a.type);
   }, [accounts]);
 
-  // Compute total balance across all accounts
-  const totalBankBalance = useMemo(() => {
-    return accounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+  const fdrAccounts = useMemo(() => {
+    return accounts.filter((a) => a.type === 'fdr');
   }, [accounts]);
 
-  // Total accounts count
-  const totalAccountsCount = useMemo(() => {
-    return accounts.length;
+  const assetAccounts = useMemo(() => {
+    return accounts.filter((a) => a.type === 'asset');
   }, [accounts]);
 
-  // Current month's expenses
-  const thisMonthExpenses = useMemo(() => {
-    const curMonth = new Date().toISOString().slice(0, 7);
-    return expenses
-      .filter((e) => e.date && new Date(e.date).toISOString().slice(0, 7) === curMonth)
-      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  }, [expenses]);
+  // Aggregate Balances
+  const totalLiquidBalance = useMemo(() => {
+    return liquidAccounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+  }, [liquidAccounts]);
+
+  const totalFdrBalance = useMemo(() => {
+    return fdrAccounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+  }, [fdrAccounts]);
+
+  const totalAssetBalance = useMemo(() => {
+    return assetAccounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+  }, [assetAccounts]);
+
+  const totalNetWorth = useMemo(() => {
+    return totalLiquidBalance + totalFdrBalance + totalAssetBalance;
+  }, [totalLiquidBalance, totalFdrBalance, totalAssetBalance]);
+
+  // Filtered accounts list based on active tab
+  const displayedAccounts = useMemo(() => {
+    let list = accounts;
+    if (activeTab === 'liquid') list = liquidAccounts;
+    else if (activeTab === 'fdr') list = fdrAccounts;
+    else if (activeTab === 'asset') list = assetAccounts;
+    return [...list].sort((a, b) => (Number(b.balance) || 0) - (Number(a.balance) || 0));
+  }, [accounts, activeTab, liquidAccounts, fdrAccounts, assetAccounts]);
 
   // Get transaction count for account
   const getEntriesCountForAccount = (accName) => {
-    return bankTransactions.filter((t) => t.account === accName).length;
+    if (!accName) return 0;
+    return allTransactions.filter(
+      (t) => t.account === accName || t.toAccount === accName
+    ).length;
   };
 
-  // Edit balance handler
-  const handleOpenEditBalance = (acc) => {
+  // Type metadata helper
+  const getTypeMeta = (type) => {
+    switch (type) {
+      case 'mfs':
+        return { label: 'MOBILE WALLET', icon: '📱', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.12)' };
+      case 'cash':
+        return { label: 'CASH', icon: '💵', color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)' };
+      case 'fdr':
+        return { label: 'FIXED DEPOSIT / DPS', icon: '📜', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.12)' };
+      case 'asset':
+        return { label: 'PHYSICAL ASSET', icon: '🏆', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)' };
+      case 'bank':
+      default:
+        return { label: 'BANK ACCOUNT', icon: '🏦', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.12)' };
+    }
+  };
+
+  // Open Add Account Modal
+  const handleOpenAddAccount = () => {
+    setEditingAccount(null);
+    setAccountForm({
+      name: '',
+      type: activeTab === 'fdr' ? 'fdr' : activeTab === 'asset' ? 'asset' : 'bank',
+      balance: '',
+      institution: '',
+      accountNumber: '',
+      maturityDate: '',
+      notes: '',
+    });
+    setShowAddModal(true);
+  };
+
+  // Open Edit Account Modal
+  const handleOpenEditAccount = (acc) => {
     setEditingAccount(acc);
-    setEditBalanceValue(acc.balance !== undefined ? String(acc.balance) : '0');
+    setAccountForm({
+      name: acc.name || '',
+      type: acc.type || 'bank',
+      balance: acc.balance !== undefined ? String(acc.balance) : '0',
+      institution: acc.institution || '',
+      accountNumber: acc.accountNumber || '',
+      maturityDate: acc.maturityDate ? new Date(acc.maturityDate).toISOString().split('T')[0] : '',
+      notes: acc.notes || '',
+    });
+    setShowAddModal(true);
   };
 
-  const handleSaveBalance = async (e) => {
+  // Save Add/Edit Account
+  const handleSaveAccount = async (e) => {
     e.preventDefault();
-    if (!editingAccount) return;
-    const newBal = parseFloat(editBalanceValue);
-    if (isNaN(newBal)) {
-      toast.warning('Please enter a valid amount.');
+    const cleanName = accountForm.name.trim();
+    if (!cleanName) {
+      toast.warning('Please enter an account name.');
       return;
     }
+    const numBal = parseFloat(accountForm.balance) || 0;
 
     try {
-      const updated = {
-        ...editingAccount,
-        balance: newBal,
-        synced: false,
-        clientUpdatedAt: new Date(),
-      };
-      await db.accounts.put(updated);
-      await queueSync('accounts', updated.localId, 'update', updated);
-      refreshPendingCount();
+      const now = new Date();
+      if (editingAccount) {
+        const updated = {
+          ...editingAccount,
+          name: cleanName,
+          type: accountForm.type,
+          balance: numBal,
+          institution: accountForm.institution.trim(),
+          accountNumber: accountForm.accountNumber.trim(),
+          maturityDate: accountForm.maturityDate ? new Date(accountForm.maturityDate) : null,
+          notes: accountForm.notes.trim(),
+          synced: false,
+          clientUpdatedAt: now,
+        };
+        await db.accounts.put(updated);
+        await queueSync('accounts', updated.localId, 'update', updated);
+        refreshPendingCount();
 
-      setAccounts((prev) =>
-        prev.map((a) => (a.localId === updated.localId ? updated : a))
-      );
-      toast.success(
-        `Updated ${editingAccount.name} balance to ৳${newBal.toLocaleString('en-US')}`
-      );
+        setAccounts((prev) =>
+          prev.map((a) => (a.localId === updated.localId ? updated : a))
+        );
+        toast.success(`Account "${cleanName}" updated.`);
+      } else {
+        const newAcc = {
+          localId: uuidv4(),
+          name: cleanName,
+          type: accountForm.type,
+          balance: numBal,
+          institution: accountForm.institution.trim(),
+          accountNumber: accountForm.accountNumber.trim(),
+          maturityDate: accountForm.maturityDate ? new Date(accountForm.maturityDate) : null,
+          notes: accountForm.notes.trim(),
+          synced: false,
+          isDeleted: 0,
+          clientUpdatedAt: now,
+        };
+        await db.accounts.add(newAcc);
+        await queueSync('accounts', newAcc.localId, 'create', newAcc);
+        refreshPendingCount();
+
+        setAccounts((prev) => [...prev, newAcc]);
+        toast.success(`Account "${cleanName}" added successfully.`);
+      }
+
+      setShowAddModal(false);
       setEditingAccount(null);
     } catch (err) {
       console.error(err);
-      toast.error('Failed to update balance');
+      toast.error('Failed to save account');
     }
   };
 
+  // Delete Account
   const handleDeleteAccount = async (acc) => {
     const ok = await confirm({
       title: 'Delete Account',
@@ -169,392 +270,677 @@ export default function AccountsPage() {
       refreshPendingCount();
 
       setAccounts((prev) => prev.filter((a) => a.localId !== acc.localId));
+      setShowAddModal(false);
       setEditingAccount(null);
+      if (selectedStatementAccount?.localId === acc.localId) {
+        setSelectedStatementAccount(null);
+      }
       toast.info(`Account "${acc.name}" deleted.`);
     } catch (err) {
       toast.error('Failed to delete account');
     }
   };
 
-  // Record Bank Transaction (Deposit / Withdrawal)
-  const handleSaveBankTx = async (e) => {
+  // Open Transfer Modal
+  const handleOpenTransfer = () => {
+    const defaultFrom = liquidAccounts[0]?.name || '';
+    const defaultTo = liquidAccounts.find((a) => a.name !== defaultFrom)?.name || '';
+    setTransferForm({
+      fromAccount: defaultFrom,
+      toAccount: defaultTo,
+      amount: '',
+      fee: '',
+      date: new Date().toISOString().split('T')[0],
+      note: '',
+    });
+    setShowTransferModal(true);
+  };
+
+  // Execute Transfer
+  const handleExecuteTransfer = async (e) => {
     e.preventDefault();
-    const num = parseFloat(txAmount);
-    if (isNaN(num) || num <= 0) {
-      toast.warning('Please enter a valid amount.');
-      return;
-    }
-    const accName = txAccount.trim();
-    if (!accName) {
-      toast.warning('Please enter or select an account name.');
-      return;
-    }
-
     try {
-      const newTx = {
-        localId: uuidv4(),
-        type: txType === 'deposit' ? 'income' : 'expense',
-        amount: num,
-        category: 'Banking',
-        account: accName,
-        date: new Date(txDate),
-        note: txNote.trim(),
-        synced: false,
-        isDeleted: 0,
-        clientUpdatedAt: new Date(),
-      };
-      await db.transactions.add(newTx);
-      await queueSync('transactions', newTx.localId, 'create', newTx);
-
-      const existingAcc = accounts.find(
-        (a) => a.name.toLowerCase() === accName.toLowerCase()
-      );
-      const delta = txType === 'deposit' ? num : -num;
-      if (existingAcc) {
-        const updatedAcc = {
-          ...existingAcc,
-          balance: (Number(existingAcc.balance) || 0) + delta,
-          synced: false,
-          clientUpdatedAt: new Date(),
-        };
-        await db.accounts.put(updatedAcc);
-        await queueSync('accounts', updatedAcc.localId, 'update', updatedAcc);
-        setAccounts((prev) =>
-          prev.map((a) => (a.localId === updatedAcc.localId ? updatedAcc : a))
-        );
-      } else {
-        const newAcc = {
-          localId: uuidv4(),
-          name: accName,
-          type: 'bank',
-          balance: delta,
-          synced: false,
-          isDeleted: 0,
-          clientUpdatedAt: new Date(),
-        };
-        await db.accounts.add(newAcc);
-        await queueSync('accounts', newAcc.localId, 'create', newAcc);
-        setAccounts((prev) => [...prev, newAcc]);
-      }
+      await recordInterAccountTransfer({
+        fromAccount: transferForm.fromAccount,
+        toAccount: transferForm.toAccount,
+        amount: transferForm.amount,
+        fee: transferForm.fee,
+        date: transferForm.date,
+        note: transferForm.note,
+      });
 
       refreshPendingCount();
-      setBankTransactions((prev) => [newTx, ...prev]);
       toast.success(
-        `${txType === 'deposit' ? 'Deposit' : 'Withdrawal'} of ৳${num.toLocaleString('en-US')} recorded for ${accName}`
+        `Transferred ৳${Number(transferForm.amount).toLocaleString('en-US')} from ${transferForm.fromAccount} to ${transferForm.toAccount}!`
       );
-
-      setTxAmount('');
-      setTxNote('');
-      setShowTxModal(false);
+      setShowTransferModal(false);
+      await loadAllData();
     } catch (err) {
-      console.error(err);
-      toast.error('Failed to save bank transaction');
+      toast.error(err.message || 'Transfer failed');
     }
   };
 
-  // Global search filtering
-  const globalSearchResults = useMemo(() => {
-    const q = globalSearch.trim().toLowerCase();
-    if (!q) return [];
+  // Statement entries for the selected account drawer
+  const statementEntries = useMemo(() => {
+    if (!selectedStatementAccount) return [];
+    const accName = selectedStatementAccount.name.toLowerCase();
+    const q = statementSearch.trim().toLowerCase();
 
-    const rows = [];
-    expenses.forEach((e) => {
-      const match =
-        (e.note || '').toLowerCase().includes(q) ||
-        (e.category || '').toLowerCase().includes(q) ||
-        (new Date(e.date).toISOString().split('T')[0] || '').includes(q);
-      if (match) {
-        rows.push({
-          id: e.localId,
-          title: e.note || 'Expense',
-          date: new Date(e.date).toISOString().split('T')[0],
-          kind: 'Expense',
-          amount: Number(e.amount) || 0,
-          sign: '−',
-          isExpense: true,
-        });
-      }
+    const related = allTransactions.filter((t) => {
+      const fromMatch = (t.account || '').toLowerCase() === accName;
+      const toMatch = (t.toAccount || '').toLowerCase() === accName;
+      return fromMatch || toMatch;
     });
 
-    deposits.forEach((d) => {
-      const match =
-        (d.note || '').toLowerCase().includes(q) ||
-        (new Date(d.date).toISOString().split('T')[0] || '').includes(q);
-      if (match) {
-        rows.push({
-          id: d.localId,
-          title: d.note || 'Deposit',
-          date: new Date(d.date).toISOString().split('T')[0],
-          kind: 'Tk in',
-          amount: Number(d.amount) || 0,
-          sign: '+',
-          isExpense: false,
-        });
+    const mapped = related.map((t) => {
+      const isTransfer = t.type === 'transfer';
+      const isTransferOut = isTransfer && (t.account || '').toLowerCase() === accName;
+      const isTransferIn = isTransfer && (t.toAccount || '').toLowerCase() === accName;
+      const isExpense = t.type === 'expense' || isTransferOut;
+      const isIncome = t.type === 'income' || isTransferIn;
+
+      let label = t.note || (isExpense ? 'Expense' : 'Deposit');
+      if (isTransferOut) {
+        label = `Transfer to ${t.toAccount}${t.note ? ` (${t.note})` : ''}`;
+      } else if (isTransferIn) {
+        label = `Transfer from ${t.account}${t.note ? ` (${t.note})` : ''}`;
       }
+
+      return {
+        ...t,
+        displayLabel: label,
+        isExpense,
+        isIncome,
+        displaySign: isExpense ? '−' : '+',
+        formattedDate: new Date(t.date).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }),
+      };
     });
 
-    bankTransactions.forEach((t) => {
-      const match =
-        (t.account || '').toLowerCase().includes(q) ||
-        (t.note || '').toLowerCase().includes(q) ||
-        (new Date(t.date).toISOString().split('T')[0] || '').includes(q);
-      if (match) {
-        rows.push({
-          id: t.localId,
-          title: `${t.account} · ${t.note || (t.type === 'expense' ? 'Withdrawal' : 'Deposit')}`,
-          date: new Date(t.date).toISOString().split('T')[0],
-          kind: 'Account',
-          amount: Number(t.amount) || 0,
-          sign: t.type === 'expense' ? '−' : '+',
-          isExpense: t.type === 'expense',
-        });
-      }
-    });
+    if (!q) return mapped.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    return rows.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 100);
-  }, [globalSearch, expenses, deposits, bankTransactions]);
+    return mapped
+      .filter((item) => {
+        return (
+          item.displayLabel.toLowerCase().includes(q) ||
+          (item.category || '').toLowerCase().includes(q) ||
+          item.formattedDate.toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [selectedStatementAccount, allTransactions, statementSearch]);
+
+  const statementTotals = useMemo(() => {
+    let inflow = 0;
+    let outflow = 0;
+    statementEntries.forEach((e) => {
+      if (e.isExpense) outflow += Number(e.amount) || 0;
+      else inflow += Number(e.amount) || 0;
+    });
+    return { inflow, outflow };
+  }, [statementEntries]);
 
   const fmt = (n) => `৳${Number(n || 0).toLocaleString('en-US')}`;
 
   return (
     <div className="bank-page-container">
-      {/* 1. Neon Glowing Circle Card matching Expenses and Today tab */}
+      {/* 1. Neon Glowing Hero: Total Liquid vs Net Worth */}
       <div className="panel p-4 expense-total-panel">
         <div className="finance-summary-heading">
           <span className="finance-summary-icon">🏦</span>
-          <h2>BANK BALANCE OVERVIEW</h2>
+          <h2>CAPITAL & ASSETS COMMAND CENTER</h2>
         </div>
 
         <div className="finance-summary-wrap">
           <div className="balance-ring">
             <div className="balance-inner">
-              <div className="balance-label">TOTAL BANK BALANCE</div>
+              <div className="balance-label">TOTAL LIQUID BALANCE</div>
               <div id="bankCircleTotal" className="balance-amount">
-                {fmt(totalBankBalance)}
+                {fmt(totalLiquidBalance)}
               </div>
               <div className="balance-subtitle">
-                Across {totalAccountsCount} active {totalAccountsCount === 1 ? 'account' : 'accounts'}
+                Available to spend today across {liquidAccounts.length} liquid{' '}
+                {liquidAccounts.length === 1 ? 'account' : 'accounts'}
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* 2. Section Header: All Accounts Dashboard */}
-      <div className="bank-section-heading-block">
-        <span className="deposit-badge-label">OVERVIEW</span>
-        <h2 className="bank-section-title">All Accounts Dashboard</h2>
-        <p className="bank-section-sub">
-          Bank, mobile wallet and cash balances tracked from transactions you enter. Old static notes are not treated as new money.
-        </p>
-      </div>
-
-      {/* 3. Three Metrics Cards Grid */}
-      <div className="bank-metrics-grid">
-        <div className="bank-metric-card">
-          <div className="bank-metric-tag">Tracked account total</div>
-          <div className="bank-metric-val">{fmt(totalBankBalance)}</div>
-          <p className="bank-metric-sub">Net balance across listed accounts</p>
-        </div>
-
-        <div className="bank-metric-card">
-          <div className="bank-metric-tag">Accounts</div>
-          <div className="bank-metric-val">{totalAccountsCount}</div>
-          <p className="bank-metric-sub">Accounts with transactions</p>
-        </div>
-
-        <div className="bank-metric-card">
-          <div className="bank-metric-tag">This month's expenses</div>
-          <div className="bank-metric-val">{fmt(thisMonthExpenses)}</div>
-          <p className="bank-metric-sub">Itemized expenses only</p>
-        </div>
-      </div>
-
-      {/* 4. Account-wise balance List Card */}
-      <div className="bank-accounts-panel">
-        <div className="bank-panel-header">
-          <div>
-            <h3 className="bank-panel-title">Account-wise balance</h3>
-            <p className="bank-panel-subtitle">Balances updated from entries & transfers</p>
-          </div>
+        {/* Quick Actions Bar */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '18px', flexWrap: 'wrap' }}>
           <button
-            className="bank-add-action-btn"
             type="button"
-            onClick={() => {
-              setTxAccount(accountList[0]?.name || '');
-              setShowTxModal(true);
+            onClick={handleOpenTransfer}
+            className="bank-add-action-btn"
+            style={{
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              boxShadow: '0 4px 18px rgba(245, 158, 11, 0.35)',
             }}
           >
-            <span>+</span> Add account or transfer
+            <span>⇄</span> Inter-Account Transfer
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenAddAccount}
+            className="bank-add-action-btn"
+          >
+            <span>+</span> Add Account or Asset
           </button>
         </div>
+      </div>
 
-        <div className="bank-accounts-list">
-          {accountList.length === 0 ? (
-            <p className="text-sm text-slate-400 py-6 text-center">
-              No accounts tracked yet. Add an account or record an opening balance.
-            </p>
-          ) : (
-            accountList.map((acc) => (
-              <div key={acc.localId} className="bank-account-card">
-                <div className="bank-account-card-main">
-                  <div className="bank-account-info">
-                    <span className="bank-account-name">{acc.name}</span>
-                    <span className="bank-account-meta">
-                      {getEntriesCountForAccount(acc.name)} entries
-                    </span>
-                  </div>
-
-                  <div className="bank-account-right">
-                    <span className="bank-account-amount">
-                      {fmt(acc.balance)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bank-account-action-row">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditBalance(acc)}
-                    className="bank-edit-balance-pill"
-                  >
-                    Edit balance
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+      {/* 2. Headline Metrics Grid: Liquid, FDR, Physical Assets, Net Worth */}
+      <div className="bank-metrics-grid">
+        <div className="bank-metric-card">
+          <div className="bank-metric-tag" style={{ color: '#38bdf8' }}>
+            💳 Liquid Capital
+          </div>
+          <div className="bank-metric-val">{fmt(totalLiquidBalance)}</div>
+          <p className="bank-metric-sub">
+            Cash, bKash & Bank checking ({liquidAccounts.length} accounts)
+          </p>
         </div>
 
-        <div className="bank-note-box">
-          <span className="bank-note-icon">ℹ</span>
-          <p className="bank-note-text">
-            Important: enter a starting balance as an opening-balance transaction if you want the dashboard to show the current real-world balance. Do not enter it as income.
+        <div className="bank-metric-card">
+          <div className="bank-metric-tag" style={{ color: '#a855f7' }}>
+            📜 Fixed Deposits & DPS
+          </div>
+          <div className="bank-metric-val">{fmt(totalFdrBalance)}</div>
+          <p className="bank-metric-sub">
+            Locked term deposits ({fdrAccounts.length} schemes)
+          </p>
+        </div>
+
+        <div className="bank-metric-card">
+          <div className="bank-metric-tag" style={{ color: '#f59e0b' }}>
+            🏆 Physical Assets
+          </div>
+          <div className="bank-metric-val">{fmt(totalAssetBalance)}</div>
+          <p className="bank-metric-sub">
+            Gold, land & property ({assetAccounts.length} assets)
+          </p>
+        </div>
+
+        <div className="bank-metric-card" style={{ border: '1px solid rgba(56, 189, 248, 0.35)', background: '#0a101d' }}>
+          <div className="bank-metric-tag" style={{ color: '#34d399' }}>
+            💎 Total Net Worth
+          </div>
+          <div className="bank-metric-val" style={{ color: '#34d399' }}>{fmt(totalNetWorth)}</div>
+          <p className="bank-metric-sub">
+            Combined total of liquid capital and stored wealth
           </p>
         </div>
       </div>
 
-      {/* 5. Global Search Panel */}
-      <div className="bank-search-panel">
+      {/* 3. Account-wise Directory with Filter Tabs */}
+      <div className="bank-accounts-panel">
         <div className="bank-panel-header">
           <div>
-            <h3 className="bank-panel-title">Global search</h3>
+            <h3 className="bank-panel-title">Accounts & Assets Directory</h3>
             <p className="bank-panel-subtitle">
-              Search expenses, money-in entries, and account transactions together.
+              Tap any card to view its full transaction statement and history.
             </p>
+          </div>
+
+          {/* Classification Filter Tabs */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => setActiveTab('all')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 650,
+                cursor: 'pointer',
+                background: activeTab === 'all' ? '#38bdf8' : '#141a27',
+                color: activeTab === 'all' ? '#000' : '#94a3b8',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              All ({accounts.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('liquid')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 650,
+                cursor: 'pointer',
+                background: activeTab === 'liquid' ? '#38bdf8' : '#141a27',
+                color: activeTab === 'liquid' ? '#000' : '#94a3b8',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              💳 Liquid ({liquidAccounts.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('fdr')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 650,
+                cursor: 'pointer',
+                background: activeTab === 'fdr' ? '#a855f7' : '#141a27',
+                color: activeTab === 'fdr' ? '#fff' : '#94a3b8',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              📜 Fixed Deposits ({fdrAccounts.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('asset')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 650,
+                cursor: 'pointer',
+                background: activeTab === 'asset' ? '#f59e0b' : '#141a27',
+                color: activeTab === 'asset' ? '#000' : '#94a3b8',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              🏆 Assets ({assetAccounts.length})
+            </button>
           </div>
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setHasSearched(true);
-          }}
-          className="bank-search-form"
-        >
-          <div className="bank-search-input-wrap">
-            <span className="bank-search-icon">🔍</span>
-            <input
-              id="globalSearch"
-              value={globalSearch}
-              onChange={(e) => {
-                setGlobalSearch(e.target.value);
-                setHasSearched(true);
-              }}
-              className="bank-search-input"
-              placeholder="e.g. bKash, dinner, 2026-10-04"
-            />
-          </div>
-          <button className="bank-search-btn" type="submit">
-            Search
-          </button>
-        </form>
+        {/* Accounts List */}
+        <div className="bank-accounts-list">
+          {displayedAccounts.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
+              <p style={{ fontSize: '0.95rem', fontWeight: 600 }}>No accounts in this category yet.</p>
+              <button
+                type="button"
+                onClick={handleOpenAddAccount}
+                style={{
+                  marginTop: '10px',
+                  background: 'transparent',
+                  color: '#38bdf8',
+                  border: '1px dashed #38bdf8',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                }}
+              >
+                + Add your first {activeTab === 'fdr' ? 'Fixed Deposit' : activeTab === 'asset' ? 'Physical Asset' : 'Account'}
+              </button>
+            </div>
+          ) : (
+            displayedAccounts.map((acc) => {
+              const meta = getTypeMeta(acc.type);
+              const entriesCount = getEntriesCountForAccount(acc.name);
 
-        {hasSearched && globalSearch.trim() && (
-          <div className="bank-search-results">
-            {globalSearchResults.length === 0 ? (
-              <p className="text-sm text-slate-400 py-6 text-center">No matching records found.</p>
-            ) : (
-              globalSearchResults.map((r) => (
+              return (
                 <div
-                  key={`${r.kind}_${r.id}`}
-                  className="bank-search-row"
+                  key={acc.localId}
+                  className="bank-account-card"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setSelectedStatementAccount(acc)}
+                  title="Click to view statement and transaction history"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="bank-search-row-title">{r.title}</div>
-                    <div className="bank-search-row-meta">
-                      {r.date || 'Date not specified'} · {r.kind}
+                  <div className="bank-account-card-main">
+                    <div className="bank-account-info">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>{meta.icon}</span>
+                        <span className="bank-account-name">{acc.name}</span>
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 750,
+                            letterSpacing: '0.04em',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            color: meta.color,
+                            background: meta.bg,
+                            border: `1px solid ${meta.color}40`,
+                          }}
+                        >
+                          {meta.label}
+                        </span>
+                      </div>
+
+                      <div className="bank-account-meta" style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                        {acc.institution && <span>🏛️ {acc.institution}</span>}
+                        {acc.accountNumber && <span>🔢 {acc.accountNumber}</span>}
+                        {acc.maturityDate && (
+                          <span style={{ color: '#a855f7' }}>
+                            ⏳ Matures: {new Date(acc.maturityDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
+                          </span>
+                        )}
+                        <span>📊 {entriesCount} entries</span>
+                      </div>
+                    </div>
+
+                    <div className="bank-account-right" style={{ textAlign: 'right' }}>
+                      <span className="bank-account-amount" style={{ fontSize: '1.35rem', fontWeight: 800 }}>
+                        {fmt(acc.balance)}
+                      </span>
                     </div>
                   </div>
-                  <strong
-                    className={`bank-search-row-amt ${
-                      r.isExpense ? 'is-expense' : 'is-income'
-                    }`}
-                  >
-                    {r.sign}
-                    {fmt(r.amount)}
-                  </strong>
+
+                  <div className="bank-account-action-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #141a27', paddingTop: '10px', marginTop: '6px' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 600 }}>
+                      📋 Click to view statement & history ›
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEditAccount(acc);
+                      }}
+                      className="bank-edit-balance-pill"
+                    >
+                      ✏️ Edit / Adjust
+                    </button>
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
 
-      {/* Modal: Edit Account Balance */}
-      {editingAccount && (
-        <div className="modal-backdrop" onClick={() => setEditingAccount(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      {/* 4. Modal: Inter-Account Transfer */}
+      {showTransferModal && (
+        <div className="modal-backdrop" onClick={() => setShowTransferModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-slate-100">
-                Edit {editingAccount.name} Balance
+              <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                <span>⇄</span> Inter-Account Transfer
               </h3>
               <button
                 type="button"
-                onClick={() => setEditingAccount(null)}
+                onClick={() => setShowTransferModal(false)}
                 className="text-slate-400 hover:text-white"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveBalance} className="space-y-4">
+            <form onSubmit={handleExecuteTransfer} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                    From Account
+                  </label>
+                  <select
+                    value={transferForm.fromAccount}
+                    onChange={(e) => setTransferForm({ ...transferForm, fromAccount: e.target.value })}
+                    className="field w-full"
+                    required
+                  >
+                    <option value="">-- Select Source --</option>
+                    {liquidAccounts.map((a) => (
+                      <option key={a.localId} value={a.name}>
+                        {a.name} ({fmt(a.balance)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                    To Destination
+                  </label>
+                  <select
+                    value={transferForm.toAccount}
+                    onChange={(e) => setTransferForm({ ...transferForm, toAccount: e.target.value })}
+                    className="field w-full"
+                    required
+                  >
+                    <option value="">-- Select Destination --</option>
+                    {liquidAccounts
+                      .filter((a) => a.name !== transferForm.fromAccount)
+                      .map((a) => (
+                        <option key={a.localId} value={a.name}>
+                          {a.name} ({fmt(a.balance)})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                    Amount (৳)
+                  </label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    placeholder="5000"
+                    value={transferForm.amount}
+                    onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
+                    className="field w-full"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                    Transfer Fee (৳)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="e.g. 75 for bKash"
+                    value={transferForm.fee}
+                    onChange={(e) => setTransferForm({ ...transferForm, fee: e.target.value })}
+                    className="field w-full"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-semibold mb-1.5 text-slate-300">
-                  Current Balance (৳)
+                <label className="block text-sm font-semibold mb-1 text-slate-300">
+                  Transfer Date
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  value={editBalanceValue}
-                  onChange={(e) => setEditBalanceValue(e.target.value)}
+                  type="date"
+                  value={transferForm.date}
+                  onChange={(e) => setTransferForm({ ...transferForm, date: e.target.value })}
+                  className="field w-full"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-300">
+                  Note (optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. ATM cash withdrawal, bKash Add Money"
+                  value={transferForm.note}
+                  onChange={(e) => setTransferForm({ ...transferForm, note: e.target.value })}
+                  className="field w-full"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowTransferModal(false)}
+                  className="secondary px-4 py-2 text-sm rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="deposit-submit-btn px-6"
+                  style={{ height: '42px', minWidth: '160px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+                >
+                  ⇄ Complete Transfer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Modal: Add / Edit Account or Asset */}
+      {showAddModal && (
+        <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+              <h3 className="text-lg font-bold text-slate-100">
+                {editingAccount ? `Edit "${editingAccount.name}"` : 'Add New Account or Asset'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAccount} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-300">
+                  Account / Asset Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. City Bank, bKash Personal, Gold 2 Bhori, BRAC DPS"
+                  value={accountForm.name}
+                  onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
                   className="field w-full"
                   required
                   autoFocus
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                    Classification / Type
+                  </label>
+                  <select
+                    value={accountForm.type}
+                    onChange={(e) => setAccountForm({ ...accountForm, type: e.target.value })}
+                    className="field w-full"
+                  >
+                    <option value="bank">🏦 Bank Account</option>
+                    <option value="mfs">📱 Mobile Wallet (bKash/Nagad)</option>
+                    <option value="cash">💵 Cash in Hand</option>
+                    <option value="fdr">📜 Fixed Deposit / DPS</option>
+                    <option value="asset">🏆 Physical Asset (Gold/Land)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                    Balance / Value (৳)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="0.00"
+                    value={accountForm.balance}
+                    onChange={(e) => setAccountForm({ ...accountForm, balance: e.target.value })}
+                    className="field w-full"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                    Institution (optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. City Bank, bKash"
+                    value={accountForm.institution}
+                    onChange={(e) => setAccountForm({ ...accountForm, institution: e.target.value })}
+                    className="field w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                    Account / Card Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ••4821 or 017•••••"
+                    value={accountForm.accountNumber}
+                    onChange={(e) => setAccountForm({ ...accountForm, accountNumber: e.target.value })}
+                    className="field w-full"
+                  />
+                </div>
+              </div>
+
+              {accountForm.type === 'fdr' && (
+                <div>
+                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                    Maturity Date (for Fixed Deposit / DPS)
+                  </label>
+                  <input
+                    type="date"
+                    value={accountForm.maturityDate}
+                    onChange={(e) => setAccountForm({ ...accountForm, maturityDate: e.target.value })}
+                    className="field w-full"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-300">
+                  Notes / Details (optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Interest rate 9.5%, located in safe"
+                  value={accountForm.notes}
+                  onChange={(e) => setAccountForm({ ...accountForm, notes: e.target.value })}
+                  className="field w-full"
+                />
+              </div>
+
               <div className="flex justify-between items-center pt-3">
-                <button
-                  type="button"
-                  onClick={() => handleDeleteAccount(editingAccount)}
-                  style={{
-                    color: '#f87171',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  🗑️ Delete Account
-                </button>
+                {editingAccount ? (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAccount(editingAccount)}
+                    style={{
+                      color: '#f87171',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🗑️ Delete Account
+                  </button>
+                ) : <div />}
+
                 <div className="flex gap-3">
                   <button
                     type="button"
-                    onClick={() => setEditingAccount(null)}
+                    onClick={() => setShowAddModal(false)}
                     className="secondary px-4 py-2 text-sm rounded-lg"
                   >
                     Cancel
@@ -564,7 +950,7 @@ export default function AccountsPage() {
                     className="deposit-submit-btn px-6"
                     style={{ height: '42px', minWidth: '130px' }}
                   >
-                    Save Balance
+                    {editingAccount ? 'Save Changes' : '+ Add Account'}
                   </button>
                 </div>
               </div>
@@ -573,113 +959,173 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {/* Modal: Add Account or Transaction */}
-      {showTxModal && (
-        <div className="modal-backdrop" onClick={() => setShowTxModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-slate-100">Record Bank Transaction</h3>
-              <button
-                type="button"
-                onClick={() => setShowTxModal(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveBankTx} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-1.5 text-slate-300">
-                  Bank / Account Name
-                </label>
-                <input
-                  type="text"
-                  list="accountSuggestions"
-                  value={txAccount}
-                  onChange={(e) => setTxAccount(e.target.value)}
-                  placeholder="e.g. bKash, Prime Bank, Islamic Bank"
-                  className="field w-full"
-                  required
-                />
-                <datalist id="accountSuggestions">
-                  {accountList.map((a) => (
-                    <option key={a.localId} value={a.name} />
-                  ))}
-                </datalist>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+      {/* 6. Statement & History Drawer Modal */}
+      {selectedStatementAccount && (
+        <div className="modal-backdrop" onClick={() => setSelectedStatementAccount(null)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
+          >
+            {/* Drawer Header */}
+            <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '1.5rem' }}>{getTypeMeta(selectedStatementAccount.type).icon}</span>
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5 text-slate-300">Date</label>
-                  <input
-                    type="date"
-                    value={txDate}
-                    onChange={(e) => setTxDate(e.target.value)}
-                    className="field w-full"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-1.5 text-slate-300">Type</label>
-                  <select
-                    value={txType}
-                    onChange={(e) => setTxType(e.target.value)}
-                    className="field w-full"
-                  >
-                    <option value="deposit">Deposit (+)</option>
-                    <option value="withdrawal">Withdrawal (−)</option>
-                  </select>
+                  <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                    {selectedStatementAccount.name}
+                    <span
+                      style={{
+                        fontSize: '0.7rem',
+                        padding: '1px 7px',
+                        borderRadius: '5px',
+                        color: getTypeMeta(selectedStatementAccount.type).color,
+                        background: getTypeMeta(selectedStatementAccount.type).bg,
+                      }}
+                    >
+                      {getTypeMeta(selectedStatementAccount.type).label}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Current Balance: <strong style={{ color: '#38bdf8' }}>{fmt(selectedStatementAccount.balance)}</strong>
+                    {selectedStatementAccount.accountNumber && ` • ${selectedStatementAccount.accountNumber}`}
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1.5 text-slate-300">
-                  Amount (৳)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="5000"
-                  value={txAmount}
-                  onChange={(e) => setTxAmount(e.target.value)}
-                  className="field w-full"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-1.5 text-slate-300">
-                  Note (optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Salary, ATM withdrawal"
-                  value={txNote}
-                  onChange={(e) => setTxNote(e.target.value)}
-                  className="field w-full"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   type="button"
-                  onClick={() => setShowTxModal(false)}
-                  className="secondary px-4 py-2 text-sm rounded-lg"
+                  onClick={() =>
+                    navigate(
+                      `/productivity?tab=vault&search=${encodeURIComponent(
+                        selectedStatementAccount.name
+                      )}`
+                    )
+                  }
+                  style={{
+                    background: 'rgba(168, 85, 247, 0.12)',
+                    color: '#c084fc',
+                    border: '1px solid rgba(168, 85, 247, 0.3)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 650,
+                    cursor: 'pointer',
+                  }}
+                  title="View encrypted PIN / password in Vault"
                 >
-                  Cancel
+                  🔐 Vault PINs
                 </button>
                 <button
-                  type="submit"
-                  className="deposit-submit-btn px-6"
-                  style={{ height: '42px', minWidth: '160px' }}
+                  type="button"
+                  onClick={() => setSelectedStatementAccount(null)}
+                  className="text-slate-400 hover:text-white"
                 >
-                  + Save Transaction
+                  ✕
                 </button>
               </div>
-            </form>
+            </div>
+
+            {/* Inflow vs Outflow Mini-Summary */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px',
+                padding: '12px 0',
+                borderBottom: '1px solid #141a27',
+              }}
+            >
+              <div style={{ background: '#090d15', padding: '10px 14px', borderRadius: '10px', border: '1px solid #1a2233' }}>
+                <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Total Inflow (+)
+                </span>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#34d399', marginTop: '3px' }}>
+                  +{fmt(statementTotals.inflow)}
+                </div>
+              </div>
+
+              <div style={{ background: '#090d15', padding: '10px 14px', borderRadius: '10px', border: '1px solid #1a2233' }}>
+                <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Total Outflow (−)
+                </span>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f87171', marginTop: '3px' }}>
+                  −{fmt(statementTotals.outflow)}
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Search inside Statement */}
+            <div style={{ padding: '12px 0 8px' }}>
+              <input
+                type="text"
+                placeholder="Search transactions inside this account..."
+                value={statementSearch}
+                onChange={(e) => setStatementSearch(e.target.value)}
+                className="field w-full text-sm"
+              />
+            </div>
+
+            {/* Statement Entries List */}
+            <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+              {statementEntries.length === 0 ? (
+                <p className="text-sm text-slate-500 py-10 text-center">
+                  No transaction records found for this account.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {statementEntries.map((item) => (
+                    <div
+                      key={item.localId}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: '#090d15',
+                        border: '1px solid #1a2233',
+                        borderRadius: '10px',
+                        padding: '10px 14px',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 650, color: '#f8fafc' }}>
+                          {item.displayLabel}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '3px' }}>
+                          {item.formattedDate} · {item.category || item.type}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: '1rem',
+                          fontWeight: 750,
+                          color: item.isExpense ? '#f87171' : '#34d399',
+                        }}
+                      >
+                        {item.displaySign}
+                        {fmt(item.amount)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Drawer Footer Actions */}
+            <div className="flex justify-between items-center pt-3 border-t border-slate-800 mt-3">
+              <span className="text-xs text-slate-500">
+                Showing {statementEntries.length} transaction entries
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedStatementAccount(null)}
+                className="secondary px-4 py-1.5 text-xs rounded-lg"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

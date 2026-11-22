@@ -11,12 +11,24 @@ const getAccounts = async (req, res) => {
 
 const createAccount = async (req, res) => {
   try {
-    const { localId, name, type, balance, clientUpdatedAt } = req.body;
+    const { localId, name, type, balance, institution, accountNumber, maturityDate, notes, clientUpdatedAt } = req.body;
     if (!localId || !name) return res.status(400).json({ message: 'localId and name are required' });
 
     const account = await Account.findOneAndUpdate(
       { userId: req.user._id, localId },
-      { $set: { name, type, balance, clientUpdatedAt, isDeleted: false } },
+      {
+        $set: {
+          name,
+          type: type || 'bank',
+          balance: Number(balance) || 0,
+          institution: institution || '',
+          accountNumber: accountNumber || '',
+          maturityDate: maturityDate || null,
+          notes: notes || '',
+          clientUpdatedAt,
+          isDeleted: false,
+        },
+      },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     res.status(201).json({ account });
@@ -64,12 +76,25 @@ const syncAccounts = async (req, res) => {
     if (!Array.isArray(records)) return res.status(400).json({ message: 'records array required' });
 
     const results = await Promise.allSettled(
-      records.map(({ localId, name, type, balance, clientUpdatedAt, isDeleted }) =>
-        Account.findOneAndUpdate(
-          { userId: req.user._id, localId },
-          { $set: { name, type, balance, clientUpdatedAt, isDeleted: isDeleted || false } },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        )
+      records.map(
+        ({ localId, name, type, balance, institution, accountNumber, maturityDate, notes, clientUpdatedAt, isDeleted }) =>
+          Account.findOneAndUpdate(
+            { userId: req.user._id, localId },
+            {
+              $set: {
+                name,
+                type: type || 'bank',
+                balance: Number(balance) || 0,
+                institution: institution || '',
+                accountNumber: accountNumber || '',
+                maturityDate: maturityDate || null,
+                notes: notes || '',
+                clientUpdatedAt,
+                isDeleted: isDeleted || false,
+              },
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          )
       )
     );
 
