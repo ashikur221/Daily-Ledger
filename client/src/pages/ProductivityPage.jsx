@@ -22,6 +22,7 @@ export default function ProductivityPage() {
   const [newTodoText, setNewTodoText] = useState('');
   const [newTodoPriority, setNewTodoPriority] = useState('medium');
   const [todoFilter, setTodoFilter] = useState('all'); // 'all' | 'active' | 'completed'
+  const [showAddTodoModal, setShowAddTodoModal] = useState(false);
 
   // --- 2. Vault (Bank & bKash Security) State ---
   const [vaultItems, setVaultItems] = useState([]);
@@ -108,6 +109,7 @@ export default function ProductivityPage() {
     }
 
     setNewTodoText('');
+    setShowAddTodoModal(false);
     loadLocalData();
     toast.success('Task added!');
   };
@@ -402,63 +404,48 @@ export default function ProductivityPage() {
       {activeTab === 'todos' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          {/* Add Todo Card */}
-          <div className="panel" style={{ padding: '20px 24px', background: '#050608', border: '1px solid #1a202c', borderRadius: '16px' }}>
-            <form onSubmit={handleAddTodo} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <input
-                type="text"
-                placeholder="e.g. Deposit ৳5,000 in bKash, Pay electricity bill, Check bank statement..."
-                value={newTodoText}
-                onChange={(e) => setNewTodoText(e.target.value)}
-                className="field"
-                style={{ flex: 1, minWidth: '240px', height: '46px', background: '#090d15', borderRadius: '12px' }}
-                required
-              />
-              <select
-                value={newTodoPriority}
-                onChange={(e) => setNewTodoPriority(e.target.value)}
-                className="field"
-                style={{ width: '130px', height: '46px', background: '#090d15', borderRadius: '12px' }}
-              >
-                <option value="high">🔴 High Priority</option>
-                <option value="medium">🟡 Medium</option>
-                <option value="low">🟢 Normal</option>
-              </select>
-              <button
-                type="submit"
-                className="primary"
-                style={{ height: '46px', padding: '0 22px', borderRadius: '12px', fontWeight: 650 }}
-              >
-                + Add Task
-              </button>
-            </form>
-          </div>
+          {/* Header & Filter Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', background: '#050608', border: '1px solid #1a202c', padding: '14px 20px', borderRadius: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '0.95rem', color: '#f8fafc', fontWeight: 700 }}>
+                📋 Tasks
+              </span>
+              <span style={{ fontSize: '0.82rem', color: '#94a3b8', background: '#0c121e', padding: '3px 10px', borderRadius: '12px', border: '1px solid #1e293b' }}>
+                {todos.length} total · {todos.filter((t) => t.data?.completed).length} completed
+              </span>
+            </div>
 
-          {/* Filter Bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>
-              Tasks: {todos.length} total · {todos.filter((t) => t.data?.completed).length} completed
-            </span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {['all', 'active', 'completed'].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setTodoFilter(f)}
-                  style={{
-                    fontSize: '0.78rem',
-                    padding: '4px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid',
-                    borderColor: todoFilter === f ? '#3b82f6' : '#232a3b',
-                    background: todoFilter === f ? 'rgba(59, 130, 246, 0.15)' : '#050608',
-                    color: todoFilter === f ? '#38bdf8' : '#94a3b8',
-                    cursor: 'pointer',
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {f}
-                </button>
-              ))}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {['all', 'active', 'completed'].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setTodoFilter(f)}
+                    style={{
+                      fontSize: '0.78rem',
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid',
+                      borderColor: todoFilter === f ? '#3b82f6' : '#232a3b',
+                      background: todoFilter === f ? 'rgba(59, 130, 246, 0.15)' : '#090d15',
+                      color: todoFilter === f ? '#38bdf8' : '#94a3b8',
+                      cursor: 'pointer',
+                      textTransform: 'capitalize',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => setShowAddTodoModal(true)}
+                style={{ padding: '6px 16px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 700 }}
+              >
+                + New Task
+              </button>
             </div>
           </div>
 
@@ -1062,6 +1049,72 @@ export default function ProductivityPage() {
                   }}
                 >
                   Encrypt & Save 🔒
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add Task / To-Do */}
+      {showAddTodoModal && (
+        <div className="modal-overlay" onClick={() => setShowAddTodoModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px', background: '#0b0f17', border: '1px solid #232a3b' }}>
+            <h2 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
+              📋 Add New Task
+            </h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: '4px', marginBottom: '16px' }}>
+              Keep track of bills to pay, cash transfers, or daily financial chores.
+            </p>
+
+            <form onSubmit={handleAddTodo} className="modal-form">
+              <div className="form-item">
+                <label className="form-label" htmlFor="todo-text">Task Description</label>
+                <input
+                  id="todo-text"
+                  type="text"
+                  placeholder="e.g. Deposit ৳5,000 in bKash, Pay electricity bill..."
+                  value={newTodoText}
+                  onChange={(e) => setNewTodoText(e.target.value)}
+                  className="field"
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div className="form-item">
+                <label className="form-label" htmlFor="todo-priority">Priority Level</label>
+                <select
+                  id="todo-priority"
+                  value={newTodoPriority}
+                  onChange={(e) => setNewTodoPriority(e.target.value)}
+                  className="field"
+                >
+                  <option value="high">🔴 High Priority (Urgent / Due Today)</option>
+                  <option value="medium">🟡 Medium Priority (Important)</option>
+                  <option value="low">🟢 Normal Priority</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+                <button
+                  type="button"
+                  className="secondary flex-1"
+                  onClick={() => setShowAddTodoModal(false)}
+                  style={{ height: '42px', borderRadius: '10px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="primary flex-1"
+                  style={{
+                    height: '42px',
+                    borderRadius: '10px',
+                    fontWeight: 700,
+                  }}
+                >
+                  Save Task
                 </button>
               </div>
             </form>

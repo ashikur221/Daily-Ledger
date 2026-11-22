@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import db from '../db/localDb';
 import { queueSync } from '../services/syncService';
+import { useToast } from '../context/ToastContext';
 
 const INSIGHT_CATEGORIES = [
   'Food & drinks',
@@ -48,9 +49,11 @@ function suggestedCategory(title) {
 }
 
 export default function ReportsPage() {
+  const toast = useToast();
   const [expenses, setExpenses] = useState([]);
   const [deposits, setDeposits] = useState([]);
   const [categoryOverrides, setCategoryOverrides] = useState({});
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [monthlyBudget, setMonthlyBudget] = useState(
     () => localStorage.getItem('daily_ledger_monthly_budget') || '12000'
   );
@@ -286,6 +289,8 @@ export default function ReportsPage() {
     if (!Number.isFinite(num) || num < 0) return;
     setMonthlyBudget(budgetValue);
     localStorage.setItem('daily_ledger_monthly_budget', budgetValue);
+    setShowBudgetModal(false);
+    toast.success('Monthly budget target updated!');
   };
 
   const budgetNum = Number(monthlyBudget) || 0;
@@ -662,41 +667,130 @@ export default function ReportsPage() {
 
       {/* 8. Monthly Spending Target (Budget) */}
       <div style={panelStyle}>
-        <h3 style={headingStyle}>Set a monthly spending target</h3>
-        <p style={{ ...subTextStyle, marginBottom: '14px' }}>
-          Optional planning target. It does not change your entries or balances.
-        </p>
-
-        <form onSubmit={handleSaveBudget} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <input
-            id="monthlyBudget"
-            type="number"
-            min="0"
-            step="100"
-            style={{ ...fieldStyle, flex: 1, minWidth: '160px' }}
-            placeholder="e.g. 12000"
-            value={budgetValue}
-            onChange={(e) => setBudgetValue(e.target.value)}
-          />
-          <button type="submit" style={primaryBtnStyle}>
-            Save target
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+          <div>
+            <h3 style={{ ...headingStyle, marginBottom: '4px' }}>Monthly Spending Target</h3>
+            <p style={{ ...subTextStyle, marginBottom: 0 }}>
+              Optional planning target. It does not alter your entries or account balances.
+            </p>
+          </div>
+          <button
+            type="button"
+            style={primaryBtnStyle}
+            onClick={() => {
+              setBudgetValue(monthlyBudget || '');
+              setShowBudgetModal(true);
+            }}
+          >
+            {budgetNum ? '✏️ Edit Target' : '🎯 Set Target'}
           </button>
-        </form>
+        </div>
 
-        <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '14px', lineHeight: 1.5 }}>
-          {budgetNum
-            ? `Monthly target: ${fmt(budgetNum)}. This month recorded: ${fmt(currentMonthSpend)}. ${
-                currentMonthSpend > budgetNum
-                  ? `Over target by ${fmt(currentMonthSpend - budgetNum)}.`
-                  : `Remaining target: ${fmt(budgetNum - currentMonthSpend)}.`
-              } This is based only on recorded entries.`
-            : 'No monthly target set yet. Set a realistic target after reviewing essential expenses.'}
+        <div style={{ 
+          background: '#050608', 
+          border: '1px solid #1a202c', 
+          borderRadius: '12px', 
+          padding: '16px 20px', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '12px' 
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Target Limit:</span>
+              <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', marginLeft: '8px' }}>{budgetNum ? fmt(budgetNum) : 'None'}</span>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Spent This Month:</span>
+              <span style={{ fontSize: '1.2rem', fontWeight: 700, color: currentMonthSpend > budgetNum && budgetNum > 0 ? '#fb7185' : '#38bdf8', marginLeft: '8px' }}>
+                {fmt(currentMonthSpend)}
+              </span>
+            </div>
+          </div>
+
+          {budgetNum > 0 && (
+            <div>
+              <div style={{ height: '8px', background: '#0d131f', borderRadius: '4px', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    borderRadius: '4px',
+                    background: currentMonthSpend > budgetNum ? '#f43f5e' : 'linear-gradient(90deg, #3b82f6, #06b6d4)',
+                    width: `${Math.min(100, Math.round((currentMonthSpend / budgetNum) * 100))}%`,
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginTop: '6px', color: '#94a3b8' }}>
+                <span>{Math.round((currentMonthSpend / budgetNum) * 100)}% consumed</span>
+                <span>
+                  {currentMonthSpend > budgetNum
+                    ? `Exceeded by ${fmt(currentMonthSpend - budgetNum)}`
+                    : `Remaining: ${fmt(budgetNum - currentMonthSpend)}`}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <p style={{ fontSize: '0.72rem', color: '#94a3b8', textAlign: 'center', paddingBottom: '16px', lineHeight: 1.5 }}>
         Important: this analysis uses only entries in this ledger. Unclear titles may be placed in "Uncategorized"; review them before making decisions.
       </p>
+
+      {/* Modal: Set Monthly Spending Target */}
+      {showBudgetModal && (
+        <div className="modal-overlay" onClick={() => setShowBudgetModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', background: '#0b0f17', border: '1px solid #232a3b' }}>
+            <h2 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
+              🎯 Set Monthly Budget Target
+            </h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: '4px', marginBottom: '16px', lineHeight: 1.5 }}>
+              Set a monthly spending limit to monitor your cash burn rate. It helps alert you when expenses approach or exceed your target.
+            </p>
+
+            <form onSubmit={handleSaveBudget} className="modal-form">
+              <div className="form-item">
+                <label className="form-label" htmlFor="monthlyBudget">Target Amount (৳)</label>
+                <input
+                  id="monthlyBudget"
+                  type="number"
+                  min="0"
+                  step="100"
+                  style={{ ...fieldStyle, width: '100%' }}
+                  placeholder="e.g. 15000"
+                  value={budgetValue}
+                  onChange={(e) => setBudgetValue(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+                <button
+                  type="button"
+                  className="secondary flex-1"
+                  onClick={() => setShowBudgetModal(false)}
+                  style={{ height: '42px', borderRadius: '10px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="primary flex-1"
+                  style={{
+                    height: '42px',
+                    borderRadius: '10px',
+                    fontWeight: 700,
+                  }}
+                >
+                  Save Target
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

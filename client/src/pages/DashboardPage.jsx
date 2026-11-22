@@ -10,7 +10,7 @@ import { adjustAccountBalance, getAllAccounts } from '../services/accountService
 import api from '../services/api';
 
 export default function DashboardPage() {
-  const { user, isOnline, refreshPendingCount } = useAuth();
+  const { isOnline, refreshPendingCount } = useAuth();
   const toast = useToast();
   const { confirm } = useConfirm();
   const navigate = useNavigate();
@@ -19,12 +19,20 @@ export default function DashboardPage() {
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
-  // Form state
-  const [expenseTitle, setExpenseTitle] = useState('');
-  const [expenseAmount, setExpenseAmount] = useState('');
-  const [expenseAccount, setExpenseAccount] = useState('Cash in Hand');
+  // Accounts state
   const [availableAccounts, setAvailableAccounts] = useState([]);
+
+  // Modal & Form State for Expense Add/Edit
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [editingTx, setEditingTx] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({
+    title: '',
+    amount: '',
+    account: 'Cash in Hand',
+    category: 'Food & drinks',
+    date: todayStr,
+  });
 
   // Data states
   const [stats, setStats] = useState({
@@ -37,13 +45,6 @@ export default function DashboardPage() {
   const [dayEntries, setDayEntries] = useState([]);
   const [dayTotal, setDayTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  // Editing state for entries
-  const [editingId, setEditingId] = useState(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editAmount, setEditAmount] = useState('');
-
-  const formRef = useRef(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -144,107 +145,90 @@ export default function DashboardPage() {
     setDayTotal(selectedTotal);
   };
 
-  const handleAddExpense = async (e) => {
+  const handleOpenAddExpense = (presetDate) => {
+    setEditingTx(null);
+    setExpenseForm({
+      title: '',
+      amount: '',
+      account: availableAccounts[0]?.name || 'Cash in Hand',
+      category: 'Food & drinks',
+      date: presetDate || selectedDate || todayStr,
+    });
+    setShowExpenseModal(true);
+  };
+
+  const handleStartEdit = (entry) => {
+    setEditingTx(entry);
+    setExpenseForm({
+      title: entry.note || '',
+      amount: entry.amount,
+      account: entry.account || 'Cash in Hand',
+      category: entry.category || 'General',
+      date: entry.date ? new Date(entry.date).toISOString().split('T')[0] : todayStr,
+    });
+    setShowExpenseModal(true);
+  };
+
+  const handleSaveExpenseModal = async (e) => {
     e.preventDefault();
-    if (!expenseTitle.trim() || !expenseAmount) return;
+    if (!expenseForm.title.trim() || !expenseForm.amount) return;
 
     setIsSubmitting(true);
-    const numAmount = parseFloat(expenseAmount);
+    const numAmount = parseFloat(expenseForm.amount);
     if (isNaN(numAmount) || numAmount <= 0) {
       toast.error('Please enter a valid amount');
       setIsSubmitting(false);
       return;
     }
 
-    const localId = uuidv4();
-    const chosenAcc = (expenseAccount || 'Cash in Hand').trim();
+    const localId = editingTx?.localId || uuidv4();
+    const chosenAcc = (expenseForm.account || 'Cash in Hand').trim();
     const newTx = {
       localId,
       type: 'expense',
       amount: numAmount,
-      category: 'General',
+      category: expenseForm.category || 'General',
       account: chosenAcc,
-      date: new Date(selectedDate),
-      note: expenseTitle.trim(),
+      date: new Date(expenseForm.date),
+      note: expenseForm.title.trim(),
       synced: false,
       isDeleted: 0,
       clientUpdatedAt: new Date(),
     };
 
     try {
-      // Write locally immediately
       await db.transactions.put(newTx);
       await queueSync('transactions', localId);
 
-      // Deduct from the selected account balance
+      // Reconcile balance
+      if (editingTx) {
+        await adjustAccountBalance(editingTx.account || 'Cash in Hand', Number(editingTx.amount));
+      }
       await adjustAccountBalance(chosenAcc, -numAmount);
 
-      // If online, send to cloud
       if (isOnline) {
         try {
-          await api.post('/transactions', newTx);
+          if (editingTx) {
+            await api.put(`/transactions/${localId}`, newTx);
+          } else {
+            await api.post('/transactions', newTx);
+          }
           await db.transactions.update(localId, { synced: true });
           await db.syncQueue.where({ entity: 'transactions', localId }).delete();
-        } catch {
-          // Will sync in background
-        }
+        } catch {}
       }
 
       await refreshPendingCount();
-      toast.success(`Added ৳${numAmount} for "${expenseTitle.trim()}"`);
-
-      // Reset input form
-      setExpenseTitle('');
-      setExpenseAmount('');
-
-      // Reload view
+      toast.success(editingTx ? 'Expense updated successfully!' : `Added ৳${numAmount} for "${expenseForm.title.trim()}"`);
+      setShowExpenseModal(false);
+      setEditingTx(null);
       await loadDashboardData();
     } catch (err) {
-      toast.error('Failed to add expense');
+      toast.error('Failed to save expense');
       console.error(err);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleStartEdit = (entry) => {
-    setEditingId(entry.localId);
-    setEditTitle(entry.note || '');
-    setEditAmount(entry.amount);
-  };
-
-  const handleSaveEdit = async (entry) => {
-    const num = parseFloat(editAmount);
-    if (isNaN(num) || num <= 0 || !editTitle.trim()) {
-      toast.error('Please provide valid title and amount');
-      return;
-    }
-
-    // Dynamic Balance Adjustment
-    await adjustAccountBalance(entry.account || 'Cash in Hand', Number(entry.amount));
-    await adjustAccountBalance(entry.account || 'Cash in Hand', -num);
-
-    await db.transactions.update(entry.localId, {
-      note: editTitle.trim(),
-      amount: num,
-      synced: false,
-      clientUpdatedAt: new Date(),
-    });
-    await queueSync('transactions', entry.localId);
-
-    if (isOnline) {
-      try {
-        await api.put(`/transactions/${entry.localId}`, {
-          note: editTitle.trim(),
-          amount: num,
-        });
-        await db.transactions.update(entry.localId, { synced: true });
-      } catch {}
-    }
-
-    setEditingId(null);
-    toast.success('Entry updated');
-    loadDashboardData();
   };
 
   const handleDeleteEntry = async (entry) => {
@@ -266,15 +250,12 @@ export default function DashboardPage() {
       try {
         await api.delete(`/transactions/${entry.localId}`);
         await db.transactions.update(entry.localId, { synced: true });
+        await db.syncQueue.where({ entity: 'transactions', localId: entry.localId }).delete();
       } catch {}
     }
 
     toast.info('Entry deleted');
     loadDashboardData();
-  };
-
-  const scrollToEntry = () => {
-    formRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const fmt = (n) => `৳${Number(n || 0).toLocaleString('en-IN')}`;
@@ -300,11 +281,11 @@ export default function DashboardPage() {
         </div>
 
         <div className="balance-actions">
-          <button type="button" onClick={scrollToEntry} className="balance-action">
-            Add Expense <span>›</span>
+          <button type="button" onClick={() => handleOpenAddExpense(todayStr)} className="balance-action">
+            + Add Expense <span>›</span>
           </button>
           <button type="button" onClick={() => navigate('/accounts')} className="balance-action">
-            Bank Accounts <span>›</span>
+            Banks & Assets <span>›</span>
           </button>
         </div>
 
@@ -313,84 +294,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 2. Daily Entry Form Panel */}
-      <div className="panel" ref={formRef}>
-        <div className="panel-header-block">
-          <h2 className="panel-title">Daily entry</h2>
-          <p className="panel-sub">Add an expense here. New entries appear at the top.</p>
-        </div>
-
-        <form onSubmit={handleAddExpense} className="daily-form">
-          <div className="form-item">
-            <label htmlFor="expenseDate" className="form-label">Date</label>
-            <input
-              id="expenseDate"
-              type="date"
-              className="field"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-item">
-            <label htmlFor="expenseTitle" className="form-label">Expense title</label>
-            <input
-              id="expenseTitle"
-              type="text"
-              className="field"
-              placeholder="e.g. Cha, Rickshaw"
-              value={expenseTitle}
-              onChange={(e) => setExpenseTitle(e.target.value)}
-              required
-              maxLength={100}
-            />
-          </div>
-
-          <div className="form-item">
-            <label htmlFor="expenseAmount" className="form-label">Amount (৳)</label>
-            <input
-              id="expenseAmount"
-              type="number"
-              min="0.01"
-              step="any"
-              className="field"
-              placeholder="35"
-              value={expenseAmount}
-              onChange={(e) => setExpenseAmount(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-item">
-            <label htmlFor="expenseAccount" className="form-label">Paid from account</label>
-            <input
-              id="expenseAccount"
-              type="text"
-              list="dashAccountSuggestions"
-              className="field"
-              placeholder="e.g. Cash in Hand, bKash, City Bank"
-              value={expenseAccount}
-              onChange={(e) => setExpenseAccount(e.target.value)}
-              required
-            />
-            <datalist id="dashAccountSuggestions">
-              {availableAccounts.map((a) => (
-                <option key={a.localId || a.name} value={a.name} />
-              ))}
-              <option value="Cash in Hand" />
-              <option value="bKash" />
-              <option value="Nagad" />
-            </datalist>
-          </div>
-
-          <button className="primary w-full" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : '+ Add expense'}
-          </button>
-        </form>
-      </div>
-
-      {/* 3. 4-Box Summary Grid */}
+      {/* 2. 4-Box Summary Grid */}
       <div className="metrics-grid">
         <div className="panel p-4">
           <div className="tiny-label">Today's total</div>
@@ -413,20 +317,51 @@ export default function DashboardPage() {
         <div className="panel p-4">
           <div className="tiny-label">Money remaining</div>
           <div id="homeRemaining" className="metric-value">{fmt(stats.remaining)}</div>
-          <div className="metric-sub">Total Tk in minus recorded expenses · excludes bank accounts</div>
+          <div className="metric-sub">Liquid capital across active accounts</div>
         </div>
       </div>
 
-      {/* 4. Entries for Selected Day */}
+      {/* 3. Entries for Selected Day */}
       <div className="panel">
-        <div className="entries-header">
+        <div
+          className="entries-header"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}
+        >
           <div>
             <h3 className="panel-title-md">Entries for selected day</h3>
-            <p className="panel-sub">Use Edit to change a previous entry.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="field text-sm"
+                style={{ padding: '4px 10px', height: '34px', width: 'auto' }}
+              />
+              <span className="panel-sub" style={{ margin: 0 }}>
+                {dayEntries.length} {dayEntries.length === 1 ? 'entry' : 'entries'}
+              </span>
+            </div>
           </div>
-          <span id="selectedDayTotal" className="selected-day-total">
-            {fmt(dayTotal)}
-          </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <span id="selectedDayTotal" className="selected-day-total">
+              {fmt(dayTotal)}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleOpenAddExpense(selectedDate)}
+              className="primary"
+              style={{ padding: '6px 14px', fontSize: '0.84rem' }}
+            >
+              + Add Expense
+            </button>
+          </div>
         </div>
 
         <div className="entries-body">
@@ -436,75 +371,173 @@ export default function DashboardPage() {
             <div className="entries-list">
               {dayEntries.map((entry) => (
                 <div key={entry.localId} className="entry-row">
-                  {editingId === entry.localId ? (
-                    <div className="entry-edit-box">
-                      <input
-                        type="text"
-                        className="field"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                      />
-                      <input
-                        type="number"
-                        className="field"
-                        value={editAmount}
-                        onChange={(e) => setEditAmount(e.target.value)}
-                      />
-                      <div className="flex gap-2">
-                        <button className="primary" onClick={() => handleSaveEdit(entry)}>Save</button>
-                        <button className="secondary" onClick={() => setEditingId(null)}>Cancel</button>
-                      </div>
+                  <div className="entry-info">
+                    <div className="entry-title">{entry.note || 'Expense'}</div>
+                    <div className="entry-category">
+                      <span>{entry.category || 'General'}</span>
+                      <span style={{ margin: '0 5px', opacity: 0.35 }}>•</span>
+                      <span
+                        style={{
+                          fontSize: '0.74rem',
+                          padding: '1px 6px',
+                          borderRadius: '5px',
+                          background: 'rgba(56, 189, 248, 0.08)',
+                          color: '#38bdf8',
+                          border: '1px solid rgba(56, 189, 248, 0.2)',
+                        }}
+                      >
+                        💳 {entry.account || 'Cash in Hand'}
+                      </span>
                     </div>
-                  ) : (
-                    <>
-                      <div className="entry-info">
-                        <div className="entry-title">{entry.note || 'Expense'}</div>
-                        <div className="entry-category">
-                          <span>{entry.category || 'General'}</span>
-                          <span style={{ margin: '0 5px', opacity: 0.35 }}>•</span>
-                          <span
-                            style={{
-                              fontSize: '0.74rem',
-                              padding: '1px 6px',
-                              borderRadius: '5px',
-                              background: 'rgba(56, 189, 248, 0.08)',
-                              color: '#38bdf8',
-                              border: '1px solid rgba(56, 189, 248, 0.2)',
-                            }}
-                          >
-                            💳 {entry.account || 'Cash in Hand'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="entry-right">
-                        <div className="entry-amount">{fmt(entry.amount)}</div>
-                        <div className="entry-actions">
-                          <button
-                            type="button"
-                            className="btn-link"
-                            onClick={() => handleStartEdit(entry)}
-                            title="Edit"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-link text-danger"
-                            onClick={() => handleDeleteEntry(entry)}
-                            title="Delete"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  </div>
+                  <div className="entry-right">
+                    <div className="entry-amount">{fmt(entry.amount)}</div>
+                    <div className="entry-actions">
+                      <button
+                        type="button"
+                        className="btn-link"
+                        onClick={() => handleStartEdit(entry)}
+                        title="Edit"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-link text-danger"
+                        onClick={() => handleDeleteEntry(entry)}
+                        title="Delete"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* 4. Add / Edit Expense Modal */}
+      {showExpenseModal && (
+        <div className="modal-backdrop" onClick={() => setShowExpenseModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+              <h3 className="text-lg font-bold text-slate-100">
+                {editingTx ? 'Edit Expense' : 'Add Expense'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowExpenseModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveExpenseModal} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-300">Date</label>
+                <input
+                  type="date"
+                  className="field w-full"
+                  value={expenseForm.date}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-300">Expense Title</label>
+                <input
+                  type="text"
+                  className="field w-full"
+                  placeholder="e.g. Cha, Rickshaw, Lunch, Groceries"
+                  value={expenseForm.title}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, title: e.target.value })}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold mb-1 text-slate-300">Amount (৳)</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    className="field w-full"
+                    placeholder="35"
+                    value={expenseForm.amount}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1 text-slate-300">Category</label>
+                  <select
+                    className="field w-full"
+                    value={expenseForm.category}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                  >
+                    <option value="Food & drinks">Food & Drinks</option>
+                    <option value="Transport">Transport / Fare</option>
+                    <option value="Phone & communication">Phone & Internet</option>
+                    <option value="Health">Health & Medicine</option>
+                    <option value="Personal care">Personal Care</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Study & supplies">Study & Supplies</option>
+                    <option value="Housing">Housing & Rent</option>
+                    <option value="Laundry & household">Household & Utilities</option>
+                    <option value="General">General / Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-300">Paid From Account</label>
+                <input
+                  type="text"
+                  list="dashModalAccountSuggestions"
+                  className="field w-full"
+                  placeholder="e.g. Cash in Hand, bKash, City Bank"
+                  value={expenseForm.account}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, account: e.target.value })}
+                  required
+                />
+                <datalist id="dashModalAccountSuggestions">
+                  {availableAccounts.map((a) => (
+                    <option key={a.localId || a.name} value={a.name} />
+                  ))}
+                  <option value="Cash in Hand" />
+                  <option value="bKash" />
+                  <option value="Nagad" />
+                </datalist>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowExpenseModal(false)}
+                  className="secondary px-4 py-2 text-sm rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="primary px-6"
+                  style={{ height: '42px', minWidth: '130px' }}
+                >
+                  {isSubmitting ? 'Saving...' : editingTx ? 'Save Changes' : '+ Add Expense'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

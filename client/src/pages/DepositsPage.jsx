@@ -15,14 +15,21 @@ export default function DepositsPage() {
 
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Form state for new / edit deposit
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [source, setSource] = useState('');
-  const [amount, setAmount] = useState('');
-  const [account, setAccount] = useState('Cash in Hand');
   const [availableAccounts, setAvailableAccounts] = useState([]);
+
+  // Modal State
+  const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form State
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [incomeForm, setIncomeForm] = useState({
+    date: todayStr,
+    source: '',
+    amount: '',
+    account: 'Cash in Hand',
+  });
 
   useEffect(() => {
     loadDeposits();
@@ -83,7 +90,7 @@ export default function DepositsPage() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions]);
 
-  // Total Tk In
+  // Total Income
   const totalDepositsAmount = useMemo(() => {
     return depositsList.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }, [depositsList]);
@@ -100,21 +107,43 @@ export default function DepositsPage() {
     });
   };
 
-  // Handle Add or Update Deposit
-  const handleSubmit = async (e) => {
+  const handleOpenAdd = () => {
+    setEditingTx(null);
+    setIncomeForm({
+      date: todayStr,
+      source: '',
+      amount: '',
+      account: availableAccounts[0]?.name || 'Cash in Hand',
+    });
+    setShowIncomeModal(true);
+  };
+
+  const handleStartEdit = (tx) => {
+    setEditingTx(tx);
+    setIncomeForm({
+      date: tx.date ? new Date(tx.date).toISOString().split('T')[0] : todayStr,
+      source: tx.note ? tx.note.replace(/^From\s+/i, '') : '',
+      amount: String(tx.amount || ''),
+      account: tx.account || 'Cash in Hand',
+    });
+    setShowIncomeModal(true);
+  };
+
+  const handleSaveIncome = async (e) => {
     e.preventDefault();
-    const numAmount = parseFloat(amount);
+    const numAmount = parseFloat(incomeForm.amount);
     if (isNaN(numAmount) || numAmount <= 0) {
       toast.warning('Please enter a valid amount.');
       return;
     }
-    if (!source.trim()) {
+    if (!incomeForm.source.trim()) {
       toast.warning('Please enter where the money came from.');
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      const chosenAcc = (account || 'Cash in Hand').trim();
+      const chosenAcc = (incomeForm.account || 'Cash in Hand').trim();
 
       if (editingTx) {
         // Update existing deposit
@@ -122,8 +151,8 @@ export default function DepositsPage() {
           ...editingTx,
           amount: numAmount,
           account: chosenAcc,
-          note: source.trim(),
-          date: new Date(date),
+          note: incomeForm.source.trim(),
+          date: new Date(incomeForm.date),
           synced: false,
           clientUpdatedAt: new Date(),
         };
@@ -140,18 +169,17 @@ export default function DepositsPage() {
         setTransactions((prev) =>
           prev.map((t) => (t.localId === updated.localId ? updated : t))
         );
-        toast.success(`Deposit updated: ৳${numAmount.toLocaleString('en-US')}`);
-        setEditingTx(null);
+        toast.success(`Income updated: ৳${numAmount.toLocaleString('en-US')}`);
       } else {
         // Add new deposit
         const newRecord = {
           localId: uuidv4(),
           type: 'income',
           amount: numAmount,
-          category: 'Deposit / Allowance',
+          category: 'Income',
           account: chosenAcc,
-          date: new Date(date),
-          note: source.trim(),
+          date: new Date(incomeForm.date),
+          note: incomeForm.source.trim(),
           synced: false,
           isDeleted: 0,
           clientUpdatedAt: new Date(),
@@ -166,46 +194,28 @@ export default function DepositsPage() {
         refreshPendingCount();
 
         setTransactions((prev) => [newRecord, ...prev]);
-        toast.success(`Recorded deposit: ৳${numAmount.toLocaleString('en-US')}`);
+        toast.success(`Recorded income: ৳${numAmount.toLocaleString('en-US')}`);
       }
 
-      // Reset form
-      setSource('');
-      setAmount('');
-      setAccount('Cash in Hand');
-      setDate(new Date().toISOString().split('T')[0]);
+      setShowIncomeModal(false);
+      setEditingTx(null);
     } catch (err) {
       console.error(err);
-      toast.error('Failed to save deposit.');
+      toast.error('Failed to save income record.');
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const handleStartEdit = (tx) => {
-    setEditingTx(tx);
-    setSource(tx.note ? tx.note.replace(/^From\s+/i, '') : '');
-    setAmount(tx.amount);
-    setAccount(tx.account || 'Cash in Hand');
-    const dStr = tx.date ? new Date(tx.date).toISOString().split('T')[0] : '';
-    setDate(dStr || new Date().toISOString().split('T')[0]);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingTx(null);
-    setSource('');
-    setAmount('');
-    setAccount('Cash in Hand');
-    setDate(new Date().toISOString().split('T')[0]);
   };
 
   const handleDelete = async (tx) => {
     const ok = await confirm({
-      title: 'Delete Deposit',
-      message: `Are you sure you want to delete the deposit of ৳${tx.amount} (${tx.note || 'Deposit'})?`,
-      confirmText: 'Delete Deposit',
+      title: 'Delete Income Record',
+      message: `Are you sure you want to delete the income of ৳${tx.amount} (${tx.note || 'Income'})?`,
+      confirmText: 'Delete Record',
       danger: true,
     });
     if (!ok) return;
+
     try {
       const updated = { ...tx, isDeleted: 1, synced: false, clientUpdatedAt: new Date() };
       await db.transactions.put(updated);
@@ -217,116 +227,221 @@ export default function DepositsPage() {
       refreshPendingCount();
 
       setTransactions((prev) => prev.filter((t) => t.localId !== tx.localId));
-      if (editingTx?.localId === tx.localId) {
-        handleCancelEdit();
-      }
-      toast.info('Deposit deleted.');
+      setShowIncomeModal(false);
+      setEditingTx(null);
+      toast.info('Income record deleted.');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to delete deposit.');
+      toast.error('Failed to delete record.');
     }
   };
 
   return (
     <div className="deposit-page-wrapper">
-      {/* 2-Column Grid Layout matching screenshot */}
-      <div className="deposits-grid">
-        {/* Left Column: Record money in form */}
-        <div className="deposit-form-panel">
-          <div className="deposit-form-header">
-            <div>
-              <span className="deposit-badge-label">
-                {editingTx ? 'EDITING RECORD' : 'NEW INCOME'}
-              </span>
-              <h2 className="deposit-form-title">
-                {editingTx ? 'Edit income' : 'Record income'}
-              </h2>
-              <p className="deposit-form-sub">
-                Salary, allowance, freelance or money received.
-              </p>
-            </div>
-            {editingTx && (
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="cancel-edit-pill"
-              >
-                ✕ Cancel
-              </button>
-            )}
+      {/* 1. Header Banner & Quick Add Button */}
+      <div className="bank-accounts-panel mb-6">
+        <div className="bank-panel-header" style={{ borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>
+          <div>
+            <span className="deposit-badge-label">TOTAL ACCUMULATED</span>
+            <h2 className="bank-panel-title" style={{ fontSize: '1.6rem', marginTop: '4px' }}>
+              Income & Inflow
+            </h2>
+            <p className="bank-panel-subtitle">
+              Salary, allowances, business profit, freelance & money received.
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="deposit-form-body">
-            <div className="deposit-field-group">
-              <label className="deposit-label" htmlFor="depositDate">
-                Date
-              </label>
-              <div className="deposit-input-wrap">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <div className="deposit-total-badge" style={{ padding: '8px 18px' }}>
+              <span className="deposit-total-currency">৳</span>
+              <span className="deposit-total-number" style={{ fontSize: '1.45rem' }}>
+                {totalDepositsAmount.toLocaleString('en-US')}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenAdd}
+              className="bank-add-action-btn"
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                boxShadow: '0 4px 18px rgba(16, 185, 129, 0.35)',
+              }}
+            >
+              <span>+</span> Record Income
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Full-Width Income Ledger List */}
+      <div className="deposit-list-panel">
+        <div className="deposit-list-header">
+          <div>
+            <h3 className="bank-panel-title" style={{ fontSize: '1.15rem' }}>Income History</h3>
+            <p className="deposit-list-sub">
+              Showing {depositsList.length} recorded inflow {depositsList.length === 1 ? 'entry' : 'entries'}.
+            </p>
+          </div>
+        </div>
+
+        <div className="deposit-entries-list">
+          {loading && depositsList.length === 0 ? (
+            <div className="deposit-empty-state">
+              <div className="spinner-sm" />
+              <p>Loading income records...</p>
+            </div>
+          ) : depositsList.length === 0 ? (
+            <div className="deposit-empty-state" style={{ padding: '48px 0' }}>
+              <p style={{ fontSize: '1rem', fontWeight: 650 }}>No income records yet.</p>
+              <span className="text-xs text-slate-500" style={{ display: 'block', marginTop: '4px' }}>
+                Tap the button above to record your first salary or deposit.
+              </span>
+              <button
+                type="button"
+                onClick={handleOpenAdd}
+                style={{
+                  marginTop: '16px',
+                  background: 'transparent',
+                  color: '#34d399',
+                  border: '1px dashed #34d399',
+                  borderRadius: '8px',
+                  padding: '8px 18px',
+                  cursor: 'pointer',
+                  fontWeight: 650,
+                  fontSize: '0.85rem',
+                }}
+              >
+                + Record Income
+              </button>
+            </div>
+          ) : (
+            depositsList.map((d) => {
+              const displaySource = d.note ? d.note.replace(/^From\s+/i, '') : 'Income';
+              return (
+                <div
+                  key={d.localId || d._id}
+                  className="deposit-row-card"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleStartEdit(d)}
+                  title="Click to edit income entry"
+                >
+                  <div className="deposit-row-left">
+                    <div className="deposit-source-name" style={{ fontSize: '1.02rem', fontWeight: 700 }}>
+                      {displaySource}
+                    </div>
+                    <div className="deposit-date-tag">
+                      <span>{formatDateLabel(d.date)}</span>
+                      <span style={{ margin: '0 6px', opacity: 0.35 }}>•</span>
+                      <span
+                        style={{
+                          fontSize: '0.74rem',
+                          padding: '1px 6px',
+                          borderRadius: '5px',
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          color: '#34d399',
+                          border: '1px solid rgba(16, 185, 129, 0.25)',
+                        }}
+                      >
+                        📥 {d.account || 'Cash in Hand'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="deposit-row-right">
+                    <div className="deposit-amount-pill" style={{ color: '#34d399', fontWeight: 800 }}>
+                      +৳{Number(d.amount).toLocaleString('en-US')}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartEdit(d);
+                      }}
+                      className="deposit-edit-btn"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* 3. Modal: Add / Edit Income */}
+      {showIncomeModal && (
+        <div className="modal-backdrop" onClick={() => setShowIncomeModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+              <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                <span>💰</span> {editingTx ? 'Edit Income Record' : 'Record Income'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowIncomeModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveIncome} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-300">Date</label>
                 <input
-                  id="depositDate"
                   type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="deposit-input"
+                  className="field w-full"
+                  value={incomeForm.date}
+                  onChange={(e) => setIncomeForm({ ...incomeForm, date: e.target.value })}
                   required
                 />
               </div>
-            </div>
 
-            <div className="deposit-field-group">
-              <label className="deposit-label" htmlFor="depositSource">
-                From / note
-              </label>
-              <div className="deposit-input-wrap">
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-300">
+                  From / Source Note
+                </label>
                 <input
-                  id="depositSource"
                   type="text"
-                  placeholder="e.g. Abbu, DA, Freelance"
-                  value={source}
-                  onChange={(e) => setSource(e.target.value)}
-                  className="deposit-input"
-                  maxLength={100}
+                  placeholder="e.g. Salary, DA, Freelance Client, Gift"
+                  value={incomeForm.source}
+                  onChange={(e) => setIncomeForm({ ...incomeForm, source: e.target.value })}
+                  className="field w-full"
                   required
+                  autoFocus
                 />
               </div>
-            </div>
 
-            <div className="deposit-field-group">
-              <label className="deposit-label" htmlFor="depositAmount">
-                Amount (৳)
-              </label>
-              <div className="deposit-input-wrap amount-prefix-wrap">
-                <span className="currency-prefix">৳</span>
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-300">Amount (৳)</label>
                 <input
-                  id="depositAmount"
                   type="number"
                   min="0.01"
-                  step="0.01"
-                  placeholder="1,000"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="deposit-input amount-input"
+                  step="any"
+                  placeholder="1000"
+                  value={incomeForm.amount}
+                  onChange={(e) => setIncomeForm({ ...incomeForm, amount: e.target.value })}
+                  className="field w-full"
                   required
                 />
               </div>
-            </div>
 
-            <div className="deposit-field-group">
-              <label className="deposit-label" htmlFor="depositAccount">
-                Deposit into / Account
-              </label>
-              <div className="deposit-input-wrap">
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-300">
+                  Deposit Into / Account
+                </label>
                 <input
-                  id="depositAccount"
                   type="text"
-                  list="depositAccountSuggestions"
-                  value={account}
-                  onChange={(e) => setAccount(e.target.value)}
+                  list="depositModalAccountSuggestions"
+                  value={incomeForm.account}
+                  onChange={(e) => setIncomeForm({ ...incomeForm, account: e.target.value })}
                   placeholder="e.g. Cash in Hand, bKash, City Bank"
-                  className="deposit-input"
+                  className="field w-full"
                   required
                 />
-                <datalist id="depositAccountSuggestions">
+                <datalist id="depositModalAccountSuggestions">
                   {availableAccounts.map((a) => (
                     <option key={a.localId || a.name} value={a.name} />
                   ))}
@@ -337,106 +452,53 @@ export default function DepositsPage() {
                   <option value="Dutch-Bangla Bank" />
                 </datalist>
               </div>
-            </div>
 
-            <div className="deposit-actions-row">
-              <button
-                type="submit"
-                className="deposit-submit-btn"
-              >
-                <span>{editingTx ? '✓ Update income' : '+ Add income'}</span>
-              </button>
-              {editingTx && (
-                <button
-                  type="button"
-                  onClick={() => handleDelete(editingTx)}
-                  className="deposit-delete-btn"
-                  title="Delete deposit"
-                >
-                  Delete
-                </button>
-              )}
-            </div>
-          </form>
-        </div>
-
-        {/* Right Column: Tk in Header & List */}
-        <div className="deposit-list-panel">
-          <div className="deposit-list-header">
-            <div>
-              <span className="deposit-badge-label">TOTAL ACCUMULATED</span>
-              <h2 className="deposit-list-title">Total Income</h2>
-              <p className="deposit-list-sub">Imported records are preserved.</p>
-            </div>
-            <div className="deposit-total-badge">
-              <span className="deposit-total-currency">৳</span>
-              <span className="deposit-total-number">
-                {totalDepositsAmount.toLocaleString('en-US')}
-              </span>
-            </div>
-          </div>
-
-          <div className="deposit-entries-list">
-            {loading && depositsList.length === 0 ? (
-              <div className="deposit-empty-state">
-                <div className="spinner-sm" />
-                <p>Loading deposits...</p>
-              </div>
-            ) : depositsList.length === 0 ? (
-              <div className="deposit-empty-state">
-                <p>No deposit records yet.</p>
-                <span className="text-xs text-slate-500">Record your incoming money on the left.</span>
-              </div>
-            ) : (
-              depositsList.map((d) => {
-                const isSelected = editingTx?.localId === d.localId;
-                const displaySource = d.note ? d.note.replace(/^From\s+/i, '') : 'Deposit';
-                return (
-                  <div
-                    key={d.localId || d._id}
-                    className={`deposit-row-card ${isSelected ? 'is-active' : ''}`}
+              <div className="flex justify-between items-center pt-3">
+                {editingTx ? (
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(editingTx)}
+                    style={{
+                      color: '#f87171',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
                   >
-                    <div className="deposit-row-left">
-                      <div className="deposit-source-name">
-                        {displaySource}
-                      </div>
-                      <div className="deposit-date-tag">
-                        <span>{formatDateLabel(d.date)}</span>
-                        <span style={{ margin: '0 6px', opacity: 0.35 }}>•</span>
-                        <span
-                          style={{
-                            fontSize: '0.74rem',
-                            padding: '1px 6px',
-                            borderRadius: '5px',
-                            background: 'rgba(16, 185, 129, 0.1)',
-                            color: '#34d399',
-                            border: '1px solid rgba(16, 185, 129, 0.25)',
-                          }}
-                        >
-                          📥 {d.account || 'Cash in Hand'}
-                        </span>
-                      </div>
-                    </div>
+                    🗑️ Delete Record
+                  </button>
+                ) : <div />}
 
-                    <div className="deposit-row-right">
-                      <div className="deposit-amount-pill">
-                        ৳{Number(d.amount).toLocaleString('en-US')}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleStartEdit(d)}
-                        className="deposit-edit-btn"
-                      >
-                        Edit
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowIncomeModal(false)}
+                    className="secondary px-4 py-2 text-sm rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="deposit-submit-btn px-6"
+                    style={{
+                      height: '42px',
+                      minWidth: '130px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    }}
+                  >
+                    {isSubmitting ? 'Saving...' : editingTx ? 'Save Changes' : '+ Add Income'}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
