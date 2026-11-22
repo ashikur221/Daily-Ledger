@@ -70,8 +70,12 @@ api.interceptors.response.use(
       } catch (refreshErr) {
         isRefreshing = false;
         _accessToken = null;
-        localStorage.removeItem('daily_ledger_auth');
-        window.dispatchEvent(new Event('auth:logout'));
+        // Only force logout if the server explicitly returned an auth rejection (401 or 403)
+        // If offline / network failure, DO NOT destroy user session
+        if (refreshErr.response?.status === 401 || refreshErr.response?.status === 403) {
+          localStorage.removeItem('daily_ledger_auth');
+          window.dispatchEvent(new Event('auth:logout'));
+        }
         return Promise.reject(refreshErr);
       }
     }

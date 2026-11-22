@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, isOnline } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -16,6 +16,28 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const cachedUser = (() => {
+    try {
+      const stored = localStorage.getItem('daily_ledger_auth');
+      return stored ? JSON.parse(stored).user : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const handleOfflineEnter = async () => {
+    if (!cachedUser) return;
+    try {
+      setLoading(true);
+      await login(cachedUser.email, '', true);
+      navigate('/');
+    } catch (err) {
+      toast.error(err.message || 'Could not resume offline session.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -25,7 +47,7 @@ export default function LoginPage() {
       setError('Please enter your email address');
       return;
     }
-    if (!password) {
+    if (!password && isOnline) {
       setError('Please enter your password');
       return;
     }
@@ -39,7 +61,7 @@ export default function LoginPage() {
       const msg =
         err.response?.status === 401
           ? "Credentials don't match! Please check your email and password."
-          : err.response?.data?.message || 'Login failed. Please try again.';
+          : err.response?.data?.message || err.message || 'Login failed. Please try again.';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -60,6 +82,51 @@ export default function LoginPage() {
           </h1>
           <p className="auth-subtitle">Track • Plan • Grow</p>
         </div>
+
+        {!isOnline && (
+          <div
+            style={{
+              background: 'rgba(234, 179, 8, 0.12)',
+              border: '1px solid rgba(234, 179, 8, 0.35)',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              marginBottom: '16px',
+              fontSize: '0.84rem',
+              color: '#fef08a',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+              <span>⚡</span>
+              <span>Device is currently offline</span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.9 }}>
+              You can still access your ledger and recorded data offline on this device.
+            </p>
+            {cachedUser && (
+              <button
+                type="button"
+                onClick={handleOfflineEnter}
+                style={{
+                  marginTop: '6px',
+                  background: '#f59e0b',
+                  color: '#000',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '7px 12px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                }}
+              >
+                Continue as {cachedUser.name || cachedUser.email} (Offline)
+              </button>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           {error && (
