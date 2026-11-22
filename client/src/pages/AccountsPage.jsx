@@ -673,16 +673,17 @@ export default function AccountsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleExecuteTransfer} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+            <form onSubmit={handleExecuteTransfer} className="modal-form">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-item">
+                  <label className="form-label" htmlFor="tf-from">
                     From Account
                   </label>
                   <select
+                    id="tf-from"
                     value={transferForm.fromAccount}
                     onChange={(e) => setTransferForm({ ...transferForm, fromAccount: e.target.value })}
-                    className="field w-full"
+                    className="field"
                     required
                   >
                     <option value="">-- Select Source --</option>
@@ -694,14 +695,15 @@ export default function AccountsPage() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                <div className="form-item">
+                  <label className="form-label" htmlFor="tf-to">
                     To Destination
                   </label>
                   <select
+                    id="tf-to"
                     value={transferForm.toAccount}
                     onChange={(e) => setTransferForm({ ...transferForm, toAccount: e.target.value })}
-                    className="field w-full"
+                    className="field"
                     required
                   >
                     <option value="">-- Select Destination --</option>
@@ -716,77 +718,89 @@ export default function AccountsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-item">
+                  <label className="form-label" htmlFor="tf-amt">
                     Amount (৳)
                   </label>
                   <input
+                    id="tf-amt"
                     type="number"
                     min="0.01"
                     step="any"
                     placeholder="5000"
                     value={transferForm.amount}
                     onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
-                    className="field w-full"
+                    className="field"
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                <div className="form-item">
+                  <label className="form-label" htmlFor="tf-fee">
                     Transfer Fee (৳)
                   </label>
                   <input
+                    id="tf-fee"
                     type="number"
                     min="0"
                     step="any"
                     placeholder="e.g. 75 for bKash"
                     value={transferForm.fee}
                     onChange={(e) => setTransferForm({ ...transferForm, fee: e.target.value })}
-                    className="field w-full"
+                    className="field"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div className="form-item">
+                <label className="form-label" htmlFor="tf-date">
                   Transfer Date
                 </label>
                 <input
+                  id="tf-date"
                   type="date"
                   value={transferForm.date}
                   onChange={(e) => setTransferForm({ ...transferForm, date: e.target.value })}
-                  className="field w-full"
+                  className="field"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div className="form-item">
+                <label className="form-label" htmlFor="tf-note">
                   Note (optional)
                 </label>
                 <input
+                  id="tf-note"
                   type="text"
                   placeholder="e.g. ATM cash withdrawal, bKash Add Money"
                   value={transferForm.note}
                   onChange={(e) => setTransferForm({ ...transferForm, note: e.target.value })}
-                  className="field w-full"
+                  className="field"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3">
+              <div className="modal-actions" style={{ marginTop: '16px' }}>
                 <button
                   type="button"
                   onClick={() => setShowTransferModal(false)}
-                  className="secondary px-4 py-2 text-sm rounded-lg"
+                  className="secondary"
+                  style={{ height: '42px', padding: '0 20px', borderRadius: '10px' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="deposit-submit-btn px-6"
-                  style={{ height: '42px', minWidth: '160px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+                  className="primary"
+                  style={{
+                    height: '42px',
+                    padding: '0 24px',
+                    borderRadius: '10px',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    borderColor: '#f59e0b',
+                  }}
                 >
                   ⇄ Complete Transfer
                 </button>
@@ -814,112 +828,119 @@ export default function AccountsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveAccount} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
+            <form onSubmit={handleSaveAccount} className="modal-form">
+              <div className="form-item">
+                <label className="form-label" htmlFor="acc-name">
                   Account / Asset Name
                 </label>
                 <input
+                  id="acc-name"
                   type="text"
                   placeholder="e.g. City Bank, bKash Personal, Gold 2 Bhori, BRAC DPS"
                   value={accountForm.name}
                   onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
-                  className="field w-full"
+                  className="field"
                   required
                   autoFocus
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-item">
+                  <label className="form-label" htmlFor="acc-type">
                     Classification / Type
                   </label>
                   <select
+                    id="acc-type"
                     value={accountForm.type}
                     onChange={(e) => setAccountForm({ ...accountForm, type: e.target.value })}
-                    className="field w-full"
+                    className="field"
                   >
                     <option value="bank">🏦 Bank Account</option>
-                    <option value="mfs">📱 Mobile Wallet (bKash/Nagad)</option>
+                    <option value="mfs">📱 Mobile Wallet (MFS)</option>
                     <option value="cash">💵 Cash in Hand</option>
                     <option value="fdr">📜 Fixed Deposit / DPS</option>
                     <option value="asset">🏆 Physical Asset (Gold/Land)</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                <div className="form-item">
+                  <label className="form-label" htmlFor="acc-balance">
                     Balance / Value (৳)
                   </label>
                   <input
+                    id="acc-balance"
                     type="number"
                     step="any"
                     placeholder="0.00"
                     value={accountForm.balance}
                     onChange={(e) => setAccountForm({ ...accountForm, balance: e.target.value })}
-                    className="field w-full"
+                    className="field"
                     required
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-item">
+                  <label className="form-label" htmlFor="acc-inst">
                     Institution (optional)
                   </label>
                   <input
+                    id="acc-inst"
                     type="text"
                     placeholder="e.g. City Bank, bKash"
                     value={accountForm.institution}
                     onChange={(e) => setAccountForm({ ...accountForm, institution: e.target.value })}
-                    className="field w-full"
+                    className="field"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                <div className="form-item">
+                  <label className="form-label" htmlFor="acc-number">
                     Account / Card Number
                   </label>
                   <input
+                    id="acc-number"
                     type="text"
                     placeholder="e.g. ••4821 or 017•••••"
                     value={accountForm.accountNumber}
                     onChange={(e) => setAccountForm({ ...accountForm, accountNumber: e.target.value })}
-                    className="field w-full"
+                    className="field"
                   />
                 </div>
               </div>
 
               {accountForm.type === 'fdr' && (
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                <div className="form-item">
+                  <label className="form-label" htmlFor="acc-maturity">
                     Maturity Date (for Fixed Deposit / DPS)
                   </label>
                   <input
+                    id="acc-maturity"
                     type="date"
                     value={accountForm.maturityDate}
                     onChange={(e) => setAccountForm({ ...accountForm, maturityDate: e.target.value })}
-                    className="field w-full"
+                    className="field"
                   />
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div className="form-item">
+                <label className="form-label" htmlFor="acc-notes">
                   Notes / Details (optional)
                 </label>
                 <input
+                  id="acc-notes"
                   type="text"
-                  placeholder="e.g. Interest rate 9.5%, located in safe"
+                  placeholder="e.g. Interest rate 9.5%, located in safe locker"
                   value={accountForm.notes}
                   onChange={(e) => setAccountForm({ ...accountForm, notes: e.target.value })}
-                  className="field w-full"
+                  className="field"
                 />
               </div>
 
-              <div className="flex justify-between items-center pt-3">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '10px' }}>
                 {editingAccount ? (
                   <button
                     type="button"
@@ -939,18 +960,19 @@ export default function AccountsPage() {
                   </button>
                 ) : <div />}
 
-                <div className="flex gap-3">
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="secondary px-4 py-2 text-sm rounded-lg"
+                    className="secondary"
+                    style={{ height: '42px', padding: '0 20px', borderRadius: '10px' }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="deposit-submit-btn px-6"
-                    style={{ height: '42px', minWidth: '130px' }}
+                    className="primary"
+                    style={{ height: '42px', padding: '0 24px', borderRadius: '10px', fontWeight: 700 }}
                   >
                     {editingAccount ? 'Save Changes' : '+ Add Account'}
                   </button>

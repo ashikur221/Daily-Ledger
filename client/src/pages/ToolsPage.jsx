@@ -729,81 +729,86 @@ export default function ToolsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveDebt} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
+            <form onSubmit={handleSaveDebt} className="modal-form">
+              <div className="form-item">
+                <label className="form-label" htmlFor="debt-type">
                   Type of Record
                 </label>
                 <select
+                  id="debt-type"
                   value={debtForm.type}
                   onChange={(e) => setDebtForm({ ...debtForm, type: e.target.value })}
-                  className="field w-full"
+                  className="field"
                 >
                   <option value="owe">They owe me (Money to receive / I lent)</option>
                   <option value="owed">I owe them (Money to pay / I borrowed)</option>
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div className="form-item">
+                <label className="form-label" htmlFor="debt-person">
                   Person or Contact Name
                 </label>
                 <input
+                  id="debt-person"
                   type="text"
                   placeholder="e.g. Rahim, Uncle, Friend"
                   value={debtForm.person}
                   onChange={(e) => setDebtForm({ ...debtForm, person: e.target.value })}
-                  className="field w-full"
+                  className="field"
                   required
                   autoFocus
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-item">
+                  <label className="form-label" htmlFor="debt-amount">
                     Amount (৳)
                   </label>
                   <input
+                    id="debt-amount"
                     type="number"
                     min="0.01"
                     step="any"
                     placeholder="5000"
                     value={debtForm.amount}
                     onChange={(e) => setDebtForm({ ...debtForm, amount: e.target.value })}
-                    className="field w-full"
+                    className="field"
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                <div className="form-item">
+                  <label className="form-label" htmlFor="debt-date">
                     Date
                   </label>
                   <input
+                    id="debt-date"
                     type="date"
                     value={debtForm.date}
                     onChange={(e) => setDebtForm({ ...debtForm, date: e.target.value })}
-                    className="field w-full"
+                    className="field"
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div className="form-item">
+                <label className="form-label" htmlFor="debt-note">
                   Note / Reason (optional)
                 </label>
                 <input
+                  id="debt-note"
                   type="text"
                   placeholder="e.g. Emergency medical, rent split"
                   value={debtForm.note}
                   onChange={(e) => setDebtForm({ ...debtForm, note: e.target.value })}
-                  className="field w-full"
+                  className="field"
                 />
               </div>
 
-              <div className="flex justify-between items-center pt-3">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '10px' }}>
                 {editingDebt ? (
                   <button
                     type="button"
@@ -823,18 +828,19 @@ export default function ToolsPage() {
                   </button>
                 ) : <div />}
 
-                <div className="flex gap-3">
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <button
                     type="button"
                     onClick={() => setShowDebtModal(false)}
-                    className="secondary px-4 py-2 text-sm rounded-lg"
+                    className="secondary"
+                    style={{ height: '42px', padding: '0 20px', borderRadius: '10px' }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="deposit-submit-btn px-6"
-                    style={{ height: '42px', minWidth: '130px' }}
+                    className="primary"
+                    style={{ height: '42px', padding: '0 24px', borderRadius: '10px', fontWeight: 700 }}
                   >
                     {editingDebt ? 'Save Changes' : '+ Save Record'}
                   </button>
@@ -863,15 +869,16 @@ export default function ToolsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveRepayment} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
+            <form onSubmit={handleSaveRepayment} className="modal-form">
+              <div className="form-item">
+                <label className="form-label" htmlFor="repay-debt">
                   Select Debt / Loan Record
                 </label>
                 <select
+                  id="repay-debt"
                   value={repayForm.debtId}
                   onChange={(e) => setRepayForm({ ...repayForm, debtId: e.target.value })}
-                  className="field w-full"
+                  className="field"
                   required
                 >
                   <option value="">-- Choose debt / loan --</option>
@@ -883,49 +890,52 @@ export default function ToolsPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-item">
+                  <label className="form-label" htmlFor="repay-amount">
                     Repayment Amount (৳)
                   </label>
                   <input
+                    id="repay-amount"
                     type="number"
                     min="0.01"
                     step="any"
                     placeholder="1000"
                     value={repayForm.amount}
                     onChange={(e) => setRepayForm({ ...repayForm, amount: e.target.value })}
-                    className="field w-full"
+                    className="field"
                     required
                     autoFocus
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-slate-300">
+                <div className="form-item">
+                  <label className="form-label" htmlFor="repay-date">
                     Repayment Date
                   </label>
                   <input
+                    id="repay-date"
                     type="date"
                     value={repayForm.date}
                     onChange={(e) => setRepayForm({ ...repayForm, date: e.target.value })}
-                    className="field w-full"
+                    className="field"
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div className="form-item">
+                <label className="form-label" htmlFor="repay-account">
                   Deposit Into / Pay From Account
                 </label>
                 <input
+                  id="repay-account"
                   type="text"
                   list="repayModalAccountSuggestions"
                   value={repayForm.account}
                   onChange={(e) => setRepayForm({ ...repayForm, account: e.target.value })}
                   placeholder="e.g. Cash in Hand, bKash, City Bank"
-                  className="field w-full"
+                  className="field"
                 />
                 <datalist id="repayModalAccountSuggestions">
                   {availableAccounts.map((a) => (
@@ -937,34 +947,39 @@ export default function ToolsPage() {
                 </datalist>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-slate-300">
+              <div className="form-item">
+                <label className="form-label" htmlFor="repay-note">
                   Note (optional)
                 </label>
                 <input
+                  id="repay-note"
                   type="text"
                   placeholder="e.g. Partial repayment via bKash"
                   value={repayForm.note}
                   onChange={(e) => setRepayForm({ ...repayForm, note: e.target.value })}
-                  className="field w-full"
+                  className="field"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3">
+              <div className="modal-actions" style={{ marginTop: '16px' }}>
                 <button
                   type="button"
                   onClick={() => setShowRepayModal(false)}
-                  className="secondary px-4 py-2 text-sm rounded-lg"
+                  className="secondary"
+                  style={{ height: '42px', padding: '0 20px', borderRadius: '10px' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="deposit-submit-btn px-6"
+                  className="primary"
                   style={{
                     height: '42px',
-                    minWidth: '150px',
+                    padding: '0 24px',
+                    borderRadius: '10px',
+                    fontWeight: 700,
                     background: 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)',
+                    borderColor: '#06b6d4',
                   }}
                 >
                   Record Repayment
