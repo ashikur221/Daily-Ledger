@@ -204,13 +204,54 @@ export default function LedgerPage({ initialType = '' }) {
     }));
   };
 
+  const liquidAccounts = useMemo(() => {
+    // Only liquid accounts (cash, mfs, bank, other) — exclude fixed deposits (fdr) and physical assets (asset)
+    const registered = (availableAccounts || []).filter(
+      (a) => a.type !== 'fdr' && a.type !== 'asset'
+    );
+
+    const map = new Map();
+    registered.forEach((a) => map.set(a.name.toLowerCase(), a));
+
+    // Common default liquid wallets if user hasn't explicitly registered them
+    const defaults = [
+      { name: 'Cash in Hand', type: 'cash' },
+      { name: 'bKash', type: 'mfs' },
+      { name: 'Nagad', type: 'mfs' },
+    ];
+    defaults.forEach((d) => {
+      if (!map.has(d.name.toLowerCase())) {
+        map.set(d.name.toLowerCase(), d);
+      }
+    });
+
+    // If currently editing/selected account is not yet in map, preserve it
+    if (form.account && !map.has(form.account.toLowerCase())) {
+      map.set(form.account.toLowerCase(), {
+        name: form.account,
+        type: 'other',
+      });
+    }
+
+    const all = Array.from(map.values());
+    return {
+      cash: all.filter((a) => a.type === 'cash'),
+      mfs: all.filter((a) => a.type === 'mfs'),
+      bank: all.filter((a) => a.type === 'bank'),
+      other: all.filter((a) => a.type !== 'cash' && a.type !== 'mfs' && a.type !== 'bank'),
+    };
+  }, [availableAccounts, form.account]);
+
   const handleOpenAddForDate = (dateKey) => {
     setEditTx(null);
+    const defaultAcc =
+      availableAccounts.find((a) => a.type !== 'fdr' && a.type !== 'asset')?.name ||
+      'Cash in Hand';
     setForm({
       title: '',
       amount: '',
       category: 'Food & drinks',
-      account: availableAccounts[0]?.name || 'Cash in Hand',
+      account: defaultAcc,
       date: dateKey || new Date().toISOString().split('T')[0],
     });
     setShowModal(true);
@@ -754,27 +795,53 @@ export default function LedgerPage({ initialType = '' }) {
               </div>
 
               <div className="form-item">
-                <label className="form-label" htmlFor="modal-account">Paid From / Account</label>
-                <input
+                <label className="form-label" htmlFor="modal-account">
+                  Paid From Account (Liquid Cash)
+                </label>
+                <select
                   id="modal-account"
-                  type="text"
-                  list="expenseAccountSuggestions"
                   className="field"
-                  placeholder="e.g. Cash in Hand, bKash, City Bank"
                   value={form.account || 'Cash in Hand'}
                   onChange={(e) => setForm({ ...form, account: e.target.value })}
                   required
-                />
-                <datalist id="expenseAccountSuggestions">
-                  {availableAccounts.map((a) => (
-                    <option key={a.localId || a.name} value={a.name} />
-                  ))}
-                  <option value="Cash in Hand" />
-                  <option value="bKash" />
-                  <option value="Nagad" />
-                  <option value="City Bank" />
-                  <option value="Dutch-Bangla Bank" />
-                </datalist>
+                >
+                  {liquidAccounts.cash.length > 0 && (
+                    <optgroup label="💵 Cash in Hand">
+                      {liquidAccounts.cash.map((a) => (
+                        <option key={a.localId || a.name} value={a.name}>
+                          {a.name} {a.balance !== undefined ? `(৳${Number(a.balance || 0).toLocaleString('en-US')})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {liquidAccounts.mfs.length > 0 && (
+                    <optgroup label="📱 Mobile Wallets (bKash / Nagad / Rocket)">
+                      {liquidAccounts.mfs.map((a) => (
+                        <option key={a.localId || a.name} value={a.name}>
+                          {a.name} {a.balance !== undefined ? `(৳${Number(a.balance || 0).toLocaleString('en-US')})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {liquidAccounts.bank.length > 0 && (
+                    <optgroup label="🏦 Bank Accounts">
+                      {liquidAccounts.bank.map((a) => (
+                        <option key={a.localId || a.name} value={a.name}>
+                          {a.name} {a.balance !== undefined ? `(৳${Number(a.balance || 0).toLocaleString('en-US')})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {liquidAccounts.other.length > 0 && (
+                    <optgroup label="💳 Other Liquid Accounts">
+                      {liquidAccounts.other.map((a) => (
+                        <option key={a.localId || a.name} value={a.name}>
+                          {a.name} {a.balance !== undefined ? `(৳${Number(a.balance || 0).toLocaleString('en-US')})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
               </div>
 
               <div className="form-item">
