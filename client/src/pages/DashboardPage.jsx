@@ -316,40 +316,17 @@ export default function DashboardPage() {
 
   return (
     <div className="pitch-dashboard">
-      {/* 1. Neon Glowing Balance Left Hero */}
+      {/* 1. Neon Glowing Cash in Hand Hero */}
       <div className="balance-screen">
         <div className="balance-ring">
           <div className="balance-inner">
-            <div className="balance-label">BALANCE LEFT</div>
-            <div id="homeBalanceHero" className="balance-amount">
-              {fmt(stats.balance)}
-            </div>
-            <div className="balance-subtitle">Current Available Balance</div>
-
-            {/* Prominent Cash In Hand Sub-Badge */}
+            <div className="balance-label">CASH IN HAND</div>
             <div
-              onClick={() => navigate('/accounts')}
-              title="Click to view Cash in Hand in Banks & Assets"
-              style={{
-                marginTop: '10px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 14px',
-                borderRadius: '20px',
-                background: 'rgba(16, 185, 129, 0.12)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
+              id="homeBalanceHero"
+              className="balance-amount"
+              style={{ color: '#34d399', textShadow: '0 0 20px rgba(52, 211, 153, 0.45)' }}
             >
-              <span style={{ fontSize: '0.85rem' }}>💵</span>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Cash in Hand:
-              </span>
-              <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#34d399' }}>
-                {fmt(stats.cashInHand)}
-              </span>
+              {fmt(stats.cashInHand)}
             </div>
           </div>
         </div>
@@ -364,7 +341,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="balance-note">
-          Liquid money across Cash, Bank & Mobile Wallets · Real-time synced
+          Physical cash in hand · Real-time synced
         </div>
       </div>
 
@@ -379,20 +356,16 @@ export default function DashboardPage() {
         <div
           className="panel p-4"
           onClick={() => navigate('/accounts')}
-          style={{
-            cursor: 'pointer',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
-            background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 6, 8, 0.6) 100%)',
-          }}
-          title="Click to view Cash accounts"
+          style={{ cursor: 'pointer' }}
+          title="Click to view all bank and wallet accounts"
         >
-          <div className="tiny-label" style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>💵</span> Cash in hand
+          <div className="tiny-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>💳</span> Total liquid balance
           </div>
-          <div id="homeCashInHand" className="metric-value" style={{ color: '#34d399' }}>
-            {fmt(stats.cashInHand)}
+          <div id="homeTotalLiquid" className="metric-value" style={{ color: '#38bdf8' }}>
+            {fmt(stats.balance)}
           </div>
-          <div className="metric-sub">Physical wallet & pocket cash</div>
+          <div className="metric-sub">Across Banks, Wallets & Cash</div>
         </div>
 
         <div className="panel p-4">
