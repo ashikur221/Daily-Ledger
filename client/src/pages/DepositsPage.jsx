@@ -239,10 +239,10 @@ export default function DepositsPage() {
                 {editingTx ? 'EDITING RECORD' : 'NEW INCOME'}
               </span>
               <h2 className="deposit-form-title">
-                {editingTx ? 'Edit money in' : 'Record money in'}
+                {editingTx ? 'Edit income' : 'Record income'}
               </h2>
               <p className="deposit-form-sub">
-                Deposits, allowances, or money received.
+                Salary, allowance, freelance or money received.
               </p>
             </div>
             {editingTx && (
@@ -344,7 +344,7 @@ export default function DepositsPage() {
                 type="submit"
                 className="deposit-submit-btn"
               >
-                <span>{editingTx ? '✓ Update deposit' : '+ Add deposit'}</span>
+                <span>{editingTx ? '✓ Update income' : '+ Add income'}</span>
               </button>
               {editingTx && (
                 <button
@@ -365,7 +365,7 @@ export default function DepositsPage() {
           <div className="deposit-list-header">
             <div>
               <span className="deposit-badge-label">TOTAL ACCUMULATED</span>
-              <h2 className="deposit-list-title">Tk in</h2>
+              <h2 className="deposit-list-title">Total Income</h2>
               <p className="deposit-list-sub">Imported records are preserved.</p>
             </div>
             <div className="deposit-total-badge">

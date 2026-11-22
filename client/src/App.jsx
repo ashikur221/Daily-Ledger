@@ -107,22 +107,22 @@ function AppContent() {
       {/* Main Desktop & Tablet Navigation */}
       <nav className="desktop-nav" aria-label="Main navigation">
         <NavLink to="/" end className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Today
+          Overview
         </NavLink>
         <NavLink to="/ledger" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
           Expenses
         </NavLink>
         <NavLink to="/deposits" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Tk in
+          Income
         </NavLink>
         <NavLink to="/accounts" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Banks
+          Banks & Assets
         </NavLink>
         <NavLink to="/tools" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Debt / Loan
+          Debts & Loans
         </NavLink>
         <NavLink to="/tasks" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Tasks & Vault 🔒
+          Vault & Tasks 🔒
         </NavLink>
         <NavLink to="/reports" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
           Reports & Insights
@@ -204,7 +204,7 @@ function AppContent() {
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
         <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
           <span className="nav-icon">⌂</span>
-          <span>Home</span>
+          <span>Overview</span>
         </NavLink>
         <NavLink to="/ledger" className={({ isActive }) => (isActive ? 'active' : '')}>
           <span className="nav-icon">↗</span>
@@ -212,7 +212,7 @@ function AppContent() {
         </NavLink>
         <NavLink to="/deposits" className={({ isActive }) => (isActive ? 'active' : '')}>
           <span className="nav-icon">＋</span>
-          <span>Tk in</span>
+          <span>Income</span>
         </NavLink>
         <NavLink to="/accounts" className={({ isActive }) => (isActive ? 'active' : '')}>
           <span className="nav-icon">▤</span>
@@ -220,7 +220,7 @@ function AppContent() {
         </NavLink>
         <NavLink to="/tools" className={({ isActive }) => (isActive ? 'active' : '')}>
           <span className="nav-icon">৳</span>
-          <span className="nav-label-debt">Debt</span>
+          <span className="nav-label-debt">Debts</span>
         </NavLink>
         <NavLink to="/reports" className={({ isActive }) => (isActive ? 'active' : '')}>
           <span className="nav-icon">▥</span>
