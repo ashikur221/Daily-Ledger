@@ -31,6 +31,49 @@ export const getAccessToken = () => {
 
 export const setOnTokenRefreshed = (fn) => { _onTokenRefreshed = fn; };
 
+let _refreshPromise = null;
+
+/**
+ * Unified singleton for token refreshing across the entire app.
+ * Prevents race conditions and multiple conflicting refresh calls.
+ */
+export const requestTokenRefresh = async () => {
+  if (_refreshPromise) return _refreshPromise;
+
+  _refreshPromise = (async () => {
+    try {
+      let refreshBody = {};
+      const storedAuth = localStorage.getItem('daily_ledger_auth');
+      if (storedAuth) {
+        try {
+          const parsed = JSON.parse(storedAuth);
+          if (parsed.refreshToken) refreshBody.refreshToken = parsed.refreshToken;
+        } catch {}
+      }
+
+      const { data } = await axios.post(`${BASE_URL}/auth/refresh`, refreshBody, { withCredentials: true });
+      setAccessToken(data.accessToken);
+
+      if (data.refreshToken) {
+        try {
+          const currentAuth = JSON.parse(localStorage.getItem('daily_ledger_auth') || '{}');
+          localStorage.setItem(
+            'daily_ledger_auth',
+            JSON.stringify({ ...currentAuth, refreshToken: data.refreshToken, user: data.user })
+          );
+        } catch {}
+      }
+
+      if (_onTokenRefreshed) _onTokenRefreshed(data);
+      return data;
+    } finally {
+      _refreshPromise = null;
+    }
+  })();
+
+  return _refreshPromise;
+};
+
 const api = axios.create({
   baseURL: BASE_URL,
   withCredentials: true, // send httpOnly refresh cookie
@@ -45,13 +88,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-refresh on 401 for any authenticated endpoint
-let isRefreshing = false;
-let refreshSubscribers = [];
-
-const subscribeTokenRefresh = (cb) => refreshSubscribers.push(cb);
-const onRefreshed = (token) => { refreshSubscribers.forEach(cb => cb(token)); refreshSubscribers = []; };
-
+// Auto-refresh on 401 for any authenticated endpoint using unified singleton
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
@@ -65,47 +102,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original?._retry && !isAuthEndpoint) {
       original._retry = true;
 
-      if (isRefreshing) {
-        return new Promise((resolve) => {
-          subscribeTokenRefresh((token) => {
-            original.headers.Authorization = `Bearer ${token}`;
-            resolve(api(original));
-          });
-        });
-      }
-
-      isRefreshing = true;
       try {
-        let refreshBody = {};
-        const storedAuth = localStorage.getItem('daily_ledger_auth');
-        if (storedAuth) {
-          try {
-            const parsed = JSON.parse(storedAuth);
-            if (parsed.refreshToken) refreshBody.refreshToken = parsed.refreshToken;
-          } catch {}
-        }
-
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, refreshBody, { withCredentials: true });
-        setAccessToken(data.accessToken);
-
-        if (data.refreshToken && localStorage.getItem('daily_ledger_remember_me') === 'true') {
-          localStorage.setItem('daily_ledger_auth', JSON.stringify({ refreshToken: data.refreshToken, user: data.user }));
-        }
-        if (_onTokenRefreshed) _onTokenRefreshed(data);
-        onRefreshed(data.accessToken);
-        isRefreshing = false;
+        const data = await requestTokenRefresh();
         original.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(original);
       } catch (refreshErr) {
-        isRefreshing = false;
-        setAccessToken(null);
-
-        // Only force logout if the server explicitly returned an auth rejection (401 or 403)
-        // If offline / network failure, DO NOT destroy user session
-        if (refreshErr.response?.status === 401 || refreshErr.response?.status === 403) {
-          localStorage.removeItem('daily_ledger_auth');
-          window.dispatchEvent(new Event('auth:logout'));
-        }
         return Promise.reject(refreshErr);
       }
     }

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api, { setAccessToken, setOnTokenRefreshed } from '../services/api';
+import api, { setAccessToken, setOnTokenRefreshed, requestTokenRefresh } from '../services/api';
 import { syncTwoWay, initNetworkSync, getPendingCount } from '../services/syncService';
 import { useToast } from './ToastContext';
 
@@ -24,10 +24,9 @@ export const AuthProvider = ({ children }) => {
   const [pendingSync, setPendingSync] = useState(0);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
-  // Try to restore session via refresh token (cookie or stored token if remember me was checked)
+  // Try to restore session via unified token refresh
   const restoreSession = useCallback(async () => {
     let storedUser = null;
-    let refreshBody = {};
     const storedAuth = localStorage.getItem('daily_ledger_auth');
     if (storedAuth) {
       try {
@@ -36,7 +35,6 @@ export const AuthProvider = ({ children }) => {
           storedUser = parsed.user;
           setUser(storedUser);
         }
-        if (parsed.refreshToken) refreshBody.refreshToken = parsed.refreshToken;
       } catch {}
     }
 
@@ -48,15 +46,8 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const { data } = await api.post('/auth/refresh', refreshBody);
-      setAccessToken(data.accessToken);
+      const data = await requestTokenRefresh();
       setUser(data.user);
-
-      if (data.refreshToken && localStorage.getItem('daily_ledger_remember_me') === 'true') {
-        localStorage.setItem('daily_ledger_auth', JSON.stringify({ refreshToken: data.refreshToken, user: data.user }));
-      } else if (localStorage.getItem('daily_ledger_remember_me') === 'true' && storedUser) {
-        localStorage.setItem('daily_ledger_auth', JSON.stringify({ ...JSON.parse(storedAuth || '{}'), user: data.user }));
-      }
 
       // Run two-way delta sync on session restore (pull updates from other devices)
       syncTwoWay()
@@ -68,14 +59,10 @@ export const AuthProvider = ({ children }) => {
         })
         .catch(() => {});
     } catch (err) {
-      const isNetworkError = !err.response || err.code === 'ERR_NETWORK' || !navigator.onLine;
-      if (isNetworkError && storedUser) {
-        // Network unreachable: retain cached offline session!
+      // On any background refresh failure, retain cached offline user session!
+      // NEVER kick the user to login while they are using the app
+      if (storedUser) {
         setUser(storedUser);
-      } else if (err.response?.status === 401 || err.response?.status === 403) {
-        // Token was explicitly rejected by backend
-        localStorage.removeItem('daily_ledger_auth');
-        setUser(null);
       }
     } finally {
       setLoading(false);

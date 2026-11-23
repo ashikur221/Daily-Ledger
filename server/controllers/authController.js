@@ -123,12 +123,23 @@ const refreshAccessToken = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
     const user = await User.findById(decoded.id);
 
-    if (!user || user.refreshToken !== token) {
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    const isCurrentToken = user.refreshToken === token;
+    const isRecentPrevious =
+      user.previousRefreshToken === token &&
+      Date.now() - new Date(user.refreshTokenUpdatedAt || 0).getTime() < 60000;
+
+    if (!isCurrentToken && !isRecentPrevious) {
       return res.status(401).json({ message: 'Invalid refresh token' });
     }
 
     const { accessToken, refreshToken } = generateTokens(user._id, true);
+    user.previousRefreshToken = user.refreshToken;
     user.refreshToken = refreshToken;
+    user.refreshTokenUpdatedAt = new Date();
     await user.save();
 
     setRefreshCookie(res, refreshToken, true);

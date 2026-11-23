@@ -29,6 +29,7 @@ export default function AccountsPage() {
   const [editingAccount, setEditingAccount] = useState(null);
   const [viewingDocument, setViewingDocument] = useState(null);
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [isSavingAccount, setIsSavingAccount] = useState(false);
 
   // Statement Drawer Search
   const [statementSearch, setStatementSearch] = useState('');
@@ -302,12 +303,16 @@ export default function AccountsPage() {
   // Save Add/Edit Account
   const handleSaveAccount = async (e) => {
     e.preventDefault();
+    if (isSavingAccount) return;
+
     const cleanName = accountForm.name.trim();
     if (!cleanName) {
       toast.warning('Please enter an account name.');
       return;
     }
     const numBal = parseFloat(accountForm.balance) || 0;
+
+    setIsSavingAccount(true);
 
     try {
       const now = new Date();
@@ -365,6 +370,8 @@ export default function AccountsPage() {
     } catch (err) {
       console.error(err);
       toast.error('Failed to save account');
+    } finally {
+      setIsSavingAccount(false);
     }
   };
 
@@ -1249,19 +1256,69 @@ export default function AccountsPage() {
                     type="button"
                     onClick={() => setShowAddModal(false)}
                     className="secondary"
+                    disabled={isSavingAccount || isUploadingDoc}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     className="primary"
+                    disabled={isSavingAccount || isUploadingDoc}
                     style={{ fontWeight: 700 }}
                   >
-                    {editingAccount ? 'Save Changes' : '+ Add Account'}
+                    {isSavingAccount ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <span className="spinner-sm" /> Saving...
+                      </span>
+                    ) : (
+                      editingAccount ? 'Save Changes' : '+ Add Account'
+                    )}
                   </button>
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Screen Loading Screen for Data & Document Processing */}
+      {isSavingAccount && (
+        <div
+          className="modal-overlay"
+          style={{
+            zIndex: 1300,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              background: '#090d16',
+              border: '1px solid #1e293b',
+              borderRadius: '16px',
+              padding: '30px 40px',
+              textAlign: 'center',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px',
+              maxWidth: '360px',
+              width: '90%',
+            }}
+          >
+            <div className="spinner-lg" style={{ width: '46px', height: '46px' }} />
+            <div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f8fafc' }}>
+                Saving Asset & Document...
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '6px', lineHeight: 1.4 }}>
+                Encrypting data and synchronizing with your offline store
+              </div>
+            </div>
           </div>
         </div>
       )}
