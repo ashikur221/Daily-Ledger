@@ -680,13 +680,26 @@ export default function AccountsPage() {
                     required
                   >
                     <option value="">-- Select Destination --</option>
-                    {liquidAccounts
-                      .filter((a) => a.name !== transferForm.fromAccount)
-                      .map((a) => (
-                        <option key={a.localId} value={a.name}>
-                          {a.name} ({fmt(a.balance)})
-                        </option>
-                      ))}
+                    <optgroup label="💳 Bank Accounts & Wallets">
+                      {liquidAccounts
+                        .filter((a) => a.name !== transferForm.fromAccount)
+                        .map((a) => (
+                          <option key={a.localId} value={a.name}>
+                            {a.name} ({fmt(a.balance)})
+                          </option>
+                        ))}
+                    </optgroup>
+                    {fdrAccounts.length > 0 && (
+                      <optgroup label="📜 Fixed Deposit & DPS Schemes">
+                        {fdrAccounts
+                          .filter((a) => a.name !== transferForm.fromAccount)
+                          .map((a) => (
+                            <option key={a.localId} value={a.name}>
+                              {a.name} ({fmt(a.balance)})
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
               </div>
