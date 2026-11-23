@@ -27,6 +27,8 @@ export default function AccountsPage() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedStatementAccount, setSelectedStatementAccount] = useState(null);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [viewingDocument, setViewingDocument] = useState(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
 
   // Statement Drawer Search
   const [statementSearch, setStatementSearch] = useState('');
@@ -50,6 +52,9 @@ export default function AccountsPage() {
     accountNumber: '',
     maturityDate: '',
     notes: '',
+    documentUrl: '',
+    documentName: '',
+    documentType: '',
   });
 
   useEffect(() => {
@@ -171,6 +176,9 @@ export default function AccountsPage() {
       accountNumber: '',
       maturityDate: '',
       notes: '',
+      documentUrl: '',
+      documentName: '',
+      documentType: '',
     });
     setShowAddModal(true);
   };
@@ -186,8 +194,109 @@ export default function AccountsPage() {
       accountNumber: acc.accountNumber || '',
       maturityDate: acc.maturityDate ? new Date(acc.maturityDate).toISOString().split('T')[0] : '',
       notes: acc.notes || '',
+      documentUrl: acc.documentUrl || '',
+      documentName: acc.documentName || '',
+      documentType: acc.documentType || '',
     });
     setShowAddModal(true);
+  };
+
+  // Handle Document Upload & Client-side Compression
+  const handleDocumentChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      toast.warning('File size is too large. Please select a document under 8MB.');
+      return;
+    }
+
+    setIsUploadingDoc(true);
+
+    try {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const maxDim = 1280;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            setAccountForm((prev) => ({
+              ...prev,
+              documentUrl: compressedDataUrl,
+              documentName: file.name,
+              documentType: 'image/jpeg',
+            }));
+            setIsUploadingDoc(false);
+            toast.success(`Attached "${file.name}"`);
+          };
+          img.onerror = () => {
+            setIsUploadingDoc(false);
+            toast.error('Failed to process image');
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      } else if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        if (file.size > 5 * 1024 * 1024) {
+          setIsUploadingDoc(false);
+          toast.warning('Please select a PDF under 5MB.');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setAccountForm((prev) => ({
+            ...prev,
+            documentUrl: event.target.result,
+            documentName: file.name,
+            documentType: 'application/pdf',
+          }));
+          setIsUploadingDoc(false);
+          toast.success(`Attached PDF "${file.name}"`);
+        };
+        reader.onerror = () => {
+          setIsUploadingDoc(false);
+          toast.error('Failed to read PDF file');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setIsUploadingDoc(false);
+        toast.warning('Unsupported file type. Please upload an image (JPG, PNG) or PDF document.');
+      }
+    } catch (err) {
+      setIsUploadingDoc(false);
+      console.error('Error handling document upload:', err);
+      toast.error('Failed to upload document');
+    }
+  };
+
+  const handleRemoveDocument = () => {
+    setAccountForm((prev) => ({
+      ...prev,
+      documentUrl: '',
+      documentName: '',
+      documentType: '',
+    }));
+    toast.info('Document removed');
   };
 
   // Save Add/Edit Account
@@ -212,6 +321,9 @@ export default function AccountsPage() {
           accountNumber: accountForm.accountNumber.trim(),
           maturityDate: accountForm.maturityDate ? new Date(accountForm.maturityDate) : null,
           notes: accountForm.notes.trim(),
+          documentUrl: accountForm.documentUrl || null,
+          documentName: accountForm.documentName || '',
+          documentType: accountForm.documentType || '',
           synced: false,
           clientUpdatedAt: now,
         };
@@ -233,6 +345,9 @@ export default function AccountsPage() {
           accountNumber: accountForm.accountNumber.trim(),
           maturityDate: accountForm.maturityDate ? new Date(accountForm.maturityDate) : null,
           notes: accountForm.notes.trim(),
+          documentUrl: accountForm.documentUrl || null,
+          documentName: accountForm.documentName || '',
+          documentType: accountForm.documentType || '',
           synced: false,
           isDeleted: 0,
           clientUpdatedAt: now,
@@ -595,6 +710,35 @@ export default function AccountsPage() {
                           </span>
                         )}
                         <span>📊 {entriesCount} entries</span>
+                        {acc.documentUrl && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewingDocument({
+                                url: acc.documentUrl,
+                                name: acc.documentName || `${acc.name} Document`,
+                                type: acc.documentType,
+                              });
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: 'rgba(56, 189, 248, 0.12)',
+                              color: '#38bdf8',
+                              border: '1px solid rgba(56, 189, 248, 0.3)',
+                              borderRadius: '6px',
+                              padding: '2px 8px',
+                              fontSize: '0.72rem',
+                              fontWeight: 650,
+                              cursor: 'pointer',
+                            }}
+                            title="View attached deed / memo"
+                          >
+                            📎 {acc.documentName ? (acc.documentName.length > 16 ? acc.documentName.substring(0, 16) + '...' : acc.documentName) : 'Deed / Memo'}
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -922,6 +1066,158 @@ export default function AccountsPage() {
                 />
               </div>
 
+              {/* Document / Deed / Memo Attachment */}
+              <div className="form-item">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>📜 Asset Document / Deed / Memo (optional)</span>
+                  {accountForm.documentUrl && (
+                    <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600 }}>
+                      ✓ Attached
+                    </span>
+                  )}
+                </label>
+
+                {accountForm.documentUrl ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'rgba(56, 189, 248, 0.06)',
+                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      gap: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      {accountForm.documentType?.includes('pdf') ? (
+                        <div
+                          style={{
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: '8px',
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            color: '#f87171',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.2rem',
+                            flexShrink: 0,
+                          }}
+                        >
+                          📑
+                        </div>
+                      ) : (
+                        <img
+                          src={accountForm.documentUrl}
+                          alt="Document Preview"
+                          style={{
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: '8px',
+                            objectFit: 'cover',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            color: '#f8fafc',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {accountForm.documentName || 'Attached Document'}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                          {accountForm.documentType?.includes('pdf') ? 'PDF Document' : 'Scanned Image / Receipt'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setViewingDocument({
+                            url: accountForm.documentUrl,
+                            name: accountForm.documentName || 'Document',
+                            type: accountForm.documentType,
+                          })
+                        }
+                        style={{
+                          background: 'rgba(56, 189, 248, 0.12)',
+                          color: '#38bdf8',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          fontSize: '0.78rem',
+                          fontWeight: 650,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        👁️ View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemoveDocument}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          color: '#f87171',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          borderRadius: '8px',
+                          padding: '6px 10px',
+                          fontSize: '0.78rem',
+                          fontWeight: 650,
+                          cursor: 'pointer',
+                        }}
+                        title="Remove document"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px dashed #243046',
+                      borderRadius: '10px',
+                      padding: '16px 12px',
+                      cursor: isUploadingDoc ? 'wait' : 'pointer',
+                      background: 'rgba(15, 23, 42, 0.4)',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleDocumentChange}
+                      style={{ display: 'none' }}
+                      disabled={isUploadingDoc}
+                    />
+                    <span style={{ fontSize: '1.4rem', marginBottom: '4px' }}>
+                      {isUploadingDoc ? '⏳' : '📎'}
+                    </span>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 650, color: '#cbd5e1' }}>
+                      {isUploadingDoc ? 'Compressing document...' : 'Upload Memo / Deed / Receipt'}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', textAlign: 'center' }}>
+                      PNG, JPG, or PDF (jeweler memos, hallmark cards, land deeds, FDR papers)
+                    </span>
+                  </label>
+                )}
+              </div>
+
               <div
                 className="modal-actions"
                 style={{
@@ -1067,6 +1363,54 @@ export default function AccountsPage() {
               </div>
             </div>
 
+            {/* Attached Asset Document Banner in Statement */}
+            {selectedStatementAccount.documentUrl && (
+              <div
+                style={{
+                  background: 'rgba(56, 189, 248, 0.05)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  margin: '12px 0 4px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  <span style={{ fontSize: '1.4rem' }}>
+                    {selectedStatementAccount.documentType?.includes('pdf') ? '📑' : '🖼️'}
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {selectedStatementAccount.documentName || 'Attached Asset Document'}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#38bdf8' }}>
+                      {selectedStatementAccount.documentType?.includes('pdf') ? 'Verified PDF Document' : 'Original Scanned Memo / Deed'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setViewingDocument({
+                        url: selectedStatementAccount.documentUrl,
+                        name: selectedStatementAccount.documentName || 'Document',
+                        type: selectedStatementAccount.documentType,
+                      })
+                    }
+                    className="primary"
+                    style={{ height: '34px', padding: '0 14px', fontSize: '0.8rem', borderRadius: '8px' }}
+                  >
+                    👁️ View Document
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Filter Search inside Statement */}
             <div style={{ padding: '12px 0 8px' }}>
               <input
@@ -1136,6 +1480,103 @@ export default function AccountsPage() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. Modal: High-Res Document Lightbox Viewer */}
+      {viewingDocument && (
+        <div className="modal-overlay" onClick={() => setViewingDocument(null)} style={{ zIndex: 1100 }}>
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: viewingDocument.type?.includes('pdf') ? '920px' : '720px',
+              width: '95%',
+              maxHeight: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '20px',
+            }}
+          >
+            <div className="modal-header" style={{ marginBottom: '14px', paddingBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <span style={{ fontSize: '1.2rem' }}>{viewingDocument.type?.includes('pdf') ? '📑' : '🖼️'}</span>
+                <h3
+                  className="modal-title"
+                  style={{
+                    fontSize: '1rem',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {viewingDocument.name || 'Asset Document'}
+                </h3>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                <a
+                  href={viewingDocument.url}
+                  download={viewingDocument.name || 'asset-document'}
+                  className="secondary"
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  📥 Download
+                </a>
+                <button
+                  type="button"
+                  className="modal-close-btn"
+                  onClick={() => setViewingDocument(null)}
+                  title="Close viewer"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#04060a',
+                borderRadius: '10px',
+                border: '1px solid #141a27',
+                padding: '10px',
+                overflow: 'auto',
+                minHeight: '350px',
+              }}
+            >
+              {viewingDocument.type?.includes('pdf') ? (
+                <iframe
+                  src={viewingDocument.url}
+                  title={viewingDocument.name || 'PDF Document'}
+                  style={{ width: '100%', height: '70vh', border: 'none', borderRadius: '8px' }}
+                />
+              ) : (
+                <img
+                  src={viewingDocument.url}
+                  alt={viewingDocument.name || 'Asset Document'}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '75vh',
+                    objectFit: 'contain',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.7)',
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>

@@ -45,6 +45,20 @@ const accountSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    documentUrl: {
+      type: String,
+      default: null,
+    },
+    documentName: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    documentType: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     isDeleted: {
       type: Boolean,
       default: false,

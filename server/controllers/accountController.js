@@ -11,7 +11,7 @@ const getAccounts = async (req, res) => {
 
 const createAccount = async (req, res) => {
   try {
-    const { localId, name, type, balance, institution, accountNumber, maturityDate, notes, clientUpdatedAt } = req.body;
+    const { localId, name, type, balance, institution, accountNumber, maturityDate, notes, documentUrl, documentName, documentType, clientUpdatedAt } = req.body;
     if (!localId || !name) return res.status(400).json({ message: 'localId and name are required' });
 
     const account = await Account.findOneAndUpdate(
@@ -25,6 +25,9 @@ const createAccount = async (req, res) => {
           accountNumber: accountNumber || '',
           maturityDate: maturityDate || null,
           notes: notes || '',
+          documentUrl: documentUrl || null,
+          documentName: documentName || '',
+          documentType: documentType || '',
           clientUpdatedAt,
           isDeleted: false,
         },
@@ -77,7 +80,7 @@ const syncAccounts = async (req, res) => {
 
     const results = await Promise.allSettled(
       records.map(
-        ({ localId, name, type, balance, institution, accountNumber, maturityDate, notes, clientUpdatedAt, isDeleted }) =>
+        ({ localId, name, type, balance, institution, accountNumber, maturityDate, notes, documentUrl, documentName, documentType, clientUpdatedAt, isDeleted }) =>
           Account.findOneAndUpdate(
             { userId: req.user._id, localId },
             {
@@ -89,6 +92,9 @@ const syncAccounts = async (req, res) => {
                 accountNumber: accountNumber || '',
                 maturityDate: maturityDate || null,
                 notes: notes || '',
+                documentUrl: documentUrl || null,
+                documentName: documentName || '',
+                documentType: documentType || '',
                 clientUpdatedAt,
                 isDeleted: isDeleted || false,
               },
