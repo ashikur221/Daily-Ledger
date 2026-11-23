@@ -23,6 +23,12 @@ import './App.css';
 // Seed initial historical data on startup
 seedInitialDataIfNeeded();
 
+// Pre-warm the backend server on startup
+try {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  fetch(`${apiUrl}/health`).catch(() => {});
+} catch {}
+
 function AppContent() {
   const { user, loading, isOnline, pendingSync, refreshPendingCount } = useAuth();
   const toast = useToast();

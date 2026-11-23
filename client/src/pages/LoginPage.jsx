@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -15,6 +15,13 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isServerWaking, setIsServerWaking] = useState(false);
+
+  // Background ping to warm up backend on Render free tier immediately
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    fetch(`${apiUrl}/health`).catch(() => {});
+  }, []);
 
   const cachedUser = (() => {
     try {
@@ -40,6 +47,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return; // prevent multiple simultaneous attempts
     setError('');
 
     const cleanEmail = email.trim();
@@ -53,11 +61,21 @@ export default function LoginPage() {
     }
 
     setLoading(true);
+    setIsServerWaking(false);
+
+    // If server takes longer than 2.5s, it is likely waking up from cold sleep
+    const wakeTimer = setTimeout(() => {
+      setIsServerWaking(true);
+    }, 2500);
+
     try {
       await login(cleanEmail, password, rememberMe);
+      clearTimeout(wakeTimer);
       toast.success('Welcome back! Logged in successfully.');
       navigate('/');
     } catch (err) {
+      clearTimeout(wakeTimer);
+      setIsServerWaking(false);
       const msg =
         err.response?.status === 401
           ? "Credentials don't match! Please check your email and password."
@@ -65,6 +83,8 @@ export default function LoginPage() {
       setError(msg);
       toast.error(msg);
     } finally {
+      clearTimeout(wakeTimer);
+      setIsServerWaking(false);
       setLoading(false);
     }
   };
@@ -210,6 +230,24 @@ export default function LoginPage() {
               'Sign In →'
             )}
           </button>
+
+          {isServerWaking && (
+            <div
+              style={{
+                marginTop: '12px',
+                padding: '10px 14px',
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                color: '#7dd3fc',
+                textAlign: 'center',
+                lineHeight: 1.4,
+              }}
+            >
+              ⏳ Connecting to cloud server... Waking up cloud backend, please wait a moment.
+            </div>
+          )}
         </form>
 
         <div className="auth-footer-block">

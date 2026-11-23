@@ -180,11 +180,21 @@ export const initNetworkSync = (onSyncComplete) => {
   window.addEventListener('online', handleOnline);
 
   // Also auto-sync when tab gains focus (e.g. user unlocks phone or switches back to app)
+  // Throttled to avoid rapid firing when opening/closing file pickers and dialogs
+  let lastFocusSync = 0;
   const handleFocus = async () => {
+    const now = Date.now();
+    if (now - lastFocusSync < 20000) return; // at most once every 20 seconds
+    lastFocusSync = now;
+
     if (navigator.onLine) {
-      const result = await syncTwoWay();
-      if (onSyncComplete && (result.synced > 0 || result.pulled > 0)) {
-        onSyncComplete(result);
+      try {
+        const result = await syncTwoWay();
+        if (onSyncComplete && (result.synced > 0 || result.pulled > 0)) {
+          onSyncComplete(result);
+        }
+      } catch (err) {
+        console.warn('Background sync on focus deferred:', err);
       }
     }
   };

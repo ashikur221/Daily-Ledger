@@ -3,10 +3,32 @@ import axios from 'axios';
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 let _accessToken = null;
+try {
+  _accessToken = sessionStorage.getItem('daily_ledger_access_token');
+} catch {}
+
 let _onTokenRefreshed = null;
 
-export const setAccessToken = (token) => { _accessToken = token; };
-export const getAccessToken = () => _accessToken;
+export const setAccessToken = (token) => {
+  _accessToken = token;
+  try {
+    if (token) {
+      sessionStorage.setItem('daily_ledger_access_token', token);
+    } else {
+      sessionStorage.removeItem('daily_ledger_access_token');
+    }
+  } catch {}
+};
+
+export const getAccessToken = () => {
+  if (!_accessToken) {
+    try {
+      _accessToken = sessionStorage.getItem('daily_ledger_access_token');
+    } catch {}
+  }
+  return _accessToken;
+};
+
 export const setOnTokenRefreshed = (fn) => { _onTokenRefreshed = fn; };
 
 const api = axios.create({
@@ -16,13 +38,14 @@ const api = axios.create({
 
 // Attach access token to every request
 api.interceptors.request.use((config) => {
-  if (_accessToken) {
-    config.headers.Authorization = `Bearer ${_accessToken}`;
+  const token = getAccessToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Auto-refresh on 401 TOKEN_EXPIRED
+// Auto-refresh on 401 for any authenticated endpoint
 let isRefreshing = false;
 let refreshSubscribers = [];
 
@@ -34,7 +57,12 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config;
 
-    if (error.response?.status === 401 && error.response?.data?.code === 'TOKEN_EXPIRED' && !original._retry) {
+    const isAuthEndpoint =
+      original?.url?.includes('/auth/login') ||
+      original?.url?.includes('/auth/register') ||
+      original?.url?.includes('/auth/refresh');
+
+    if (error.response?.status === 401 && !original?._retry && !isAuthEndpoint) {
       original._retry = true;
 
       if (isRefreshing) {
@@ -58,7 +86,8 @@ api.interceptors.response.use(
         }
 
         const { data } = await axios.post(`${BASE_URL}/auth/refresh`, refreshBody, { withCredentials: true });
-        _accessToken = data.accessToken;
+        setAccessToken(data.accessToken);
+
         if (data.refreshToken && localStorage.getItem('daily_ledger_remember_me') === 'true') {
           localStorage.setItem('daily_ledger_auth', JSON.stringify({ refreshToken: data.refreshToken, user: data.user }));
         }
@@ -69,7 +98,8 @@ api.interceptors.response.use(
         return api(original);
       } catch (refreshErr) {
         isRefreshing = false;
-        _accessToken = null;
+        setAccessToken(null);
+
         // Only force logout if the server explicitly returned an auth rejection (401 or 403)
         // If offline / network failure, DO NOT destroy user session
         if (refreshErr.response?.status === 401 || refreshErr.response?.status === 403) {
