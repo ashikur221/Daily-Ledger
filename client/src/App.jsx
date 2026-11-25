@@ -225,10 +225,6 @@ function AppContent() {
           <span className="nav-icon">▤</span>
           <span>Banks</span>
         </NavLink>
-        <NavLink to="/tools" className={({ isActive }) => (isActive ? 'active' : '')}>
-          <span className="nav-icon">৳</span>
-          <span className="nav-label-debt">Debts</span>
-        </NavLink>
         <NavLink to="/reports" className={({ isActive }) => (isActive ? 'active' : '')}>
           <span className="nav-icon">▥</span>
           <span>Reports</span>
@@ -257,7 +253,24 @@ function AppContent() {
             </div>
 
             <div className="mobile-drawer-body">
-              <div className="mobile-drawer-section-title">Productivity & Security</div>
+              <div className="mobile-drawer-section-title">Finance & Tools</div>
+
+              <NavLink
+                to="/tools"
+                className={({ isActive }) => `mobile-drawer-link ${isActive ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '1.25rem' }}>🤝</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Debts & Loans</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Lending, borrowing & repayments</div>
+                  </div>
+                </div>
+                <span>›</span>
+              </NavLink>
+
+              <div className="mobile-drawer-section-title" style={{ marginTop: '16px' }}>Productivity & Security</div>
               
               <NavLink
                 to="/tasks"

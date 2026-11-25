@@ -152,6 +152,38 @@ export default function ToolsPage() {
 
   const fmt = (n) => `৳${Number(n || 0).toLocaleString('en-US')}`;
 
+  // Categorized liquid accounts for repayment linkage
+  const liquidAccounts = useMemo(() => {
+    const registered = (availableAccounts || []).filter(
+      (a) => a.type !== 'fdr' && a.type !== 'asset'
+    );
+    const map = new Map();
+    registered.forEach((a) => map.set(a.name.toLowerCase(), a));
+
+    const defaults = [
+      { name: 'Cash in Hand', type: 'cash', balance: 0 },
+      { name: 'bKash', type: 'mfs', balance: 0 },
+      { name: 'Nagad', type: 'mfs', balance: 0 },
+    ];
+    defaults.forEach((d) => {
+      if (!map.has(d.name.toLowerCase())) {
+        map.set(d.name.toLowerCase(), d);
+      }
+    });
+
+    if (repayForm.account && !map.has(repayForm.account.toLowerCase())) {
+      map.set(repayForm.account.toLowerCase(), { name: repayForm.account, type: 'other', balance: 0 });
+    }
+
+    const all = Array.from(map.values());
+    return {
+      cash: all.filter((a) => a.type === 'cash'),
+      mfs: all.filter((a) => a.type === 'mfs'),
+      bank: all.filter((a) => a.type === 'bank'),
+      other: all.filter((a) => a.type !== 'cash' && a.type !== 'mfs' && a.type !== 'bank'),
+    };
+  }, [availableAccounts, repayForm.account]);
+
   const formatDateLabel = (dateString) => {
     if (!dateString) return 'Date not specified';
     const d = new Date(dateString);
@@ -304,10 +336,12 @@ export default function ToolsPage() {
 
   // Open Repayment Modal
   const handleOpenRepay = (targetDebtId = '') => {
+    const defaultAcc =
+      availableAccounts.find((a) => a.type !== 'fdr' && a.type !== 'asset')?.name || 'Cash in Hand';
     setRepayForm({
       debtId: targetDebtId || debtsList[0]?.localId || '',
       amount: '',
-      account: availableAccounts[0]?.name || 'Cash in Hand',
+      account: defaultAcc,
       date: todayStr,
       note: '',
     });
@@ -928,23 +962,51 @@ export default function ToolsPage() {
                 <label className="form-label" htmlFor="repay-account">
                   Deposit Into / Pay From Account
                 </label>
-                <input
+                <select
                   id="repay-account"
-                  type="text"
-                  list="repayModalAccountSuggestions"
                   value={repayForm.account}
                   onChange={(e) => setRepayForm({ ...repayForm, account: e.target.value })}
-                  placeholder="e.g. Cash in Hand, bKash, City Bank"
                   className="field"
-                />
-                <datalist id="repayModalAccountSuggestions">
-                  {availableAccounts.map((a) => (
-                    <option key={a.localId || a.name} value={a.name} />
-                  ))}
-                  <option value="Cash in Hand" />
-                  <option value="bKash" />
-                  <option value="Nagad" />
-                </datalist>
+                  required
+                >
+                  <option value="">-- Select Account --</option>
+                  {liquidAccounts.cash.length > 0 && (
+                    <optgroup label="💵 Cash in Hand">
+                      {liquidAccounts.cash.map((a) => (
+                        <option key={a.localId || a.name} value={a.name}>
+                          {a.name} ({fmt(a.balance)})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {liquidAccounts.mfs.length > 0 && (
+                    <optgroup label="📱 Mobile Wallets (MFS)">
+                      {liquidAccounts.mfs.map((a) => (
+                        <option key={a.localId || a.name} value={a.name}>
+                          {a.name} ({fmt(a.balance)})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {liquidAccounts.bank.length > 0 && (
+                    <optgroup label="🏦 Bank Accounts">
+                      {liquidAccounts.bank.map((a) => (
+                        <option key={a.localId || a.name} value={a.name}>
+                          {a.name} ({fmt(a.balance)})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {liquidAccounts.other.length > 0 && (
+                    <optgroup label="💳 Other Accounts">
+                      {liquidAccounts.other.map((a) => (
+                        <option key={a.localId || a.name} value={a.name}>
+                          {a.name} ({fmt(a.balance)})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
               </div>
 
               <div className="form-item">
