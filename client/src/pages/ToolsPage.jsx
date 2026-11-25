@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/localDb';
-import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { queueSync } from '../services/syncService';
+import { queueSync, syncTwoWay } from '../services/syncService';
 import { adjustAccountBalance, getAllAccounts } from '../services/accountService';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
@@ -57,26 +56,17 @@ export default function ToolsPage() {
       const local = await db.tools.where('isDeleted').equals(0).toArray();
       setTools(local);
 
-      // Load accounts for repayment linkage
-      getAllAccounts().then((accs) => {
-        setAvailableAccounts(accs);
-      });
+      const accs = await getAllAccounts();
+      setAvailableAccounts(accs);
 
       if (isOnline) {
-        api
-          .get('/tools')
-          .then(async ({ data }) => {
-            if (data && data.tools) {
-              await db.tools.bulkPut(
-                data.tools.map((t) => ({
-                  ...t,
-                  synced: true,
-                  isDeleted: t.isDeleted ? 1 : 0,
-                }))
-              );
-              const fresh = await db.tools.where('isDeleted').equals(0).toArray();
-              setTools(fresh);
-            }
+        // Safe 2-way sync that respects local unpushed changes
+        syncTwoWay()
+          .then(async () => {
+            const fresh = await db.tools.where('isDeleted').equals(0).toArray();
+            setTools(fresh);
+            const freshAccs = await getAllAccounts();
+            setAvailableAccounts(freshAccs);
           })
           .catch(() => {});
       }
@@ -87,24 +77,35 @@ export default function ToolsPage() {
     }
   };
 
-  // Filter debts and repayments
+  // Re-calculate active debts with real-time dynamic repayment calculation
   const debtsList = useMemo(() => {
-    return tools
-      .filter((t) => t.toolType === 'debt')
-      .map((t) => ({
-        localId: t.localId,
-        person: t.data?.person || 'Unknown',
-        type: t.data?.type || 'owe',
-        amount: Number(t.data?.amount) || 0,
-        repaid: Number(t.data?.repaid) || 0,
-        remaining:
-          t.data?.remaining !== undefined
-            ? Number(t.data?.remaining)
-            : Number(t.data?.amount) || 0,
-        date: t.data?.date || '',
-        note: t.data?.note || '',
-        raw: t,
-      }))
+    const activeDebts = tools.filter((t) => t.toolType === 'debt');
+    const activeRepayments = tools.filter((t) => t.toolType === 'repayment');
+
+    return activeDebts
+      .map((t) => {
+        const origAmount = Number(t.data?.amount) || 0;
+        const matchingRepayments = activeRepayments.filter(
+          (r) => r.data?.debtId === t.localId
+        );
+        const computedRepaid = matchingRepayments.length > 0
+          ? matchingRepayments.reduce((sum, r) => sum + (Number(r.data?.amount) || 0), 0)
+          : Number(t.data?.repaid) || 0;
+
+        const computedRemaining = Math.max(0, origAmount - computedRepaid);
+
+        return {
+          localId: t.localId,
+          person: t.data?.person || 'Unknown',
+          type: t.data?.type || 'owe',
+          amount: origAmount,
+          repaid: computedRepaid,
+          remaining: computedRemaining,
+          date: t.data?.date || '',
+          note: t.data?.note || '',
+          raw: t,
+        };
+      })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [tools]);
 
@@ -221,7 +222,7 @@ export default function ToolsPage() {
     setShowDebtModal(true);
   };
 
-  // Save Debt Record
+  // Save Debt Record (Add or Update)
   const handleSaveDebt = async (e) => {
     e.preventDefault();
     const num = parseFloat(debtForm.amount);
@@ -235,9 +236,14 @@ export default function ToolsPage() {
     }
 
     try {
+      const now = new Date();
       if (editingDebt) {
-        const repaidSoFar = Number(editingDebt.repaid) || 0;
-        const newRemaining = Math.max(0, num - repaidSoFar);
+        // Calculate total repaid from actual active repayments for this debt
+        const actualRepaid = repaymentsList
+          .filter((r) => r.debtId === editingDebt.localId)
+          .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+        const newRemaining = Math.max(0, num - actualRepaid);
 
         const updatedRecord = {
           ...editingDebt.raw,
@@ -246,20 +252,54 @@ export default function ToolsPage() {
             person: debtForm.person.trim(),
             type: debtForm.type,
             amount: num,
+            repaid: actualRepaid,
             remaining: newRemaining,
             date: debtForm.date,
             note: debtForm.note.trim(),
           },
           synced: false,
-          clientUpdatedAt: new Date(),
+          clientUpdatedAt: now,
         };
 
         await db.tools.put(updatedRecord);
-        await queueSync('tools', updatedRecord.localId, 'update', updatedRecord);
+        await queueSync('tools', updatedRecord.localId);
+
+        // Also update person name and type on related repayments if changed
+        const relatedRepayments = tools.filter(
+          (t) => t.toolType === 'repayment' && t.data?.debtId === updatedRecord.localId
+        );
+        for (const rep of relatedRepayments) {
+          const updatedRep = {
+            ...rep,
+            data: {
+              ...rep.data,
+              person: debtForm.person.trim(),
+              type: debtForm.type,
+            },
+            synced: false,
+            clientUpdatedAt: now,
+          };
+          await db.tools.put(updatedRep);
+          await queueSync('tools', rep.localId);
+        }
+
         refreshPendingCount();
 
         setTools((prev) =>
-          prev.map((t) => (t.localId === updatedRecord.localId ? updatedRecord : t))
+          prev.map((t) => {
+            if (t.localId === updatedRecord.localId) return updatedRecord;
+            if (t.toolType === 'repayment' && t.data?.debtId === updatedRecord.localId) {
+              return {
+                ...t,
+                data: {
+                  ...t.data,
+                  person: debtForm.person.trim(),
+                  type: debtForm.type,
+                },
+              };
+            }
+            return t;
+          })
         );
         toast.success(`Updated record for ${debtForm.person.trim()}`);
       } else {
@@ -278,11 +318,11 @@ export default function ToolsPage() {
           },
           synced: false,
           isDeleted: 0,
-          clientUpdatedAt: new Date(),
+          clientUpdatedAt: now,
         };
 
         await db.tools.put(newRecord);
-        await queueSync('tools', localId, 'create', newRecord);
+        await queueSync('tools', localId);
         refreshPendingCount();
 
         setTools((prev) => [newRecord, ...prev]);
@@ -301,35 +341,59 @@ export default function ToolsPage() {
     }
   };
 
+  // Delete Debt Record and clean up all associated repayments
   const handleDeleteDebt = async (debtId) => {
     const record = tools.find((t) => t.localId === debtId);
+    if (!record) return;
     const personName = record?.data?.person || 'this record';
-    const amountVal = record?.data?.amount ? ` (৳${record.data.amount})` : '';
+    const amountVal = record?.data?.amount
+      ? ` (৳${Number(record.data.amount).toLocaleString('en-US')})`
+      : '';
 
     const ok = await confirm({
       title: 'Delete Debt Record',
-      message: `Are you sure you want to delete the debt record for "${personName}"${amountVal}?`,
+      message: `Are you sure you want to delete the debt record for "${personName}"${amountVal}? All associated repayment settlements will also be removed.`,
       confirmText: 'Delete Record',
       danger: true,
     });
     if (!ok) return;
 
     try {
-      const updated = {
+      const now = new Date();
+      const updatedDebt = {
         ...record,
         isDeleted: 1,
         synced: false,
-        clientUpdatedAt: new Date(),
+        clientUpdatedAt: now,
       };
-      await db.tools.put(updated);
-      await queueSync('tools', record.localId, 'delete', { localId: record.localId });
+      await db.tools.put(updatedDebt);
+      await queueSync('tools', record.localId);
+
+      // Also clean up any associated repayment entries
+      const relatedRepayments = tools.filter(
+        (t) => t.toolType === 'repayment' && t.data?.debtId === debtId
+      );
+      for (const rep of relatedRepayments) {
+        const updatedRep = {
+          ...rep,
+          isDeleted: 1,
+          synced: false,
+          clientUpdatedAt: now,
+        };
+        await db.tools.put(updatedRep);
+        await queueSync('tools', rep.localId);
+      }
+
       refreshPendingCount();
 
-      setTools((prev) => prev.filter((t) => t.localId !== record.localId));
+      setTools((prev) =>
+        prev.filter((t) => t.localId !== debtId && t.data?.debtId !== debtId)
+      );
       setShowDebtModal(false);
       setEditingDebt(null);
-      toast.info(`Record for ${personName} deleted.`);
+      toast.info(`Record for "${personName}" deleted.`);
     } catch (err) {
+      console.error(err);
       toast.error('Failed to delete record');
     }
   };
@@ -348,7 +412,7 @@ export default function ToolsPage() {
     setShowRepayModal(true);
   };
 
-  // Save Repayment
+  // Save Repayment Record
   const handleSaveRepayment = async (e) => {
     e.preventDefault();
     if (!repayForm.debtId) {
@@ -368,6 +432,7 @@ export default function ToolsPage() {
     }
 
     try {
+      const now = new Date();
       const repayLocalId = uuidv4();
       const chosenAcc = (repayForm.account || '').trim();
       const repayRecord = {
@@ -384,18 +449,18 @@ export default function ToolsPage() {
         },
         synced: false,
         isDeleted: 0,
-        clientUpdatedAt: new Date(),
+        clientUpdatedAt: now,
       };
       await db.tools.put(repayRecord);
-      await queueSync('tools', repayLocalId, 'create', repayRecord);
+      await queueSync('tools', repayLocalId);
 
-      // Reconcile with account if chosen
+      // Reconcile with account balance if an account is selected
       if (chosenAcc) {
         if (targetDebt.type === 'owe') {
-          // They owe me, so I received cash!
+          // They owe me, so I received money into my account
           await adjustAccountBalance(chosenAcc, num);
         } else {
-          // I owe them, so I paid cash!
+          // I owe them, so I paid money from my account
           await adjustAccountBalance(chosenAcc, -num);
         }
       }
@@ -410,16 +475,19 @@ export default function ToolsPage() {
           remaining: newRemaining,
         },
         synced: false,
-        clientUpdatedAt: new Date(),
+        clientUpdatedAt: now,
       };
       await db.tools.put(updatedDebt);
-      await queueSync('tools', targetDebt.localId, 'update', updatedDebt);
+      await queueSync('tools', targetDebt.localId);
       refreshPendingCount();
 
       setTools((prev) => [
         repayRecord,
         ...prev.map((t) => (t.localId === targetDebt.localId ? updatedDebt : t)),
       ]);
+
+      const freshAccs = await getAllAccounts();
+      setAvailableAccounts(freshAccs);
 
       toast.success(
         `Repayment of ৳${num.toLocaleString('en-US')} recorded for ${targetDebt.person}`
@@ -431,64 +499,81 @@ export default function ToolsPage() {
     }
   };
 
+  // Delete Repayment and dynamically re-calculate debt and account balances
   const handleDeleteRepayment = async (repayment) => {
     const ok = await confirm({
       title: 'Delete Repayment Record',
-      message: `Are you sure you want to delete this repayment of ৳${repayment.amount}? The associated debt balance will be recalculated.`,
+      message: `Are you sure you want to delete this repayment of ${fmt(repayment.amount)} from "${repayment.person}"? The associated debt balance and account balance will be automatically recalculated.`,
       confirmText: 'Delete Repayment',
       danger: true,
     });
     if (!ok) return;
 
     try {
+      const now = new Date();
       const updatedRepay = {
         ...repayment.raw,
         isDeleted: 1,
         synced: false,
-        clientUpdatedAt: new Date(),
+        clientUpdatedAt: now,
       };
       await db.tools.put(updatedRepay);
-      await queueSync('tools', repayment.localId, 'delete', { localId: repayment.localId });
+      await queueSync('tools', repayment.localId);
 
       // Revert account adjustment if any
       const repAcc = repayment.account || repayment.raw?.data?.account;
       if (repAcc) {
         if (repayment.type === 'owe') {
+          // Revert previous receipt (-num)
           await adjustAccountBalance(repAcc, -Number(repayment.amount));
         } else {
+          // Revert previous payment (+num)
           await adjustAccountBalance(repAcc, Number(repayment.amount));
         }
       }
 
+      let updatedDebt = null;
       if (repayment.debtId) {
-        const targetDebt = debtsList.find((d) => d.localId === repayment.debtId);
+        const targetDebt = tools.find((t) => t.localId === repayment.debtId);
         if (targetDebt) {
-          const newRepaid = Math.max(
-            0,
-            (Number(targetDebt.repaid) || 0) - repayment.amount
+          const remainingRepayments = repaymentsList.filter(
+            (r) => r.localId !== repayment.localId && r.debtId === repayment.debtId
           );
-          const newRemaining = Math.max(
-            0,
-            (Number(targetDebt.amount) || 0) - newRepaid
+          const newRepaid = remainingRepayments.reduce(
+            (sum, r) => sum + (Number(r.amount) || 0),
+            0
           );
-          const updatedDebt = {
-            ...targetDebt.raw,
+          const origAmount = Number(targetDebt.data?.amount) || 0;
+          const newRemaining = Math.max(0, origAmount - newRepaid);
+
+          updatedDebt = {
+            ...targetDebt,
             data: {
-              ...targetDebt.raw.data,
+              ...targetDebt.data,
               repaid: newRepaid,
               remaining: newRemaining,
             },
             synced: false,
-            clientUpdatedAt: new Date(),
+            clientUpdatedAt: now,
           };
           await db.tools.put(updatedDebt);
-          await queueSync('tools', targetDebt.localId, 'update', updatedDebt);
+          await queueSync('tools', targetDebt.localId);
         }
       }
 
       refreshPendingCount();
-      setTools((prev) => prev.filter((t) => t.localId !== repayment.localId));
-      toast.info('Repayment record deleted.');
+
+      // Update both repayment removal and updated debt balance in React state
+      setTools((prev) =>
+        prev
+          .filter((t) => t.localId !== repayment.localId)
+          .map((t) => (updatedDebt && t.localId === updatedDebt.localId ? updatedDebt : t))
+      );
+
+      const freshAccs = await getAllAccounts();
+      setAvailableAccounts(freshAccs);
+
+      toast.info('Repayment deleted and balances recalculated.');
     } catch (err) {
       console.error(err);
       toast.error('Failed to delete repayment');
@@ -532,210 +617,435 @@ export default function ToolsPage() {
         </div>
 
         <div className="balance-note">
-          Debts & loans tracked separately · Does not alter daily available cash
+          Debts & loans tracked separately · Repayments settle balances and link to accounts
         </div>
       </div>
 
       {/* 2. 4-Metrics Grid */}
       <div className="metrics-grid">
         <div className="panel p-4">
-          <div className="tiny-label">Money to receive</div>
-          <div className="metric-value text-emerald-400">{fmt(moneyToReceive)}</div>
+          <div className="tiny-label" style={{ color: '#34d399', fontWeight: 700 }}>
+            Money to receive
+          </div>
+          <div className="metric-value" style={{ color: '#34d399' }}>
+            {fmt(moneyToReceive)}
+          </div>
           <div className="metric-sub">{receiveDebts.length} people owe you</div>
         </div>
 
         <div className="panel p-4">
-          <div className="tiny-label">Money to pay</div>
-          <div className="metric-value text-rose-400">{fmt(moneyToPay)}</div>
+          <div className="tiny-label" style={{ color: '#fb7185', fontWeight: 700 }}>
+            Money to pay
+          </div>
+          <div className="metric-value" style={{ color: '#fb7185' }}>
+            {fmt(moneyToPay)}
+          </div>
           <div className="metric-sub">{payDebts.length} payments due</div>
         </div>
 
         <div className="panel p-4">
-          <div className="tiny-label">Active Records</div>
-          <div className="metric-value">{debtsList.length}</div>
+          <div className="tiny-label" style={{ color: '#38bdf8', fontWeight: 700 }}>
+            Active Records
+          </div>
+          <div className="metric-value" style={{ color: '#38bdf8' }}>
+            {debtsList.length}
+          </div>
           <div className="metric-sub">Lending & borrowing entries</div>
         </div>
 
         <div className="panel p-4">
-          <div className="tiny-label">Repayments logged</div>
-          <div className="metric-value">{repaymentsList.length}</div>
-          <div className="metric-sub">Partial & full settlements</div>
+          <div className="tiny-label" style={{ color: '#c084fc', fontWeight: 700 }}>
+            Repayments logged
+          </div>
+          <div className="metric-value" style={{ color: '#c084fc' }}>
+            {repaymentsList.length}
+          </div>
+          <div className="metric-sub">Settlements completed</div>
         </div>
       </div>
 
-      {/* 3. 2-Column Ledger: Money to Receive vs Money to Pay */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-6">
-        {/* Left: People Who Owe Me */}
-        <div className="panel p-5">
-          <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-            <div>
-              <h3 className="font-bold text-slate-100 text-base flex items-center gap-2">
-                <span className="text-emerald-400">●</span> They Owe Me (To Receive)
+      {/* 3. 2-Column Responsive Layout: They Owe Me vs I Owe Them */}
+      <div className="debt-columns-grid">
+        {/* Left Column: People Who Owe Me (To Receive) */}
+        <div className="debt-section-panel">
+          <div className="debt-section-header">
+            <div className="debt-section-title-wrap">
+              <h3>
+                <span style={{ color: '#34d399', fontSize: '1.2rem' }}>●</span> They Owe Me (To Receive)
               </h3>
-              <p className="text-xs text-slate-400 mt-1">Money you lent to friends or family.</p>
+              <p>Money you lent to friends, relatives, or associates.</p>
             </div>
             <button
               type="button"
               onClick={() => handleOpenAddDebt('owe')}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+              className="debt-add-btn-emerald"
             >
-              + Add
+              <span>+</span> Add Lending
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div style={{ flex: 1 }}>
             {receiveDebts.length === 0 ? (
-              <p className="text-sm text-slate-500 py-6 text-center">No money to receive.</p>
+              <div style={{ textAlign: 'center', padding: '36px 16px', color: '#64748b' }}>
+                <span style={{ fontSize: '2rem', display: 'block', marginBottom: '8px' }}>🤝</span>
+                <p style={{ fontSize: '0.92rem', fontWeight: 600 }}>No money to receive.</p>
+                <p style={{ fontSize: '0.78rem', marginTop: '4px' }}>All lent amounts have been settled.</p>
+              </div>
             ) : (
-              receiveDebts.map((d) => (
-                <div
-                  key={d.localId}
-                  className="entry-row flex justify-between items-center py-3 px-3 border border-slate-800/80 rounded-xl bg-slate-900/40"
-                >
-                  <div className="min-w-0 flex-1 pr-3">
-                    <div className="font-semibold text-slate-100 text-sm truncate">{d.person}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      Total: {fmt(d.amount)} · Repaid: {fmt(d.repaid)} · {formatDateLabel(d.date)}
-                      {d.note ? ` · ${d.note}` : ''}
+              receiveDebts.map((d) => {
+                const percent = d.amount > 0 ? Math.min(100, Math.round((d.repaid / d.amount) * 100)) : 0;
+                const isSettled = d.remaining === 0;
+
+                return (
+                  <div key={d.localId} className="debt-record-card is-receive">
+                    <div className="debt-card-header">
+                      <div className="debt-user-meta">
+                        <div className="debt-avatar-circle is-receive">
+                          {d.person.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="debt-person-name">{d.person}</div>
+                          <div className="debt-date-badge">
+                            📅 {formatDateLabel(d.date)}
+                            {d.note && <span> · 📝 {d.note}</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      <span
+                        className="debt-status-pill"
+                        style={{
+                          background: isSettled
+                            ? 'rgba(16, 185, 129, 0.15)'
+                            : d.repaid > 0
+                            ? 'rgba(56, 189, 248, 0.15)'
+                            : 'rgba(148, 163, 184, 0.12)',
+                          color: isSettled ? '#34d399' : d.repaid > 0 ? '#38bdf8' : '#cbd5e1',
+                          border: `1px solid ${
+                            isSettled
+                              ? 'rgba(16, 185, 129, 0.35)'
+                              : d.repaid > 0
+                              ? 'rgba(56, 189, 248, 0.3)'
+                              : 'rgba(148, 163, 184, 0.2)'
+                          }`,
+                        }}
+                      >
+                        {isSettled ? '✓ Settled' : d.repaid > 0 ? `Partial (${percent}%)` : 'Active'}
+                      </span>
+                    </div>
+
+                    {/* Progress Track */}
+                    <div className="debt-progress-bar-wrap">
+                      <div className="debt-progress-track">
+                        <div
+                          className="debt-progress-fill is-receive"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Financial Summary */}
+                    <div className="debt-financial-summary">
+                      <div className="debt-meta-details">
+                        <span className="debt-meta-sub">
+                          Total Lent: <strong style={{ color: '#e2e8f0' }}>{fmt(d.amount)}</strong>
+                        </span>
+                        <span className="debt-meta-sub">
+                          Repaid So Far: <strong style={{ color: '#34d399' }}>{fmt(d.repaid)}</strong>
+                        </span>
+                      </div>
+
+                      <div className="debt-remaining-block">
+                        <div className="debt-remaining-label">Remaining to Receive</div>
+                        <div className="debt-remaining-amount" style={{ color: '#34d399' }}>
+                          {fmt(d.remaining)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="debt-card-actions">
+                      {!isSettled && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenRepay(d.localId)}
+                          className="debt-action-btn btn-repay"
+                          title="Record a repayment for this debt"
+                        >
+                          💰 Repay
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleStartEditDebt(d)}
+                        className="debt-action-btn btn-edit"
+                        title="Edit debt amount, person, date or note"
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDebt(d.localId)}
+                        className="debt-action-btn btn-delete"
+                        title="Delete this debt record"
+                      >
+                        🗑️ Delete
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <strong className="text-emerald-400 font-semibold text-base">
-                      {fmt(d.remaining)}
-                    </strong>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenRepay(d.localId)}
-                      className="text-xs font-semibold px-2.5 py-1 border border-emerald-800/50 bg-emerald-950/30 hover:bg-emerald-900/40 rounded-lg text-emerald-300"
-                      title="Record repayment for this debt"
-                    >
-                      Repay
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleStartEditDebt(d)}
-                      className="text-xs font-semibold px-2 py-1 border border-slate-700 bg-slate-900 hover:bg-slate-800 rounded-lg text-slate-300"
-                    >
-                      Edit
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
 
-        {/* Right: People I Owe */}
-        <div className="panel p-5">
-          <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-            <div>
-              <h3 className="font-bold text-slate-100 text-base flex items-center gap-2">
-                <span className="text-rose-400">●</span> I Owe Them (To Pay)
+        {/* Right Column: People I Owe (To Pay) */}
+        <div className="debt-section-panel">
+          <div className="debt-section-header">
+            <div className="debt-section-title-wrap">
+              <h3>
+                <span style={{ color: '#fb7185', fontSize: '1.2rem' }}>●</span> I Owe Them (To Pay)
               </h3>
-              <p className="text-xs text-slate-400 mt-1">Money you borrowed or owe.</p>
+              <p>Money you borrowed or have an obligation to repay.</p>
             </div>
             <button
               type="button"
               onClick={() => handleOpenAddDebt('owed')}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20"
+              className="debt-add-btn-rose"
             >
-              + Add
+              <span>+</span> Add Borrowing
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div style={{ flex: 1 }}>
             {payDebts.length === 0 ? (
-              <p className="text-sm text-slate-500 py-6 text-center">No money owed to others.</p>
+              <div style={{ textAlign: 'center', padding: '36px 16px', color: '#64748b' }}>
+                <span style={{ fontSize: '2rem', display: 'block', marginBottom: '8px' }}>🎉</span>
+                <p style={{ fontSize: '0.92rem', fontWeight: 600 }}>No money owed to others.</p>
+                <p style={{ fontSize: '0.78rem', marginTop: '4px' }}>You have zero pending borrowed debts.</p>
+              </div>
             ) : (
-              payDebts.map((d) => (
-                <div
-                  key={d.localId}
-                  className="entry-row flex justify-between items-center py-3 px-3 border border-slate-800/80 rounded-xl bg-slate-900/40"
-                >
-                  <div className="min-w-0 flex-1 pr-3">
-                    <div className="font-semibold text-slate-100 text-sm truncate">{d.person}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      Total: {fmt(d.amount)} · Repaid: {fmt(d.repaid)} · {formatDateLabel(d.date)}
-                      {d.note ? ` · ${d.note}` : ''}
+              payDebts.map((d) => {
+                const percent = d.amount > 0 ? Math.min(100, Math.round((d.repaid / d.amount) * 100)) : 0;
+                const isSettled = d.remaining === 0;
+
+                return (
+                  <div key={d.localId} className="debt-record-card is-pay">
+                    <div className="debt-card-header">
+                      <div className="debt-user-meta">
+                        <div className="debt-avatar-circle is-pay">
+                          {d.person.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="debt-person-name">{d.person}</div>
+                          <div className="debt-date-badge">
+                            📅 {formatDateLabel(d.date)}
+                            {d.note && <span> · 📝 {d.note}</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      <span
+                        className="debt-status-pill"
+                        style={{
+                          background: isSettled
+                            ? 'rgba(16, 185, 129, 0.15)'
+                            : d.repaid > 0
+                            ? 'rgba(251, 113, 133, 0.15)'
+                            : 'rgba(148, 163, 184, 0.12)',
+                          color: isSettled ? '#34d399' : d.repaid > 0 ? '#fb7185' : '#cbd5e1',
+                          border: `1px solid ${
+                            isSettled
+                              ? 'rgba(16, 185, 129, 0.35)'
+                              : d.repaid > 0
+                              ? 'rgba(251, 113, 133, 0.3)'
+                              : 'rgba(148, 163, 184, 0.2)'
+                          }`,
+                        }}
+                      >
+                        {isSettled ? '✓ Settled' : d.repaid > 0 ? `Partial (${percent}%)` : 'Active'}
+                      </span>
+                    </div>
+
+                    {/* Progress Track */}
+                    <div className="debt-progress-bar-wrap">
+                      <div className="debt-progress-track">
+                        <div
+                          className="debt-progress-fill is-pay"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Financial Summary */}
+                    <div className="debt-financial-summary">
+                      <div className="debt-meta-details">
+                        <span className="debt-meta-sub">
+                          Total Borrowed: <strong style={{ color: '#e2e8f0' }}>{fmt(d.amount)}</strong>
+                        </span>
+                        <span className="debt-meta-sub">
+                          Repaid So Far: <strong style={{ color: '#fb7185' }}>{fmt(d.repaid)}</strong>
+                        </span>
+                      </div>
+
+                      <div className="debt-remaining-block">
+                        <div className="debt-remaining-label">Remaining to Pay</div>
+                        <div className="debt-remaining-amount" style={{ color: '#fb7185' }}>
+                          {fmt(d.remaining)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="debt-card-actions">
+                      {!isSettled && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenRepay(d.localId)}
+                          className="debt-action-btn btn-repay"
+                          title="Record a repayment for this debt"
+                        >
+                          💰 Repay
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleStartEditDebt(d)}
+                        className="debt-action-btn btn-edit"
+                        title="Edit debt amount, person, date or note"
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDebt(d.localId)}
+                        className="debt-action-btn btn-delete"
+                        title="Delete this debt record"
+                      >
+                        🗑️ Delete
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <strong className="text-rose-400 font-semibold text-base">
-                      {fmt(d.remaining)}
-                    </strong>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenRepay(d.localId)}
-                      className="text-xs font-semibold px-2.5 py-1 border border-rose-800/50 bg-rose-950/30 hover:bg-rose-900/40 rounded-lg text-rose-300"
-                      title="Record repayment for this debt"
-                    >
-                      Repay
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleStartEditDebt(d)}
-                      className="text-xs font-semibold px-2 py-1 border border-slate-700 bg-slate-900 hover:bg-slate-800 rounded-lg text-slate-300"
-                    >
-                      Edit
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
       </div>
 
-      {/* 4. Repayment History Section */}
-      <div className="panel p-5 mb-8">
-        <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-          <div>
-            <h4 className="font-bold text-slate-200 text-base">Repayment Settlements History</h4>
-            <p className="text-xs text-slate-400 mt-1">Audit log of all repayments received and paid.</p>
+      {/* 4. Repayment Settlements History Section */}
+      <div className="repayment-history-panel">
+        <div className="debt-section-header">
+          <div className="debt-section-title-wrap">
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800 }}>
+              <span>💳</span> Repayment Settlements History
+            </h3>
+            <p>Audit trail of all partial and full repayments received or paid.</p>
           </div>
           <button
             type="button"
             onClick={() => handleOpenRepay()}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+            className="debt-action-btn btn-repay"
+            style={{ padding: '8px 16px', fontSize: '0.82rem' }}
           >
-            + Record Repayment
+            <span>+</span> Record Repayment
           </button>
         </div>
 
         {repaymentsList.length === 0 ? (
-          <p className="text-sm text-slate-500 py-6 text-center">No repayments recorded yet.</p>
+          <div style={{ textAlign: 'center', padding: '32px 16px', color: '#64748b' }}>
+            <span style={{ fontSize: '1.8rem', display: 'block', marginBottom: '6px' }}>📝</span>
+            <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>No repayments recorded yet.</p>
+            <p style={{ fontSize: '0.78rem', marginTop: '2px' }}>
+              Whenever you receive or make a repayment, click "+ Record Repayment" above.
+            </p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {repaymentsList.map((r) => {
               const isReceive = r.type === 'owe';
               return (
-                <div
-                  key={r.localId}
-                  className="flex justify-between items-center py-2.5 px-3 rounded-lg border border-slate-800/70 bg-slate-900/40 text-sm"
-                >
-                  <div>
-                    <span className="font-semibold text-slate-200">{r.person}</span>
-                    <span className="text-xs text-slate-400 ml-2">
-                      {formatDateLabel(r.date)} {r.note ? `· ${r.note}` : ''}
-                    </span>
-                    {r.account && (
-                      <span className="text-xs ml-2 text-cyan-400 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-800/40">
-                        {r.account}
-                      </span>
-                    )}
+                <div key={r.localId} className="repayment-stream-row">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                    <div
+                      style={{
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1rem',
+                        flexShrink: 0,
+                        background: isReceive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                        border: `1px solid ${isReceive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`,
+                      }}
+                    >
+                      {isReceive ? '📥' : '📤'}
+                    </div>
+
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 750, color: '#f8fafc', fontSize: '0.92rem' }}>
+                          {r.person}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            padding: '2px 7px',
+                            borderRadius: '5px',
+                            background: isReceive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(244, 63, 94, 0.12)',
+                            color: isReceive ? '#34d399' : '#fb7185',
+                            border: `1px solid ${isReceive ? 'rgba(16, 185, 129, 0.25)' : 'rgba(244, 63, 94, 0.25)'}`,
+                          }}
+                        >
+                          {isReceive ? 'Received' : 'Paid'}
+                        </span>
+                        {r.account && (
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              color: '#38bdf8',
+                              background: 'rgba(56, 189, 248, 0.1)',
+                              border: '1px solid rgba(56, 189, 248, 0.25)',
+                              padding: '2px 7px',
+                              borderRadius: '5px',
+                            }}
+                          >
+                            💳 {r.account}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '3px' }}>
+                        📅 {formatDateLabel(r.date)}
+                        {r.note && <span> · 📝 {r.note}</span>}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`font-semibold ${isReceive ? 'text-emerald-400' : 'text-rose-400'}`}>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                    <span
+                      style={{
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        color: isReceive ? '#34d399' : '#fb7185',
+                      }}
+                    >
                       {isReceive ? '+' : '−'}
                       {fmt(r.amount)}
                     </span>
+
                     <button
                       type="button"
                       onClick={() => handleDeleteRepayment(r)}
-                      className="text-slate-500 hover:text-rose-400 text-xs px-1.5 py-0.5"
-                      title="Delete repayment"
+                      className="debt-action-btn btn-delete"
+                      style={{ padding: '6px 10px', fontSize: '0.78rem' }}
+                      title="Delete this repayment settlement"
                     >
-                      ×
+                      🗑️
                     </button>
                   </div>
                 </div>
@@ -745,13 +1055,13 @@ export default function ToolsPage() {
         )}
       </div>
 
-      {/* Modal 1: Add / Edit Debt or Loan */}
+      {/* Modal 1: Add or Edit Debt Record */}
       {showDebtModal && (
         <div className="modal-overlay" onClick={() => setShowDebtModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
               <h2 className="modal-title">
-                {editingDebt ? `✏️ Edit "${editingDebt.person}"` : '৳ New Debt or Loan'}
+                {editingDebt ? `✏️ Edit "${editingDebt.person}"` : '৳ New Debt / Loan Record'}
               </h2>
               <button
                 type="button"
@@ -766,7 +1076,7 @@ export default function ToolsPage() {
             <form onSubmit={handleSaveDebt} className="modal-form">
               <div className="form-item">
                 <label className="form-label" htmlFor="debt-type">
-                  Type of Record
+                  Classification / Direction
                 </label>
                 <select
                   id="debt-type"
@@ -774,19 +1084,19 @@ export default function ToolsPage() {
                   onChange={(e) => setDebtForm({ ...debtForm, type: e.target.value })}
                   className="field"
                 >
-                  <option value="owe">They owe me (Money to receive / I lent)</option>
-                  <option value="owed">I owe them (Money to pay / I borrowed)</option>
+                  <option value="owe">🟢 They owe me (Money to receive / I lent)</option>
+                  <option value="owed">🔴 I owe them (Money to pay / I borrowed)</option>
                 </select>
               </div>
 
               <div className="form-item">
                 <label className="form-label" htmlFor="debt-person">
-                  Person or Contact Name
+                  Person or Organization Name
                 </label>
                 <input
                   id="debt-person"
                   type="text"
-                  placeholder="e.g. Rahim, Uncle, Friend"
+                  placeholder="e.g. Rahim, Ammu, Friend, Uncle"
                   value={debtForm.person}
                   onChange={(e) => setDebtForm({ ...debtForm, person: e.target.value })}
                   className="field"
@@ -798,7 +1108,7 @@ export default function ToolsPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="form-item">
                   <label className="form-label" htmlFor="debt-amount">
-                    Amount (৳)
+                    Original Amount (৳)
                   </label>
                   <input
                     id="debt-amount"
@@ -815,7 +1125,7 @@ export default function ToolsPage() {
 
                 <div className="form-item">
                   <label className="form-label" htmlFor="debt-date">
-                    Date
+                    Record Date
                   </label>
                   <input
                     id="debt-date"
@@ -830,19 +1140,27 @@ export default function ToolsPage() {
 
               <div className="form-item">
                 <label className="form-label" htmlFor="debt-note">
-                  Note / Reason (optional)
+                  Reason or Description (optional)
                 </label>
                 <input
                   id="debt-note"
                   type="text"
-                  placeholder="e.g. Emergency medical, rent split"
+                  placeholder="e.g. Emergency split, personal loan"
                   value={debtForm.note}
                   onChange={(e) => setDebtForm({ ...debtForm, note: e.target.value })}
                   className="field"
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '10px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: editingDebt ? 'space-between' : 'flex-end',
+                  alignItems: 'center',
+                  marginTop: '18px',
+                  gap: '10px',
+                }}
+              >
                 {editingDebt ? (
                   <button
                     type="button"
@@ -854,13 +1172,13 @@ export default function ToolsPage() {
                       padding: '8px 14px',
                       borderRadius: '8px',
                       fontSize: '0.82rem',
-                      fontWeight: 600,
+                      fontWeight: 650,
                       cursor: 'pointer',
                     }}
                   >
                     🗑️ Delete Record
                   </button>
-                ) : <div />}
+                ) : null}
 
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <button
@@ -874,9 +1192,14 @@ export default function ToolsPage() {
                   <button
                     type="submit"
                     className="primary"
-                    style={{ height: '42px', padding: '0 24px', borderRadius: '10px', fontWeight: 700 }}
+                    style={{
+                      height: '42px',
+                      padding: '0 24px',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                    }}
                   >
-                    {editingDebt ? 'Save Changes' : '+ Save Record'}
+                    {editingDebt ? 'Save Changes' : '+ Add Record'}
                   </button>
                 </div>
               </div>
@@ -888,11 +1211,9 @@ export default function ToolsPage() {
       {/* Modal 2: Record Repayment */}
       {showRepayModal && (
         <div className="modal-overlay" onClick={() => setShowRepayModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
-              <h2 className="modal-title">
-                💳 Record a Repayment
-              </h2>
+              <h2 className="modal-title">💳 Record a Repayment</h2>
               <button
                 type="button"
                 className="modal-close-btn"
@@ -1040,8 +1361,8 @@ export default function ToolsPage() {
                     padding: '0 24px',
                     borderRadius: '10px',
                     fontWeight: 700,
-                    background: 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)',
-                    borderColor: '#06b6d4',
+                    background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+                    borderColor: '#10b981',
                   }}
                 >
                   Record Repayment

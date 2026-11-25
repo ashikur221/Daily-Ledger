@@ -15,7 +15,7 @@ const toolSchema = new mongoose.Schema(
     },
     toolType: {
       type: String,
-      enum: ['savings_goal', 'debt', 'bill', 'budget', 'checklist', 'todo', 'vault_item'],
+      enum: ['savings_goal', 'debt', 'repayment', 'bill', 'budget', 'checklist', 'todo', 'vault_item'],
       required: true,
     },
     // Flexible JSON data payload for each tool type
