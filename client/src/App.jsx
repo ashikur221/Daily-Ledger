@@ -267,6 +267,21 @@ function AppContent() {
               <div className="mobile-drawer-section-title">Finance & Tools</div>
 
               <NavLink
+                to="/ledger"
+                className={({ isActive }) => `mobile-drawer-link ${isActive ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '1.25rem' }}>🧾</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Transaction List</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Expenses, search & daily history</div>
+                  </div>
+                </div>
+                <span>›</span>
+              </NavLink>
+
+              <NavLink
                 to="/tools"
                 className={({ isActive }) => `mobile-drawer-link ${isActive ? 'active' : ''}`}
                 onClick={() => setMobileMenuOpen(false)}
