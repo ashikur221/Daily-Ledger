@@ -185,16 +185,13 @@ function AppContent() {
             <NavLink
               to="/developer"
               style={{
-                color: '#ef4444',
-                fontWeight: 700,
+                color: '#ffffff',
+                fontWeight: 600,
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '4px 10px',
-                borderRadius: '8px',
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
+                padding: '4px 0',
               }}
             >
               <span>👨‍💻 Developer: Ashikur Rahman</span>
