@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { Plus, Wallet, Pencil, Receipt, ChevronRight } from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 import db from '../db/localDb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -332,11 +334,25 @@ export default function DashboardPage() {
         </div>
 
         <div className="balance-actions">
-          <button type="button" onClick={() => handleOpenAddExpense(todayStr)} className="balance-action">
-            + Add Expense <span>›</span>
+          <button
+            type="button"
+            onClick={() => handleOpenAddExpense(todayStr)}
+            className="balance-action"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Plus size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Add Expense</span>
+            <ChevronRight size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
           </button>
-          <button type="button" onClick={() => navigate('/accounts')} className="balance-action">
-            Banks & Assets <span>›</span>
+          <button
+            type="button"
+            onClick={() => navigate('/accounts')}
+            className="balance-action"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Wallet size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Banks & Assets</span>
+            <ChevronRight size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
           </button>
         </div>
 
@@ -360,7 +376,8 @@ export default function DashboardPage() {
           title="Click to view all bank and wallet accounts"
         >
           <div className="tiny-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>💳</span> Total liquid balance
+            <Wallet size={14} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
+            <span>Total liquid balance</span>
           </div>
           <div id="homeTotalLiquid" className="metric-value" style={{ color: '#38bdf8' }}>
             {fmt(stats.balance)}
@@ -386,8 +403,18 @@ export default function DashboardPage() {
         <div className="modal-overlay" onClick={() => setShowExpenseModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
             <div className="modal-header">
-              <h2 className="modal-title">
-                {editingTx ? '✏️ Edit Expense' : '💸 Add Expense'}
+              <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {editingTx ? (
+                  <>
+                    <Pencil size={18} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
+                    <span>Edit Expense</span>
+                  </>
+                ) : (
+                  <>
+                    <Receipt size={18} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
+                    <span>Add Expense</span>
+                  </>
+                )}
               </h2>
               <button
                 type="button"

@@ -169,6 +169,9 @@ html, body {
 }
 
 .nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   padding: 8px 14px;
   border-radius: 10px;
   color: #94a3b8;

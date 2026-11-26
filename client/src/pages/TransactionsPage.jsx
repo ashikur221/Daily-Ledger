@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { ListOrdered, Receipt } from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 import db from '../db/localDb';
 import api from '../services/api';
 import { queueSync } from '../services/syncService';
@@ -260,7 +262,10 @@ export default function TransactionsPage() {
       <div className="panel">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h2 className="panel-title">🧾 Transaction List</h2>
+            <h2 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ListOrdered size={20} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
+              <span>Transaction List</span>
+            </h2>
             <p className="panel-sub">
               Chronological expense history grouped by date ({allExpenses.length} entries).
             </p>
@@ -277,7 +282,9 @@ export default function TransactionsPage() {
           </div>
         ) : groupedByDate.length === 0 ? (
           <div className="panel text-center py-8">
-            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📒</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', color: '#64748b' }}>
+              <Receipt size={32} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            </div>
             <p className="panel-sub">No recorded expenses yet.</p>
           </div>
         ) : (

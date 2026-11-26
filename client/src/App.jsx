@@ -1,5 +1,23 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
+import {
+  Menu,
+  Settings,
+  LayoutDashboard,
+  Receipt,
+  TrendingUp,
+  Wallet,
+  CreditCard,
+  Lock,
+  ChartNoAxesCombined,
+  Sparkles,
+  Shield,
+  X,
+  ListOrdered,
+  Code2,
+  ChevronRight,
+} from 'lucide-react';
+import { ICON_STROKE } from './components/AppIcons';
 import ScrollToTop from './components/ScrollToTop';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider, useToast } from './context/ToastContext';
@@ -72,8 +90,10 @@ function AppContent() {
               onClick={() => setMobileMenuOpen(true)}
               className="mobile-side-toggle-btn"
               title="Open Navigation Menu"
+              aria-label="Open Navigation Menu"
             >
-              ☰ Menu
+              <Menu size={13} strokeWidth={ICON_STROKE} aria-hidden="true" style={{ marginRight: '4px' }} />
+              <span>Menu</span>
             </button>
           </div>
           <div>
@@ -107,8 +127,8 @@ function AppContent() {
             {isOnline ? 'Cloud Synced' : 'Offline-ready · Saved on this device'}
             {pendingSync > 0 && <span className="sync-count">({pendingSync})</span>}
           </div>
-          <NavLink to="/settings" className="settings-link-btn" title="Settings & Family Invites">
-            ⚙️
+          <NavLink to="/settings" className="settings-link-btn" title="Settings & Family Invites" aria-label="Settings">
+            <Settings size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
           </NavLink>
         </div>
       </header>
@@ -116,25 +136,32 @@ function AppContent() {
       {/* Main Desktop & Tablet Navigation */}
       <nav className="desktop-nav" aria-label="Main navigation">
         <NavLink to="/" end className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Overview
+          <LayoutDashboard size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          <span>Overview</span>
         </NavLink>
         <NavLink to="/ledger" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Expenses
+          <Receipt size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          <span>Expenses</span>
         </NavLink>
         <NavLink to="/deposits" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Income
+          <TrendingUp size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          <span>Income</span>
         </NavLink>
         <NavLink to="/accounts" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Banks & Assets
+          <Wallet size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          <span>Banks & Assets</span>
         </NavLink>
         <NavLink to="/tools" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Debts & Loans
+          <CreditCard size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          <span>Debts & Loans</span>
         </NavLink>
         <NavLink to="/tasks" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Vault & Tasks 🔒
+          <Lock size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          <span>Vault & Tasks</span>
         </NavLink>
         <NavLink to="/reports" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          Reports & Insights
+          <ChartNoAxesCombined size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          <span>Reports & Insights</span>
         </NavLink>
         <NavLink
           to="/ai"
@@ -146,7 +173,8 @@ function AppContent() {
             fontWeight: 700,
           })}
         >
-          ✨ Ledger AI
+          <Sparkles size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          <span>Ledger AI</span>
         </NavLink>
         {user?.role === 'admin' && (
           <NavLink
@@ -157,7 +185,8 @@ function AppContent() {
               fontWeight: 700,
             })}
           >
-            🛡️ Admin
+            <Shield size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Admin</span>
           </NavLink>
         )}
       </nav>
@@ -210,7 +239,8 @@ function AppContent() {
                 padding: '4px 0',
               }}
             >
-              <span>👨‍💻 Developer: Ashikur Rahman</span>
+              <Code2 size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Developer: Ashikur Rahman</span>
             </NavLink>
 
             <NavLink to="/settings" style={{ color: '#94a3b8', textDecoration: 'none' }}>
@@ -223,23 +253,23 @@ function AppContent() {
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
         <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
-          <span className="nav-icon">⌂</span>
+          <LayoutDashboard size={19} strokeWidth={ICON_STROKE} className="nav-icon" aria-hidden="true" />
           <span>Overview</span>
         </NavLink>
         <NavLink to="/ledger" className={({ isActive }) => (isActive ? 'active' : '')}>
-          <span className="nav-icon">↗</span>
+          <Receipt size={19} strokeWidth={ICON_STROKE} className="nav-icon" aria-hidden="true" />
           <span>Expenses</span>
         </NavLink>
         <NavLink to="/deposits" className={({ isActive }) => (isActive ? 'active' : '')}>
-          <span className="nav-icon">＋</span>
+          <TrendingUp size={19} strokeWidth={ICON_STROKE} className="nav-icon" aria-hidden="true" />
           <span>Income</span>
         </NavLink>
         <NavLink to="/accounts" className={({ isActive }) => (isActive ? 'active' : '')}>
-          <span className="nav-icon">▤</span>
+          <Wallet size={19} strokeWidth={ICON_STROKE} className="nav-icon" aria-hidden="true" />
           <span>Banks</span>
         </NavLink>
         <NavLink to="/reports" className={({ isActive }) => (isActive ? 'active' : '')}>
-          <span className="nav-icon">▥</span>
+          <ChartNoAxesCombined size={19} strokeWidth={ICON_STROKE} className="nav-icon" aria-hidden="true" />
           <span>Reports</span>
         </NavLink>
       </nav>
@@ -260,8 +290,9 @@ function AppContent() {
                 type="button"
                 className="mobile-drawer-close"
                 onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close Navigation Menu"
               >
-                ✕
+                <X size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </button>
             </div>
 
@@ -274,13 +305,13 @@ function AppContent() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '1.25rem' }}>🧾</span>
+                  <ListOrdered size={20} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Transaction List</div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Date-grouped expense history</div>
                   </div>
                 </div>
-                <span>›</span>
+                <ChevronRight size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </NavLink>
 
               <NavLink
@@ -289,13 +320,13 @@ function AppContent() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '1.25rem' }}>🤝</span>
+                  <CreditCard size={20} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Debts & Loans</div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Lending, borrowing & repayments</div>
                   </div>
                 </div>
-                <span>›</span>
+                <ChevronRight size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </NavLink>
 
               <div className="mobile-drawer-section-title" style={{ marginTop: '16px' }}>AI Intelligence</div>
@@ -305,13 +336,13 @@ function AppContent() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '1.25rem' }}>✨</span>
+                  <Sparkles size={20} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#38bdf8' }}>Ledger AI Advisor</div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Read-only insights, goals & reports</div>
                   </div>
                 </div>
-                <span>›</span>
+                <ChevronRight size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </NavLink>
 
               <div className="mobile-drawer-section-title" style={{ marginTop: '16px' }}>Productivity & Security</div>
@@ -322,13 +353,13 @@ function AppContent() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '1.25rem' }}>🔒</span>
+                  <Lock size={20} strokeWidth={ICON_STROKE} color="#94a3b8" aria-hidden="true" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Tasks & Secure Vault</div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>To-Do list & Bank/bKash password vault</div>
                   </div>
                 </div>
-                <span>›</span>
+                <ChevronRight size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </NavLink>
 
               {user?.role === 'admin' && (
@@ -340,13 +371,13 @@ function AppContent() {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '1.25rem' }}>🛡️</span>
+                      <Shield size={20} strokeWidth={ICON_STROKE} color="#f87171" aria-hidden="true" />
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#f87171' }}>Admin Control Center</div>
                         <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Users overview & live ledger summaries</div>
                       </div>
                     </div>
-                    <span>›</span>
+                    <ChevronRight size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
                   </NavLink>
                 </>
               )}
@@ -359,13 +390,13 @@ function AppContent() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '1.25rem' }}>👨‍💻</span>
+                  <Code2 size={20} strokeWidth={ICON_STROKE} color="#94a3b8" aria-hidden="true" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>About Developer</div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Ashikur Rahman Profile</div>
                   </div>
                 </div>
-                <span>›</span>
+                <ChevronRight size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </NavLink>
 
               <NavLink
@@ -374,13 +405,13 @@ function AppContent() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '1.25rem' }}>⚙️</span>
+                  <Settings size={20} strokeWidth={ICON_STROKE} color="#94a3b8" aria-hidden="true" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Settings & Backup</div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Profile, invite & full cloud restore</div>
                   </div>
                 </div>
-                <span>›</span>
+                <ChevronRight size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </NavLink>
             </div>
           </div>

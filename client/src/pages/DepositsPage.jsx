@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { TrendingUp, Plus, Wallet, Pencil } from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 import db from '../db/localDb';
 import api from '../services/api';
 import { queueSync } from '../services/syncService';
@@ -281,8 +283,9 @@ export default function DepositsPage() {
         <div className="bank-panel-header" style={{ borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>
           <div>
             <span className="deposit-badge-label">TOTAL ACCUMULATED</span>
-            <h2 className="bank-panel-title" style={{ fontSize: '1.6rem', marginTop: '4px' }}>
-              Income & Inflow
+            <h2 className="bank-panel-title" style={{ fontSize: '1.6rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TrendingUp size={22} strokeWidth={ICON_STROKE} color="#34d399" aria-hidden="true" />
+              <span>Income & Inflow</span>
             </h2>
             <p className="bank-panel-subtitle">
               Salary, allowances, business profit, freelance & money received.
@@ -304,9 +307,13 @@ export default function DepositsPage() {
               style={{
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 boxShadow: '0 4px 18px rgba(16, 185, 129, 0.35)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              <span>+</span> Record Income
+              <Plus size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Record Income</span>
             </button>
           </div>
         </div>
@@ -374,14 +381,18 @@ export default function DepositsPage() {
                       <span
                         style={{
                           fontSize: '0.74rem',
-                          padding: '1px 6px',
+                          padding: '1px 7px',
                           borderRadius: '5px',
                           background: 'rgba(16, 185, 129, 0.1)',
                           color: '#34d399',
                           border: '1px solid rgba(16, 185, 129, 0.25)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
                         }}
                       >
-                        📥 {d.account || 'Cash in Hand'}
+                        <Wallet size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                        <span>{d.account || 'Cash in Hand'}</span>
                       </span>
                     </div>
                   </div>
@@ -397,8 +408,11 @@ export default function DepositsPage() {
                         handleStartEdit(d);
                       }}
                       className="deposit-edit-btn"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      aria-label={`Edit ${displaySource}`}
                     >
-                      Edit
+                      <Pencil size={13} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                      <span>Edit</span>
                     </button>
                   </div>
                 </div>

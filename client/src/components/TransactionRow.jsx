@@ -1,39 +1,6 @@
 import React from 'react';
-
-export const getCategoryMeta = (category = '') => {
-  const cat = category.toLowerCase();
-  if (cat.includes('food') || cat.includes('drink')) {
-    return { icon: '🍽️', bg: 'rgba(245, 158, 11, 0.14)', label: 'Food & Drinks' };
-  }
-  if (cat.includes('transport') || cat.includes('fare') || cat.includes('rickshaw')) {
-    return { icon: '🚗', bg: 'rgba(56, 189, 248, 0.14)', label: 'Transport' };
-  }
-  if (cat.includes('phone') || cat.includes('internet') || cat.includes('comm')) {
-    return { icon: '📱', bg: 'rgba(129, 140, 248, 0.14)', label: 'Phone & Net' };
-  }
-  if (cat.includes('health') || cat.includes('med')) {
-    return { icon: '💊', bg: 'rgba(239, 68, 68, 0.14)', label: 'Health' };
-  }
-  if (cat.includes('cloth') || cat.includes('wear')) {
-    return { icon: '👕', bg: 'rgba(236, 72, 153, 0.14)', label: 'Clothing' };
-  }
-  if (cat.includes('study') || cat.includes('book') || cat.includes('suppl')) {
-    return { icon: '📚', bg: 'rgba(168, 85, 247, 0.14)', label: 'Study & Supplies' };
-  }
-  if (cat.includes('house') || cat.includes('rent')) {
-    return { icon: '🏠', bg: 'rgba(16, 185, 129, 0.14)', label: 'Housing' };
-  }
-  if (cat.includes('laundry') || cat.includes('util')) {
-    return { icon: '🧺', bg: 'rgba(6, 182, 212, 0.14)', label: 'Household' };
-  }
-  if (cat.includes('personal') || cat.includes('care')) {
-    return { icon: '✨', bg: 'rgba(244, 63, 94, 0.14)', label: 'Personal Care' };
-  }
-  if (cat.includes('shop')) {
-    return { icon: '🛍️', bg: 'rgba(251, 146, 60, 0.14)', label: 'Shopping' };
-  }
-  return { icon: '💳', bg: 'rgba(148, 163, 184, 0.12)', label: category || 'General' };
-};
+import { Pencil, Trash2 } from 'lucide-react';
+import { CategoryIcon, ICON_STROKE } from './AppIcons';
 
 export const formatDateGroupHeading = (dateStr) => {
   try {
@@ -79,22 +46,15 @@ export const getTransactionTime = (tx) => {
 };
 
 /**
- * Shared bKash-style expense transaction row.
+ * Shared bKash-style expense transaction row with Lucide icons.
  */
 export default function TransactionRow({ item, fmt, onEdit, onDelete }) {
-  const catMeta = getCategoryMeta(item.category);
   const txTime = getTransactionTime(item);
 
   return (
     <div className="bkash-tx-row">
       <div className="bkash-tx-left">
-        <div
-          className="bkash-tx-icon"
-          style={{ background: catMeta.bg }}
-          aria-hidden="true"
-        >
-          {catMeta.icon}
-        </div>
+        <CategoryIcon category={item.category} size={20} />
         <div className="bkash-tx-details">
           <div className="bkash-tx-title">{item.note || 'Expense'}</div>
           <div className="bkash-tx-meta">
@@ -121,16 +81,20 @@ export default function TransactionRow({ item, fmt, onEdit, onDelete }) {
             className="bkash-action-btn"
             onClick={() => onEdit(item)}
             title="Edit expense"
+            aria-label={`Edit ${item.note || 'expense'}`}
           >
-            Edit
+            <Pencil size={13} strokeWidth={ICON_STROKE} aria-hidden="true" style={{ marginRight: '4px' }} />
+            <span>Edit</span>
           </button>
           <button
             type="button"
             className="bkash-action-btn danger"
             onClick={() => onDelete(item)}
             title="Delete expense"
+            aria-label={`Delete ${item.note || 'expense'}`}
           >
-            Delete
+            <Trash2 size={13} strokeWidth={ICON_STROKE} aria-hidden="true" style={{ marginRight: '4px' }} />
+            <span>Delete</span>
           </button>
         </div>
       </div>

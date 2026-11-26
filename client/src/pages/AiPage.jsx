@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Sparkles, Target, FileText, MessageSquare, Plus, Bot, Lock, Send } from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -250,11 +252,11 @@ export default function AiPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '1.25rem',
+                  color: '#ffffff',
                   boxShadow: '0 4px 16px rgba(39, 139, 250, 0.35)',
                 }}
               >
-                ✨
+                <Sparkles size={20} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </div>
               <div>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.01em' }}>
@@ -272,33 +274,37 @@ export default function AiPage() {
               type="button"
               onClick={() => setShowGoalModal(true)}
               className="secondary"
-              style={{ padding: '7px 14px', fontSize: '0.8rem', fontWeight: 650, borderRadius: '9px', borderColor: 'rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', fontWeight: 650, borderRadius: '9px', borderColor: 'rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}
             >
-              🎯 Goal Planner
+              <Target size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Goal Planner</span>
             </button>
             <button
               type="button"
               onClick={handleGenerateReport}
               className="secondary"
-              style={{ padding: '7px 14px', fontSize: '0.8rem', fontWeight: 650, borderRadius: '9px', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#34d399' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', fontWeight: 650, borderRadius: '9px', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#34d399' }}
             >
-              📑 Executive Report
+              <FileText size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Executive Report</span>
             </button>
             <button
               type="button"
               onClick={() => setShowHistoryDrawer(!showHistoryDrawer)}
               className="secondary"
-              style={{ padding: '7px 14px', fontSize: '0.8rem', fontWeight: 650, borderRadius: '9px' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', fontWeight: 650, borderRadius: '9px' }}
             >
-              💬 History ({conversations.length})
+              <MessageSquare size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>History ({conversations.length})</span>
             </button>
             <button
               type="button"
               onClick={handleStartNewChat}
               className="primary"
-              style={{ padding: '7px 16px', fontSize: '0.8rem', fontWeight: 700, borderRadius: '9px' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 16px', fontSize: '0.8rem', fontWeight: 700, borderRadius: '9px' }}
             >
-              + New Chat
+              <Plus size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>New Chat</span>
             </button>
           </div>
         </div>
@@ -334,7 +340,9 @@ export default function AiPage() {
                 margin: 'auto 0',
               }}
             >
-              <div style={{ fontSize: '2.4rem', marginBottom: '8px' }}>🤖</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', color: '#38bdf8' }}>
+                <Bot size={36} strokeWidth={1.6} aria-hidden="true" />
+              </div>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', marginBottom: '6px' }}>
                 Welcome to Ledger AI
               </h3>
@@ -408,7 +416,7 @@ export default function AiPage() {
                 >
                   {!isUser && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid #141a27' }}>
-                      <span style={{ fontSize: '0.85rem' }}>✨</span>
+                      <Sparkles size={14} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
                       <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#38bdf8', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                         Ledger AI
                       </span>
@@ -487,14 +495,25 @@ export default function AiPage() {
                 fontWeight: 700,
                 fontSize: '0.9rem',
                 flexShrink: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              {loading ? '...' : 'Send ›'}
+              {loading ? '...' : (
+                <>
+                  <span>Send</span>
+                  <Send size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                </>
+              )}
             </button>
           </form>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', fontSize: '0.72rem', color: '#64748b' }}>
-            <span>🔒 Read-only security · Cannot alter database</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <Lock size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Read-only security · Cannot alter database</span>
+            </span>
             <span>Free Tier Gemini Powered</span>
           </div>
         </div>

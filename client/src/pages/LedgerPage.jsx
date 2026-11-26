@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { Receipt, Search, X, Copy, Share2 } from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 import db from '../db/localDb';
 import api from '../services/api';
 import { queueSync } from '../services/syncService';
@@ -464,7 +466,7 @@ export default function LedgerPage({ initialType = '' }) {
       {/* 1. EXPENSE SUMMARY CARD with the EXACT SAME NEON CIRCLE DESIGN AS TODAY TAB */}
       <div className="panel p-4 expense-total-panel">
         <div className="finance-summary-heading">
-          <span className="finance-summary-icon">▥</span>
+          <Receipt size={18} strokeWidth={ICON_STROKE} className="finance-summary-icon" aria-hidden="true" />
           <h2>EXPENSE SUMMARY</h2>
         </div>
 
@@ -509,15 +511,17 @@ export default function LedgerPage({ initialType = '' }) {
                 title="Clear search"
                 aria-label="Clear search"
               >
-                ×
+                <X size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </button>
             )}
           </div>
           <button
             type="submit"
             className="primary expense-search-btn"
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
           >
-            Search
+            <Search size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Search</span>
           </button>
         </form>
 
@@ -552,7 +556,9 @@ export default function LedgerPage({ initialType = '' }) {
         <div className="tx-history-stream">
           {groupedByDate.length === 0 ? (
             <div className="panel text-center py-8">
-              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔍</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', color: '#64748b' }}>
+                <Search size={32} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              </div>
               <p className="panel-sub" style={{ marginBottom: '14px' }}>
                 No expenses found matching "{activeSearch}".
               </p>
@@ -669,15 +675,19 @@ export default function LedgerPage({ initialType = '' }) {
                 type="button"
                 className="secondary"
                 onClick={handleCopyShareText}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                📋 Copy ready text
+                <Copy size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                <span>Copy ready text</span>
               </button>
               <button
                 type="button"
                 className="secondary"
                 onClick={handleNativeShare}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                ↗ Share…
+                <Share2 size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                <span>Share…</span>
               </button>
               {shareStatus && (
                 <span className="share-status-msg">{shareStatus}</span>
