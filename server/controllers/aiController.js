@@ -50,6 +50,7 @@ const chatWithAi = async (req, res) => {
       prompt: trimmedPrompt,
       systemInstruction,
       history,
+      financialContext,
     });
 
     // 5. Append messages to thread
