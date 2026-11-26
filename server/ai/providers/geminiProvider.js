@@ -82,9 +82,13 @@ class GeminiProvider extends BaseAiProvider {
           };
         }
         console.error('Gemini API Error:', response.status, errorText);
+        const fallback = this.generateDeterministicFallback(prompt, financialContext);
         return {
-          content: `⚠️ **AI Service Notice**: Received error status ${response.status} from Gemini API. Please verify your GEMINI_API_KEY in server/.env.`,
-          provider: 'gemini',
+          content:
+            `⚠️ **Gemini Service Notice (Status ${response.status})**\n\n` +
+            `Ledger AI switched to the local deterministic engine to ensure continuous insights:\n\n` +
+            fallback,
+          provider: 'ledger-deterministic-engine (fallback)',
           isFallback: true,
         };
       }
@@ -100,16 +104,14 @@ class GeminiProvider extends BaseAiProvider {
       };
     } catch (err) {
       console.error('Gemini request failed:', err);
-      if (err.name === 'AbortError') {
-        return {
-          content: '⚠️ **Request Timeout**: The Gemini API did not respond within 20 seconds. Please check your network connection and retry.',
-          provider: 'gemini',
-          isFallback: true,
-        };
-      }
+      // Seamlessly fall back to local deterministic financial analysis when offline or network fails
+      const fallback = this.generateDeterministicFallback(prompt, financialContext);
       return {
-        content: `⚠️ **Connection Notice**: Unable to contact Gemini API (${err.message}). Your ledger records and reports remain fully accessible offline.`,
-        provider: 'gemini',
+        content:
+          `💡 **Offline Advisory Mode Activated**\n\n` +
+          `*(Internet connection to Google Gemini is currently offline or unreachable. Ledger AI analyzed your verified local ledger records using the local deterministic engine:)*\n\n` +
+          fallback,
+        provider: 'ledger-deterministic-engine (offline)',
         isFallback: true,
       };
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 
 export default function AiPage() {
   const { user } = useAuth();
@@ -356,7 +357,6 @@ export default function AiPage() {
                     boxShadow: '0 4px 14px rgba(0, 0, 0, 0.4)',
                     lineHeight: 1.6,
                     fontSize: '0.9rem',
-                    whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
                   }}
                 >
@@ -368,7 +368,11 @@ export default function AiPage() {
                       </span>
                     </div>
                   )}
-                  {msg.content}
+                  {isUser ? (
+                    <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                  ) : (
+                    <MarkdownRenderer content={msg.content} />
+                  )}
                 </div>
               </div>
             );
