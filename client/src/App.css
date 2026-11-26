@@ -1994,6 +1994,80 @@ html, body {
   gap: 8px;
 }
 
+/* DL-003: Responsive Add Expense Modal Amount & Category Grid */
+.expense-modal-amount-category-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .expense-modal-amount-category-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* DL-005: Income History Mobile Presentation */
+  .deposit-row-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 14px;
+    background: #090d16;
+    border: 1px solid #1a2233;
+    margin-bottom: 10px;
+    border-radius: 14px;
+  }
+
+  .deposit-row-card:hover {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .deposit-row-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .deposit-source-name {
+    font-size: 1.05rem;
+    font-weight: 750;
+    color: #f8fafc;
+  }
+
+  .deposit-date-tag {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 0.75rem;
+  }
+
+  .deposit-row-right {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    border-top: 1px solid #141a27;
+    gap: 10px;
+  }
+
+  .deposit-amount-pill {
+    font-size: 1.15rem;
+    font-weight: 850;
+    color: #34d399;
+  }
+
+  .deposit-edit-btn {
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    background: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+  }
+}
+
 /* Bank Page - Refined, Spacious, Professional Layout */
 .bank-page-container {
   display: flex;

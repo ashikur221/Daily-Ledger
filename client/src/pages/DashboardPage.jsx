@@ -426,7 +426,7 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="expense-modal-amount-category-grid">
                 <div className="form-item">
                   <label className="form-label" htmlFor="dash-expense-amount">Amount (৳)</label>
                   <input
