@@ -1,16 +1,19 @@
-/* Daily Ledger — Pitch-Black Futuristic Neon Theme */
+/* Daily Ledger — Pitch-Black & Blue Gradient Theme */
 :root {
   color-scheme: dark !important;
-  --ledger-black: #000000;
-  --ledger-panel: #050608;
-  --ledger-line: #252a35;
-  --ledger-text: #f4f7ff;
-  --ledger-muted: #b5bfd0;
-  --primary-blue: #29365b;
-  --primary-border: #7185e5;
-  --neon-cyan: #7dd3fc;
-  --neon-indigo: #818cf8;
+  --ledger-bg: #050505;
+  --ledger-surface: #0a0a0f;
+  --ledger-black: #050505;
+  --ledger-panel: #101116;
+  --ledger-line: #252936;
+  --ledger-text: #f5f7fa;
+  --ledger-muted: #9ca3af;
+  --primary-blue: #278bfa;
+  --primary-border: #5145e5;
+  --neon-cyan: #06b6d4;
+  --neon-indigo: #5145e5;
   --neon-purple: #c084fc;
+  --action-gradient: linear-gradient(105deg, #5145e5, #278bfa, #06b6d4);
 }
 
 * {
@@ -410,23 +413,29 @@ html, body {
 }
 
 .primary {
-  background: #29365b !important;
-  color: #fff !important;
-  border: 1px solid #7185e5 !important;
+  background: linear-gradient(105deg, #5145e5 0%, #278bfa 50%, #06b6d4 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(39, 139, 250, 0.45) !important;
   border-radius: 10px;
   padding: 12px 16px;
   font-weight: 650;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 18px rgba(39, 139, 250, 0.22);
 }
 
 .primary:hover {
-  filter: brightness(1.2);
-  box-shadow: 0 0 16px rgba(113, 133, 229, 0.25);
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(39, 139, 250, 0.35);
+}
+
+.primary:active {
+  transform: translateY(1px);
 }
 
 .primary.w-full {
