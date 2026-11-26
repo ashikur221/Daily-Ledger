@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { Check, Lock, Unlock, ShieldCheck, ListTodo } from 'lucide-react';
+import {
+  Check,
+  Lock,
+  Unlock,
+  ShieldCheck,
+  ListTodo,
+  Plus,
+  Trash2,
+  Search,
+  X,
+  Copy,
+  Eye,
+  EyeOff,
+  FileText,
+} from 'lucide-react';
 import { ICON_STROKE } from '../components/AppIcons';
 import db from '../db/localDb';
 import api from '../services/api';
@@ -349,101 +363,86 @@ export default function ProductivityPage() {
     );
   });
 
+  const getProviderBadgeStyle = (category = '') => {
+    const cat = category.toLowerCase();
+    if (cat.includes('bkash')) {
+      return { background: 'rgba(225, 29, 72, 0.14)', color: '#fb7185', border: '1px solid rgba(225, 29, 72, 0.28)' };
+    }
+    if (cat.includes('nagad')) {
+      return { background: 'rgba(245, 158, 11, 0.14)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.28)' };
+    }
+    if (cat.includes('rocket')) {
+      return { background: 'rgba(168, 85, 247, 0.14)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.28)' };
+    }
+    if (cat.includes('card')) {
+      return { background: 'rgba(16, 185, 129, 0.14)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.28)' };
+    }
+    return { background: 'rgba(56, 189, 248, 0.14)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.28)' };
+  };
+
   return (
-    <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '60px' }}>
+    <div className="pv-page-wrap">
       
-      {/* 1. Header with Tab Switcher */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+      {/* 1. Header with Segmented Tab Switcher */}
+      <div className="pv-header-row">
         <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
-            Daily Tasks & Secure Vault
-          </h1>
-          <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '6px' }}>
-            Daily to-do management and client-side encrypted password keeper for banks & MFS.
+          <h1 className="pv-title">Daily Tasks &amp; Secure Vault</h1>
+          <p className="pv-subtitle">
+            Daily to-do management and client-side encrypted password keeper for banks &amp; MFS.
           </p>
         </div>
 
-        {/* Tab Toggle */}
-        <div style={{ display: 'flex', background: '#090d15', padding: '4px', borderRadius: '12px', border: '1px solid #1a202c' }}>
+        {/* Segmented Tab Toggle */}
+        <div className="pv-tabs-bar" role="tablist" aria-label="Workspace Sections">
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'todos'}
             onClick={() => setActiveTab('todos')}
-            style={{
-              padding: '8px 18px',
-              borderRadius: '9px',
-              fontSize: '0.85rem',
-              fontWeight: 650,
-              border: 'none',
-              cursor: 'pointer',
-              background: activeTab === 'todos' ? '#3b82f6' : 'transparent',
-              color: activeTab === 'todos' ? '#ffffff' : '#94a3b8',
-              transition: 'all 0.18s ease',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
+            className={`pv-tab-btn ${activeTab === 'todos' ? 'active-tasks' : ''}`}
           >
             <Check size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
             <span>Daily Tasks ({todos.filter((t) => !t.data?.completed).length})</span>
           </button>
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'vault'}
             onClick={() => setActiveTab('vault')}
-            style={{
-              padding: '8px 18px',
-              borderRadius: '9px',
-              fontSize: '0.85rem',
-              fontWeight: 650,
-              border: 'none',
-              cursor: 'pointer',
-              background: activeTab === 'vault' ? '#e11d48' : 'transparent',
-              color: activeTab === 'vault' ? '#ffffff' : '#94a3b8',
-              transition: 'all 0.18s ease',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
+            className={`pv-tab-btn ${activeTab === 'vault' ? 'active-vault' : ''}`}
           >
             <Lock size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
-            <span>Bank & bKash Vault</span>
+            <span>Bank &amp; bKash Vault</span>
           </button>
         </div>
       </div>
 
       {/* ========================================================= */}
-      {/* TAB 1: DAILY TO-DO LIST                                   */}
+      {/* TAB 1: DAILY TO-DO LIST (DL-008)                          */}
       {/* ========================================================= */}
       {activeTab === 'todos' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
-          {/* Header & Filter Bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', background: '#050608', border: '1px solid #1a202c', padding: '14px 20px', borderRadius: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '0.95rem', color: '#f8fafc', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          {/* Task Summary, Segmented Filter & New Task Action */}
+          <div className="tasks-toolbar">
+            <div className="tasks-summary-meta">
+              <span style={{ fontSize: '0.95rem', color: '#f5f7fa', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
                 <ListTodo size={17} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
                 <span>Tasks</span>
               </span>
-              <span style={{ fontSize: '0.82rem', color: '#94a3b8', background: '#0c121e', padding: '3px 10px', borderRadius: '12px', border: '1px solid #1e293b' }}>
+              <span className="tasks-summary-pill">
                 {todos.length} total · {todos.filter((t) => t.data?.completed).length} completed
               </span>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: '6px' }}>
+            <div className="tasks-controls-group">
+              <div className="tasks-filter-group" role="group" aria-label="Filter tasks">
                 {['all', 'active', 'completed'].map((f) => (
                   <button
                     key={f}
+                    type="button"
                     onClick={() => setTodoFilter(f)}
-                    style={{
-                      fontSize: '0.78rem',
-                      padding: '5px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid',
-                      borderColor: todoFilter === f ? '#3b82f6' : '#232a3b',
-                      background: todoFilter === f ? 'rgba(59, 130, 246, 0.15)' : '#090d15',
-                      color: todoFilter === f ? '#38bdf8' : '#94a3b8',
-                      cursor: 'pointer',
-                      textTransform: 'capitalize',
-                      fontWeight: 600,
-                    }}
+                    className={`tasks-filter-btn ${todoFilter === f ? 'active' : ''}`}
                   >
                     {f}
                   </button>
@@ -451,11 +450,11 @@ export default function ProductivityPage() {
               </div>
               <button
                 type="button"
-                className="primary"
+                className="primary tasks-new-btn"
                 onClick={() => setShowAddTodoModal(true)}
-                style={{ padding: '6px 16px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 700 }}
               >
-                + New Task
+                <Plus size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                <span>New Task</span>
               </button>
             </div>
           </div>
@@ -463,84 +462,44 @@ export default function ProductivityPage() {
           {/* Tasks List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {filteredTodos.length === 0 ? (
-              <div className="panel" style={{ padding: '36px', textAlign: 'center', background: '#050608', border: '1px solid #1a202c', borderRadius: '14px' }}>
-                <p style={{ color: '#64748b', fontSize: '0.88rem' }}>No tasks found in this view.</p>
+              <div className="panel" style={{ padding: '36px', textAlign: 'center', background: '#101116', border: '1px solid #252936', borderRadius: '14px' }}>
+                <p style={{ color: '#9ca3af', fontSize: '0.88rem', margin: 0 }}>No tasks found in this view.</p>
               </div>
             ) : (
               filteredTodos.map((t) => {
-                const isDone = t.data?.completed;
+                const isDone = Boolean(t.data?.completed);
+                const priority = (t.data?.priority || 'medium').toLowerCase();
                 return (
                   <div
                     key={t.localId}
-                    className="panel"
-                    style={{
-                      background: '#050608',
-                      border: '1px solid #1a202c',
-                      borderRadius: '12px',
-                      padding: '14px 18px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '14px',
-                      transition: 'all 0.2s ease',
-                      opacity: isDone ? 0.6 : 1,
-                    }}
+                    className={`task-card ${isDone ? 'completed' : ''}`}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                    <label className="task-card-left" style={{ cursor: 'pointer' }}>
                       <input
                         type="checkbox"
-                        checked={isDone || false}
+                        checked={isDone}
                         onChange={() => handleToggleTodo(t)}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#3b82f6' }}
+                        className="task-checkbox"
+                        aria-label={`Mark "${t.data?.text}" as ${isDone ? 'active' : 'completed'}`}
                       />
-                      <span
-                        style={{
-                          fontSize: '0.92rem',
-                          color: isDone ? '#64748b' : '#f8fafc',
-                          textDecoration: isDone ? 'line-through' : 'none',
-                        }}
-                      >
+                      <span className="task-title-text">
                         {t.data?.text}
                       </span>
-                    </div>
+                    </label>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span
-                        style={{
-                          fontSize: '0.68rem',
-                          padding: '2px 8px',
-                          borderRadius: '999px',
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          background:
-                            t.data?.priority === 'high'
-                              ? 'rgba(239, 68, 68, 0.15)'
-                              : t.data?.priority === 'medium'
-                              ? 'rgba(245, 158, 11, 0.15)'
-                              : 'rgba(16, 185, 129, 0.15)',
-                          color:
-                            t.data?.priority === 'high'
-                              ? '#f87171'
-                              : t.data?.priority === 'medium'
-                              ? '#fbbf24'
-                              : '#34d399',
-                        }}
-                      >
+                    <div className="task-card-right">
+                      <span className={`priority-badge ${priority}`}>
                         {t.data?.priority}
                       </span>
 
                       <button
+                        type="button"
                         onClick={() => handleDeleteTodo(t)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#64748b',
-                          cursor: 'pointer',
-                          fontSize: '1.1rem',
-                        }}
-                        title="Delete"
+                        className="pv-icon-delete-btn"
+                        title="Delete task"
+                        aria-label={`Delete task "${t.data?.text}"`}
                       >
-                        ×
+                        <Trash2 size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -689,9 +648,13 @@ export default function ProductivityPage() {
                     fontWeight: 650,
                     fontSize: '0.85rem',
                     background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   }}
                 >
-                  + Add Bank / bKash Secret
+                  <Plus size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                  <span>Add Bank / bKash Secret</span>
                 </button>
               </div>
 
@@ -706,11 +669,11 @@ export default function ProductivityPage() {
                         top: '50%',
                         transform: 'translateY(-50%)',
                         color: '#64748b',
-                        fontSize: '0.95rem',
+                        display: 'inline-flex',
                         pointerEvents: 'none',
                       }}
                     >
-                      🔍
+                      <Search size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
                     </span>
                     <input
                       type="text"
@@ -721,11 +684,11 @@ export default function ProductivityPage() {
                       style={{
                         width: '100%',
                         height: '42px',
-                        paddingLeft: '38px',
-                        paddingRight: vaultSearchQuery ? '36px' : '14px',
+                        paddingLeft: '40px',
+                        paddingRight: vaultSearchQuery ? '38px' : '14px',
                         borderRadius: '10px',
-                        background: '#090d15',
-                        border: '1px solid #1a202c',
+                        background: '#0a0a0f',
+                        border: '1px solid #252936',
                         fontSize: '0.88rem',
                       }}
                     />
@@ -735,19 +698,20 @@ export default function ProductivityPage() {
                         onClick={() => setVaultSearchQuery('')}
                         style={{
                           position: 'absolute',
-                          right: '12px',
+                          right: '10px',
                           top: '50%',
                           transform: 'translateY(-50%)',
                           background: 'transparent',
                           border: 'none',
-                          color: '#94a3b8',
+                          color: '#9ca3af',
                           cursor: 'pointer',
-                          fontSize: '1rem',
                           padding: '4px',
+                          display: 'inline-flex',
                         }}
                         title="Clear search"
+                        aria-label="Clear search"
                       >
-                        ✕
+                        <X size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
                       </button>
                     )}
                   </div>
@@ -818,121 +782,85 @@ export default function ProductivityPage() {
                 filteredVaultItems.map((item) => {
                   const dec = unlockedSecrets[item.localId] || {};
                   const isVisible = visiblePins[item.localId];
+                  const badgeStyle = getProviderBadgeStyle(item.data?.category);
 
                   return (
-                    <div
-                      key={item.localId}
-                      className="panel"
-                      style={{
-                        background: '#050608',
-                        border: '1px solid #1a202c',
-                        borderRadius: '14px',
-                        padding: '18px 22px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '12px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc' }}>
+                    <div key={item.localId} className="vault-card">
+                      <div className="vault-card-header">
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div className="vault-card-title-row">
+                            <span className="vault-card-title">
                               {item.data?.title}
                             </span>
-                            <span
-                              style={{
-                                fontSize: '0.68rem',
-                                padding: '2px 8px',
-                                borderRadius: '999px',
-                                fontWeight: 700,
-                                background:
-                                  item.data?.category === 'bKash'
-                                    ? 'rgba(225, 29, 72, 0.15)'
-                                    : item.data?.category === 'Nagad'
-                                    ? 'rgba(245, 158, 11, 0.15)'
-                                    : 'rgba(56, 189, 248, 0.15)',
-                                color:
-                                  item.data?.category === 'bKash'
-                                    ? '#fb7185'
-                                    : item.data?.category === 'Nagad'
-                                    ? '#fbbf24'
-                                    : '#38bdf8',
-                              }}
-                            >
+                            <span className="vault-provider-badge" style={badgeStyle}>
                               {item.data?.category}
                             </span>
                           </div>
                           {dec.accountNumber && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>
+                            <div className="vault-account-row">
                               <span>Account / Phone:</span>
-                              <strong style={{ color: '#e2e8f0' }}>{dec.accountNumber}</strong>
+                              <span className="vault-account-number">{dec.accountNumber}</span>
                               <button
                                 type="button"
                                 onClick={() => {
                                   navigator.clipboard.writeText(dec.accountNumber);
                                   toast.info('Account number copied!');
                                 }}
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: '#38bdf8',
-                                  fontSize: '0.78rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  padding: '0 4px',
-                                }}
+                                className="vault-copy-inline-btn"
                                 title="Copy Account Number"
+                                aria-label={`Copy account number for ${item.data?.title}`}
                               >
-                                📋 Copy
+                                <Copy size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                                <span>Copy</span>
                               </button>
                             </div>
                           )}
                         </div>
 
                         <button
+                          type="button"
                           onClick={() => handleDeleteVaultItem(item)}
-                          style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.2rem' }}
-                          title="Delete"
+                          className="pv-icon-delete-btn"
+                          title="Remove credential"
+                          aria-label={`Remove ${item.data?.title}`}
                         >
-                          ×
+                          <Trash2 size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
                         </button>
                       </div>
 
                       {/* Decrypted PIN / Password Display */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          background: '#090d15',
-                          borderRadius: '10px',
-                          padding: '10px 14px',
-                          border: '1px solid #1a202c',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>PIN / Password:</span>
-                          <span style={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: isVisible ? '0.08em' : '0.25em', color: isVisible ? '#38bdf8' : '#94a3b8' }}>
+                      <div className="vault-pin-box">
+                        <div className="vault-pin-value-wrap">
+                          <span className="vault-pin-label">PIN / Password:</span>
+                          <span
+                            className="vault-pin-value"
+                            style={{
+                              letterSpacing: isVisible ? '0.08em' : '0.22em',
+                              color: isVisible ? '#38bdf8' : '#9ca3af',
+                            }}
+                          >
                             {isVisible ? dec.secretPin || 'None' : '••••••••'}
                           </span>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="vault-pin-actions">
                           <button
                             type="button"
                             onClick={() => togglePinVisibility(item.localId)}
-                            style={{
-                              background: '#151b23',
-                              border: '1px solid #232a3b',
-                              borderRadius: '6px',
-                              padding: '4px 10px',
-                              color: '#cbd5e1',
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                            }}
+                            className="vault-pin-btn"
+                            aria-label={isVisible ? 'Hide PIN or password' : 'Reveal PIN or password'}
                           >
-                            {isVisible ? 'Hide' : 'Reveal'}
+                            {isVisible ? (
+                              <>
+                                <EyeOff size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                                <span>Hide</span>
+                              </>
+                            ) : (
+                              <>
+                                <Eye size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                                <span>Reveal</span>
+                              </>
+                            )}
                           </button>
                           <button
                             type="button"
@@ -942,25 +870,19 @@ export default function ProductivityPage() {
                                 toast.info('PIN copied to clipboard!');
                               }
                             }}
-                            style={{
-                              background: '#151b23',
-                              border: '1px solid #232a3b',
-                              borderRadius: '6px',
-                              padding: '4px 10px',
-                              color: '#cbd5e1',
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                            }}
+                            className="vault-pin-btn"
+                            aria-label="Copy PIN or password"
                           >
-                            Copy
+                            <Copy size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                            <span>Copy</span>
                           </button>
                         </div>
                       </div>
 
                       {dec.notes && (
-                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, background: '#090d15', padding: '8px 12px', borderRadius: '8px' }}>
-                          📝 {dec.notes}
+                        <div className="vault-notes-box">
+                          <FileText size={14} strokeWidth={ICON_STROKE} style={{ marginTop: '2px', flexShrink: 0 }} aria-hidden="true" />
+                          <span>{dec.notes}</span>
                         </div>
                       )}
                     </div>
@@ -976,8 +898,9 @@ export default function ProductivityPage() {
       {showAddVaultModal && (
         <div className="modal-overlay" onClick={() => setShowAddVaultModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px', background: '#0b0f17', border: '1px solid #232a3b' }}>
-            <h2 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
-              🔒 Add Encrypted Credential
+            <h2 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Lock size={18} strokeWidth={ICON_STROKE} color="#fb7185" aria-hidden="true" />
+              <span>Add Encrypted Credential</span>
             </h2>
             <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
               Stored with 256-bit client-side AES encryption.
@@ -1069,9 +992,14 @@ export default function ProductivityPage() {
                     borderRadius: '10px',
                     fontWeight: 700,
                     background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
                   }}
                 >
-                  Encrypt & Save 🔒
+                  <Lock size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                  <span>Encrypt &amp; Save</span>
                 </button>
               </div>
             </form>
@@ -1083,8 +1011,9 @@ export default function ProductivityPage() {
       {showAddTodoModal && (
         <div className="modal-overlay" onClick={() => setShowAddTodoModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px', background: '#0b0f17', border: '1px solid #232a3b' }}>
-            <h2 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
-              📋 Add New Task
+            <h2 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ListTodo size={18} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
+              <span>Add New Task</span>
             </h2>
             <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: '4px', marginBottom: '16px' }}>
               Keep track of bills to pay, cash transfers, or daily financial chores.
