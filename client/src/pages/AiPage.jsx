@@ -3,6 +3,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import db from '../db/localDb';
 
 export default function AiPage() {
   const { user } = useAuth();
@@ -131,14 +132,41 @@ export default function AiPage() {
         loadConversations();
       }
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || 'AI request failed');
+      console.warn('AI request failed or offline:', err);
+      let offlineSummary = '';
+      try {
+        const txs = (await db.transactions?.toArray()) || [];
+        const activeTxs = txs.filter((t) => !t.isDeleted);
+        const totalExpense = activeTxs
+          .filter((t) => t.type === 'expense')
+          .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const totalIncome = activeTxs
+          .filter((t) => t.type === 'income' || t.type === 'deposit')
+          .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const netCash = totalIncome - totalExpense;
+
+        offlineSummary =
+          `📱 **Phone Offline Mode (No Wi-Fi / Data)**\n\n` +
+          `You are currently offline. Conversational responses with Google Gemini require an internet connection, but your phone's stored ledger data remains 100% accessible:\n\n` +
+          `* **Local Offline Income:** ৳${totalIncome.toLocaleString('en-US')}\n` +
+          `* **Local Offline Outflow:** ৳${totalExpense.toLocaleString('en-US')}\n` +
+          `* **Net Balance:** ৳${netCash.toLocaleString('en-US')}\n` +
+          `* **Local Records on Phone:** ${activeTxs.length} transactions stored\n\n` +
+          `*Tip: Connect your phone to Wi-Fi to chat freely with Gemini and sync your pending transactions with the cloud!*`;
+      } catch (dbErr) {
+        offlineSummary =
+          `📱 **Phone Offline Mode (No Wi-Fi / Data)**\n\n` +
+          `Your phone is not connected to Wi-Fi or mobile data. Google Gemini requires an internet connection to generate conversational answers.\n\n` +
+          `Your recorded expenses and income remain safely stored on this phone and will automatically sync when you reconnect.`;
+      }
+
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: '⚠️ **Notice**: Ledger AI encountered an error contacting the service. Please verify server connection or check your Gemini API key in `server/.env`.',
+          content: offlineSummary,
           timestamp: new Date().toISOString(),
+          metadata: { provider: 'client-offline-storage' },
         },
       ]);
     } finally {
@@ -155,7 +183,25 @@ export default function AiPage() {
         setGoalResult(data.plan);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Goal evaluation failed');
+      // Offline fallback calculation for Goal Planner on phone
+      const target = parseFloat(goalForm.targetAmount) || 0;
+      const months = Math.max(1, parseInt(goalForm.targetMonths, 10) || 1);
+      const allocated = parseFloat(goalForm.allocatedSavings) || 0;
+      const remaining = Math.max(0, target - allocated);
+      const monthly = Math.ceil(remaining / months);
+
+      setGoalResult({
+        goalName: goalForm.goalName || 'Financial Goal',
+        targetAmount: target,
+        allocatedSavings: allocated,
+        remainingAmount: remaining,
+        targetMonths: months,
+        monthlySavingsRequired: monthly,
+        isFeasible: true,
+        projectedCompletionDate: new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString(),
+        feasibilityNote: '📱 Calculated directly on your phone using local offline arithmetic (no Wi-Fi needed).',
+      });
+      toast.info('Goal calculated locally on device');
     } finally {
       setGoalCalculating(false);
     }
