@@ -17,7 +17,8 @@ export default function LedgerPage({ initialType = '' }) {
   const [loading, setLoading] = useState(true);
 
   // Search state
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
 
   // Date Range Share state
   const [fromDate, setFromDate] = useState('');
@@ -122,40 +123,35 @@ export default function LedgerPage({ initialType = '' }) {
     return daySet.size;
   }, [allExpenses]);
 
-  // Real-time search matches & calculation
+  // Submitted search matches & calculation
   const searchResults = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = activeSearch.trim().toLowerCase();
     if (!q) return null;
 
-    const matches = allExpenses.filter((t) => {
-      const titleMatch = (t.note || '').toLowerCase().includes(q);
-      const catMatch = (t.category || '').toLowerCase().includes(q);
-      const dateMatch = new Date(t.date).toISOString().split('T')[0].includes(q);
-      return titleMatch || catMatch || dateMatch;
-    });
+    const matches = allExpenses.filter((t) =>
+      (t.note || '').toLowerCase().includes(q)
+    );
 
     const sum = matches.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
     return {
-      query: search.trim(),
+      query: activeSearch.trim(),
       count: matches.length,
       total: sum,
     };
-  }, [allExpenses, search]);
+  }, [allExpenses, activeSearch]);
 
   // Group expenses by Date
   const groupedByDate = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = activeSearch.trim().toLowerCase();
     const groups = {};
 
     allExpenses.forEach((tx) => {
-      const dateKey = new Date(tx.date).toISOString().split('T')[0];
-
       if (q) {
         const titleMatch = (tx.note || '').toLowerCase().includes(q);
-        const catMatch = (tx.category || '').toLowerCase().includes(q);
-        const dateMatch = dateKey.includes(q);
-        if (!titleMatch && !catMatch && !dateMatch) return;
+        if (!titleMatch) return;
       }
+
+      const dateKey = new Date(tx.date).toISOString().split('T')[0];
 
       if (!groups[dateKey]) {
         groups[dateKey] = {
@@ -168,14 +164,33 @@ export default function LedgerPage({ initialType = '' }) {
       groups[dateKey].total += Number(tx.amount) || 0;
     });
 
+    // Sort items within each date group chronologically, newest first
+    Object.values(groups).forEach((group) => {
+      group.items.sort((a, b) => {
+        const timeA = new Date(a.clientUpdatedAt || a.createdAt || a.date).getTime() || 0;
+        const timeB = new Date(b.clientUpdatedAt || b.createdAt || b.date).getTime() || 0;
+        return timeB - timeA;
+      });
+    });
+
     // Sort dates newest to oldest
     return Object.values(groups).sort((a, b) => b.date.localeCompare(a.date));
-  }, [allExpenses, search]);
+  }, [allExpenses, activeSearch]);
 
   // Reset visibleCount when search changes so first matches show up immediately
   useEffect(() => {
     setVisibleCount(INITIAL_BATCH_SIZE);
-  }, [search]);
+  }, [activeSearch]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    setActiveSearch(searchInput.trim());
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setActiveSearch('');
+  };
 
   // Infinite Scroll / Virtual batching via IntersectionObserver
   useEffect(() => {
@@ -443,16 +458,82 @@ export default function LedgerPage({ initialType = '' }) {
 
   const fmt = (n) => `৳${Number(n || 0).toLocaleString('en-IN')}`;
 
-  const formatHeaderDate = (dateStr) => {
+  const getCategoryMeta = (category = '') => {
+    const cat = category.toLowerCase();
+    if (cat.includes('food') || cat.includes('drink')) {
+      return { icon: '🍽️', bg: 'rgba(245, 158, 11, 0.14)', label: 'Food & Drinks' };
+    }
+    if (cat.includes('transport') || cat.includes('fare') || cat.includes('rickshaw')) {
+      return { icon: '🚗', bg: 'rgba(56, 189, 248, 0.14)', label: 'Transport' };
+    }
+    if (cat.includes('phone') || cat.includes('internet') || cat.includes('comm')) {
+      return { icon: '📱', bg: 'rgba(129, 140, 248, 0.14)', label: 'Phone & Net' };
+    }
+    if (cat.includes('health') || cat.includes('med')) {
+      return { icon: '💊', bg: 'rgba(239, 68, 68, 0.14)', label: 'Health' };
+    }
+    if (cat.includes('cloth') || cat.includes('wear')) {
+      return { icon: '👕', bg: 'rgba(236, 72, 153, 0.14)', label: 'Clothing' };
+    }
+    if (cat.includes('study') || cat.includes('book') || cat.includes('suppl')) {
+      return { icon: '📚', bg: 'rgba(168, 85, 247, 0.14)', label: 'Study & Supplies' };
+    }
+    if (cat.includes('house') || cat.includes('rent')) {
+      return { icon: '🏠', bg: 'rgba(16, 185, 129, 0.14)', label: 'Housing' };
+    }
+    if (cat.includes('laundry') || cat.includes('util')) {
+      return { icon: '🧺', bg: 'rgba(6, 182, 212, 0.14)', label: 'Household' };
+    }
+    if (cat.includes('personal') || cat.includes('care')) {
+      return { icon: '✨', bg: 'rgba(244, 63, 94, 0.14)', label: 'Personal Care' };
+    }
+    if (cat.includes('shop')) {
+      return { icon: '🛍️', bg: 'rgba(251, 146, 60, 0.14)', label: 'Shopping' };
+    }
+    return { icon: '💳', bg: 'rgba(148, 163, 184, 0.12)', label: category || 'General' };
+  };
+
+  const formatDateGroupHeading = (dateStr) => {
     try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const yest = new Date();
+      yest.setDate(yest.getDate() - 1);
+      const yesterdayStr = yest.toISOString().split('T')[0];
+
       const d = new Date(dateStr + 'T00:00:00');
-      return d.toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
+      const formattedDate = d
+        .toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+        .toUpperCase();
+
+      if (dateStr === todayStr) return `TODAY — ${formattedDate}`;
+      if (dateStr === yesterdayStr) return `YESTERDAY — ${formattedDate}`;
+      return formattedDate;
     } catch {
       return dateStr;
+    }
+  };
+
+  const getTransactionTime = (tx) => {
+    try {
+      const raw = tx.clientUpdatedAt || tx.createdAt || tx.date;
+      if (!raw) return null;
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return null;
+      // Only show time if it isn't exact midnight UTC/local placeholder
+      if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
+        return null;
+      }
+      return d.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return null;
     }
   };
 
@@ -481,56 +562,65 @@ export default function LedgerPage({ initialType = '' }) {
         </div>
       </div>
 
-      {/* 2. Expense History & Quick Search */}
+      {/* 2. Search by Title */}
       <div className="panel">
-        <div className="expense-history-header-row">
-          <div>
-            <h2 className="panel-title">Expense history</h2>
-            <p className="panel-sub">Browse previous days and their itemized expenses.</p>
+        <div>
+          <h2 className="panel-title">Search by Title</h2>
+          <p className="panel-sub">Find your expenses quickly using their title.</p>
+        </div>
+
+        <form onSubmit={handleSearchSubmit} className="expense-search-form">
+          <div className="expense-search-input-wrap">
+            <input
+              id="historySearch"
+              type="text"
+              className="field"
+              placeholder="Enter expense title..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            {(searchInput || activeSearch) && (
+              <button
+                type="button"
+                className="expense-search-clear-icon"
+                onClick={handleClearSearch}
+                title="Clear search"
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
           </div>
           <button
-            type="button"
-            className="primary"
-            onClick={() => handleOpenAddForDate('')}
+            type="submit"
+            className="primary expense-search-btn"
           >
-            + Add Expense
+            Search
           </button>
-        </div>
+        </form>
 
-        {/* Search Bar */}
-        <div className="search-bar-wrap">
-          <input
-            id="historySearch"
-            type="text"
-            className="field"
-            placeholder="Search title, category or date…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {search && (
+        {/* Submitted Search Summary */}
+        {searchResults && (
+          <div className="expense-search-summary">
+            <div>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                Total spent on <strong style={{ color: '#f8fafc' }}>"{searchResults.query}"</strong>
+              </div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#38bdf8', marginTop: '2px' }}>
+                {fmt(searchResults.total)}{' '}
+                <span style={{ fontSize: '0.78rem', fontWeight: 500, color: '#94a3b8' }}>
+                  ({searchResults.count} matching {searchResults.count === 1 ? 'entry' : 'entries'})
+                </span>
+              </div>
+            </div>
             <button
               type="button"
-              className="search-clear-btn"
-              onClick={() => setSearch('')}
-              title="Clear search"
+              className="secondary"
+              onClick={handleClearSearch}
+              style={{ padding: '6px 12px', fontSize: '0.78rem', fontWeight: 600, borderRadius: '8px' }}
             >
-              ×
+              Clear Search
             </button>
-          )}
-        </div>
-
-        {/* Real-Time Search Summary Badge */}
-        {searchResults && (
-          <div className="search-summary-box">
-            <div className="search-summary-label">
-              Total spent on "{searchResults.query}"
-            </div>
-            <div className="search-summary-amount">
-              {fmt(searchResults.total)}
-            </div>
-            <div className="search-summary-sub">
-              {searchResults.count} matching expense {searchResults.count === 1 ? 'entry' : 'entries'} · Itemized expenses only
-            </div>
           </div>
         )}
       </div>
@@ -605,8 +695,8 @@ export default function LedgerPage({ initialType = '' }) {
         )}
       </div>
 
-      {/* 4. Grouped Itemized Accordion by Day */}
-      <div className="history-grouped-list">
+      {/* 4. Date-Grouped Banking Transaction History */}
+      <div className="tx-history-stream">
         {loading ? (
           <div className="panel text-center py-8">
             <div className="spinner-lg mx-auto mb-3" />
@@ -614,108 +704,101 @@ export default function LedgerPage({ initialType = '' }) {
           </div>
         ) : groupedByDate.length === 0 ? (
           <div className="panel text-center py-8">
-            <p className="panel-sub">
-              {search ? `No expenses matching "${search}"` : 'No recorded expenses yet.'}
+            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>
+              {activeSearch ? '🔍' : '📒'}
+            </div>
+            <p className="panel-sub" style={{ marginBottom: activeSearch ? '14px' : '0' }}>
+              {activeSearch
+                ? `No expenses found matching "${activeSearch}".`
+                : 'No recorded expenses yet.'}
             </p>
+            {activeSearch && (
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleClearSearch}
+                style={{ padding: '7px 16px', fontSize: '0.82rem', fontWeight: 600 }}
+              >
+                Clear Search & Show All
+              </button>
+            )}
           </div>
         ) : (
           <>
-            {displayedGroups.map((group) => {
-              const isOpen = openDates[group.date] ?? (search ? true : false);
+            {displayedGroups.map((group) => (
+              <div key={group.date} className="tx-date-group">
+                <div className="tx-date-group-header">
+                  <span className="tx-date-group-label">
+                    {formatDateGroupHeading(group.date)}
+                  </span>
+                  <span className="tx-date-group-total">
+                    Daily total: {fmt(group.total)}
+                  </span>
+                </div>
 
-              return (
-                <div key={group.date} className="panel history-date-card">
-                  {/* Clickable Date Summary Header */}
-                  <div
-                    className="history-date-header"
-                    onClick={() => toggleDate(group.date)}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <div>
-                      <div className="history-date-title">
-                        {formatHeaderDate(group.date)}
-                      </div>
-                      <div className="history-date-meta">
-                        {group.items.length} itemized {group.items.length === 1 ? 'entry' : 'entries'}
-                      </div>
-                    </div>
-
-                    <div className="history-date-right">
-                      <span className="history-date-amount">{fmt(group.total)}</span>
-                      <span className={`accordion-chevron ${isOpen ? 'open' : ''}`}>
-                        ⌄
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Collapsible itemized entries body */}
-                  {isOpen && (
-                    <div className="history-date-body">
-                      <div className="history-date-actions-top">
-                        <button
-                          type="button"
-                          className="primary text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenAddForDate(group.date);
-                          }}
-                        >
-                          + Add expense to this day
-                        </button>
-                      </div>
-
-                      <div className="entries-list">
-                        {group.items.map((item) => (
-                          <div key={item.localId} className="entry-row">
-                            <div className="entry-info">
-                              <div className="entry-title">{item.note || 'Expense'}</div>
-                              <div className="entry-category">
-                                <span>{item.category || 'General'}</span>
-                                <span style={{ margin: '0 5px', opacity: 0.35 }}>•</span>
-                                <span
-                                  style={{
-                                    fontSize: '0.74rem',
-                                    padding: '1px 6px',
-                                    borderRadius: '5px',
-                                    background: 'rgba(56, 189, 248, 0.08)',
-                                    color: '#38bdf8',
-                                    border: '1px solid rgba(56, 189, 248, 0.2)',
-                                  }}
-                                >
-                                  💳 {item.account || 'Cash in Hand'}
-                                </span>
-                              </div>
+                <div className="tx-date-group-list">
+                  {group.items.map((item) => {
+                    const catMeta = getCategoryMeta(item.category);
+                    const txTime = getTransactionTime(item);
+                    return (
+                      <div key={item.localId} className="bkash-tx-row">
+                        <div className="bkash-tx-left">
+                          <div
+                            className="bkash-tx-icon"
+                            style={{ background: catMeta.bg }}
+                            aria-hidden="true"
+                          >
+                            {catMeta.icon}
+                          </div>
+                          <div className="bkash-tx-details">
+                            <div className="bkash-tx-title">
+                              {item.note || 'Expense'}
                             </div>
-                            <div className="entry-right">
-                              <span className="entry-amount">{fmt(item.amount)}</span>
-                              <div className="entry-actions">
-                                <button
-                                  type="button"
-                                  className="btn-link"
-                                  onClick={() => handleOpenEdit(item)}
-                                  title="Edit"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn-link text-danger"
-                                  onClick={() => handleDelete(item)}
-                                  title="Delete"
-                                >
-                                  ×
-                                </button>
-                              </div>
+                            <div className="bkash-tx-meta">
+                              <span>{item.category || 'General'}</span>
+                              <span style={{ opacity: 0.45 }}>·</span>
+                              <span style={{ color: '#7dd3fc' }}>
+                                {item.account || 'Cash in Hand'}
+                              </span>
+                              {txTime && (
+                                <>
+                                  <span style={{ opacity: 0.45 }}>·</span>
+                                  <span className="bkash-tx-time">{txTime}</span>
+                                </>
+                              )}
                             </div>
                           </div>
-                        ))}
+                        </div>
+
+                        <div className="bkash-tx-right">
+                          <div className="bkash-tx-amount">
+                            -{fmt(item.amount)}
+                          </div>
+                          <div className="bkash-tx-actions">
+                            <button
+                              type="button"
+                              className="bkash-action-btn"
+                              onClick={() => handleOpenEdit(item)}
+                              title="Edit expense"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="bkash-action-btn danger"
+                              onClick={() => handleDelete(item)}
+                              title="Delete expense"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
 
             {/* Infinite Scroll trigger / Load more button */}
             {visibleCount < groupedByDate.length && (
@@ -723,13 +806,15 @@ export default function LedgerPage({ initialType = '' }) {
                 ref={loadMoreRef}
                 style={{
                   textAlign: 'center',
-                  padding: '18px 0',
+                  padding: '14px 0',
                 }}
               >
                 <button
                   type="button"
                   className="secondary"
-                  onClick={() => setVisibleCount((prev) => Math.min(prev + 15, groupedByDate.length))}
+                  onClick={() =>
+                    setVisibleCount((prev) => Math.min(prev + 15, groupedByDate.length))
+                  }
                   style={{
                     height: '40px',
                     padding: '0 20px',
