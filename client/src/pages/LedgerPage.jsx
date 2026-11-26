@@ -625,77 +625,7 @@ export default function LedgerPage({ initialType = '' }) {
         )}
       </div>
 
-      {/* 3. Date Range Share & Export Panel */}
-      <div className="panel">
-        <h3 className="panel-title-md">Share expense list</h3>
-        <p className="panel-sub mb-3">
-          Choose a date range, create a readable list with the total, then copy it to WhatsApp, Messenger, or any chat.
-        </p>
-
-        <div className="date-range-row">
-          <div className="form-item flex-1">
-            <label className="form-label" htmlFor="exportFrom">From date</label>
-            <input
-              id="exportFrom"
-              type="date"
-              className="field"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-            />
-          </div>
-          <div className="form-item flex-1">
-            <label className="form-label" htmlFor="exportTo">To date</label>
-            <input
-              id="exportTo"
-              type="date"
-              className="field"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-            />
-          </div>
-          <button
-            id="shareExpenseBtn"
-            type="button"
-            className="primary self-end"
-            onClick={handleGenerateShareText}
-          >
-            Create share text
-          </button>
-        </div>
-
-        {shareText && (
-          <div className="share-text-area-wrap">
-            <textarea
-              id="shareExpenseText"
-              className="field w-full font-mono"
-              rows={8}
-              value={shareText}
-              readOnly
-            />
-            <div className="share-actions-row">
-              <button
-                type="button"
-                className="secondary"
-                onClick={handleCopyShareText}
-              >
-                📋 Copy ready text
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={handleNativeShare}
-              >
-                ↗ Share…
-              </button>
-              {shareStatus && (
-                <span className="share-status-msg">{shareStatus}</span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 4. Date-Grouped Banking Transaction History */}
+      {/* 3. Date-Grouped Banking Transaction History */}
       <div className="tx-history-stream">
         {loading ? (
           <div className="panel text-center py-8">
@@ -828,6 +758,76 @@ export default function LedgerPage({ initialType = '' }) {
               </div>
             )}
           </>
+        )}
+      </div>
+
+      {/* 4. Date Range Share & Export Panel */}
+      <div className="panel">
+        <h3 className="panel-title-md">Share expense list</h3>
+        <p className="panel-sub mb-3">
+          Choose a date range, create a readable list with the total, then copy it to WhatsApp, Messenger, or any chat.
+        </p>
+
+        <div className="date-range-row">
+          <div className="form-item flex-1">
+            <label className="form-label" htmlFor="exportFrom">From date</label>
+            <input
+              id="exportFrom"
+              type="date"
+              className="field"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+            />
+          </div>
+          <div className="form-item flex-1">
+            <label className="form-label" htmlFor="exportTo">To date</label>
+            <input
+              id="exportTo"
+              type="date"
+              className="field"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+            />
+          </div>
+          <button
+            id="shareExpenseBtn"
+            type="button"
+            className="primary self-end"
+            onClick={handleGenerateShareText}
+          >
+            Create share text
+          </button>
+        </div>
+
+        {shareText && (
+          <div className="share-text-area-wrap">
+            <textarea
+              id="shareExpenseText"
+              className="field w-full font-mono"
+              rows={8}
+              value={shareText}
+              readOnly
+            />
+            <div className="share-actions-row">
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleCopyShareText}
+              >
+                📋 Copy ready text
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleNativeShare}
+              >
+                ↗ Share…
+              </button>
+              {shareStatus && (
+                <span className="share-status-msg">{shareStatus}</span>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
