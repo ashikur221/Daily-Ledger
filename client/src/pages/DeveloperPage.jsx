@@ -1,5 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { Heart, Code2 } from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 
 export default function DeveloperPage() {
   const skills = [
@@ -264,8 +266,10 @@ export default function DeveloperPage() {
           borderTop: '1px solid #141a27',
         }}
       >
-        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-          Designed & Built with ❤️ by <strong style={{ color: '#f1f5f9' }}>Ashikur Rahman</strong>
+        <div style={{ fontSize: '0.85rem', color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          <span>Designed & Built with</span>
+          <Heart size={14} strokeWidth={ICON_STROKE} color="#ef4444" fill="#ef4444" aria-hidden="true" />
+          <span>by <strong style={{ color: '#f1f5f9' }}>Ashikur Rahman</strong></span>
         </div>
 
         <div style={{ display: 'flex', gap: '14px' }}>
@@ -286,7 +290,8 @@ export default function DeveloperPage() {
               gap: '6px',
             }}
           >
-            🐙 GitHub
+            <Code2 size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>GitHub</span>
           </a>
           <NavLink
             to="/"

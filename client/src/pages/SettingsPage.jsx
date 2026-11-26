@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { RefreshCw, Check, AlertTriangle, Upload } from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
@@ -291,8 +293,9 @@ export default function SettingsPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ flex: 1, minWidth: '240px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                🔄 Multi-Device Cloud Sync
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <RefreshCw size={18} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
+                <span>Multi-Device Cloud Sync</span>
               </h2>
               <span style={{ fontSize: '0.68rem', fontWeight: 700, color: isOnline ? '#38bdf8' : '#f59e0b', background: isOnline ? 'rgba(56, 189, 248, 0.12)' : 'rgba(245, 158, 11, 0.12)', border: isOnline ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '999px', padding: '2px 8px' }}>
                 {isOnline ? 'Online' : 'Offline'}
@@ -321,7 +324,8 @@ export default function SettingsPage() {
               background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
             }}
           >
-            {syncLoading ? 'Syncing...' : '🔄 Pull from Cloud Now'}
+            <RefreshCw size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>{syncLoading ? 'Syncing...' : 'Pull from Cloud Now'}</span>
           </button>
         </div>
       </div>
@@ -392,8 +396,9 @@ export default function SettingsPage() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#10b981' }}>
-                  ✓ One-time invite link ready for <strong>{inviteResult.email}</strong>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Check size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                  <span>One-time invite link ready for <strong>{inviteResult.email}</strong></span>
                 </span>
                 <span style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 600 }}>Expires upon use</span>
               </div>
@@ -430,9 +435,19 @@ export default function SettingsPage() {
                     cursor: 'pointer',
                     transition: 'all 0.18s ease',
                     whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   }}
                 >
-                  {copied ? '✓ Copied' : 'Copy Link'}
+                  {copied ? (
+                    <>
+                      <Check size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <span>Copy Link</span>
+                  )}
                 </button>
               </div>
             </div>
@@ -531,9 +546,24 @@ export default function SettingsPage() {
                 fontWeight: 600,
                 cursor: importFile && !importLoading ? 'pointer' : 'not-allowed',
                 opacity: importFile && !importLoading ? 1 : 0.5,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              {importLoading ? 'Restoring...' : importMode === 'replace' ? '⚠️ Overwrite & Restore' : '⬆ Merge & Restore'}
+              {importLoading ? (
+                <span>Restoring...</span>
+              ) : importMode === 'replace' ? (
+                <>
+                  <AlertTriangle size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                  <span>Overwrite & Restore</span>
+                </>
+              ) : (
+                <>
+                  <Upload size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                  <span>Merge & Restore</span>
+                </>
+              )}
             </button>
           </div>
         </div>

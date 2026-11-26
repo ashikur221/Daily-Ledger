@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Pencil, Target } from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 import db from '../db/localDb';
 import { queueSync } from '../services/syncService';
 import { useToast } from '../context/ToastContext';
@@ -681,8 +683,19 @@ export default function ReportsPage() {
               setBudgetValue(monthlyBudget || '');
               setShowBudgetModal(true);
             }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            {budgetNum ? '✏️ Edit Target' : '🎯 Set Target'}
+            {budgetNum ? (
+              <>
+                <Pencil size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                <span>Edit Target</span>
+              </>
+            ) : (
+              <>
+                <Target size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                <span>Set Target</span>
+              </>
+            )}
           </button>
         </div>
 
@@ -742,8 +755,9 @@ export default function ReportsPage() {
       {showBudgetModal && (
         <div className="modal-overlay" onClick={() => setShowBudgetModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', background: '#0b0f17', border: '1px solid #232a3b' }}>
-            <h2 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
-              🎯 Set Monthly Budget Target
+            <h2 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Target size={20} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
+              <span>Set Monthly Budget Target</span>
             </h2>
             <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: '4px', marginBottom: '16px', lineHeight: 1.5 }}>
               Set a monthly spending limit to monitor your cash burn rate. It helps alert you when expenses approach or exceed your target.

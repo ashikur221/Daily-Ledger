@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { Check, Lock, Unlock, ShieldCheck, ListTodo } from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 import db from '../db/localDb';
 import api from '../services/api';
 import { queueSync, pullDeltaChanges } from '../services/syncService';
@@ -375,9 +377,13 @@ export default function ProductivityPage() {
               background: activeTab === 'todos' ? '#3b82f6' : 'transparent',
               color: activeTab === 'todos' ? '#ffffff' : '#94a3b8',
               transition: 'all 0.18s ease',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            ✓ Daily Tasks ({todos.filter((t) => !t.data?.completed).length})
+            <Check size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Daily Tasks ({todos.filter((t) => !t.data?.completed).length})</span>
           </button>
           <button
             onClick={() => setActiveTab('vault')}
@@ -391,9 +397,13 @@ export default function ProductivityPage() {
               background: activeTab === 'vault' ? '#e11d48' : 'transparent',
               color: activeTab === 'vault' ? '#ffffff' : '#94a3b8',
               transition: 'all 0.18s ease',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            🔒 Bank & bKash Vault
+            <Lock size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Bank & bKash Vault</span>
           </button>
         </div>
       </div>
@@ -407,8 +417,9 @@ export default function ProductivityPage() {
           {/* Header & Filter Bar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', background: '#050608', border: '1px solid #1a202c', padding: '14px 20px', borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '0.95rem', color: '#f8fafc', fontWeight: 700 }}>
-                📋 Tasks
+              <span style={{ fontSize: '0.95rem', color: '#f8fafc', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <ListTodo size={17} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
+                <span>Tasks</span>
               </span>
               <span style={{ fontSize: '0.82rem', color: '#94a3b8', background: '#0c121e', padding: '3px 10px', borderRadius: '12px', border: '1px solid #1e293b' }}>
                 {todos.length} total · {todos.filter((t) => t.data?.completed).length} completed
@@ -561,8 +572,9 @@ export default function ProductivityPage() {
             }}
           >
             <div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fb7185' }}>
-                🛡️ Zero-Knowledge AES-256 Client-Side Encryption
+              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fb7185', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ShieldCheck size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                <span>Zero-Knowledge AES-256 Client-Side Encryption</span>
               </div>
               <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '4px 0 0', lineHeight: 1.5 }}>
                 Your PINs and bank passwords are encrypted in your browser using PBKDF2 + AES-GCM before ever being saved to IndexedDB or MongoDB. The server never sees your plain-text secrets.
@@ -589,9 +601,13 @@ export default function ProductivityPage() {
                   background: 'rgba(225, 29, 72, 0.15)',
                   border: '1px solid rgba(225, 29, 72, 0.3)',
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}
               >
-                🔒 Lock Vault
+                <Lock size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                <span>Lock Vault</span>
               </button>
             )}
           </div>
@@ -610,7 +626,9 @@ export default function ProductivityPage() {
                 margin: '20px auto',
               }}
             >
-              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔐</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px', color: '#fb7185' }}>
+                <Lock size={36} strokeWidth={1.6} aria-hidden="true" />
+              </div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
                 Unlock Password Vault
               </h2>
@@ -636,9 +654,14 @@ export default function ProductivityPage() {
                     borderRadius: '12px',
                     fontWeight: 700,
                     background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
                   }}
                 >
-                  Unlock Vault 🔓
+                  <Unlock size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                  <span>Unlock Vault</span>
                 </button>
               </form>
             </div>

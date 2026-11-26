@@ -1,6 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  Landmark,
+  Smartphone,
+  Banknote,
+  ScrollText,
+  Gem,
+  Wallet,
+  ArrowLeftRight,
+  Plus,
+  Building2,
+  Hash,
+  Clock,
+  BarChart3,
+  Paperclip,
+  FileText,
+  Pencil,
+} from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 import db from '../db/localDb';
 import api from '../services/api';
 import { queueSync } from '../services/syncService';
@@ -153,16 +171,16 @@ export default function AccountsPage() {
   const getTypeMeta = (type) => {
     switch (type) {
       case 'mfs':
-        return { label: 'MOBILE WALLET', icon: '📱', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.12)' };
+        return { label: 'MOBILE WALLET', Icon: Smartphone, color: '#ec4899', bg: 'rgba(236, 72, 153, 0.12)' };
       case 'cash':
-        return { label: 'CASH', icon: '💵', color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)' };
+        return { label: 'CASH', Icon: Banknote, color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)' };
       case 'fdr':
-        return { label: 'FIXED DEPOSIT / DPS', icon: '📜', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.12)' };
+        return { label: 'FIXED DEPOSIT / DPS', Icon: ScrollText, color: '#a855f7', bg: 'rgba(168, 85, 247, 0.12)' };
       case 'asset':
-        return { label: 'PHYSICAL ASSET', icon: '🏆', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)' };
+        return { label: 'PHYSICAL ASSET', Icon: Gem, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)' };
       case 'bank':
       default:
-        return { label: 'BANK ACCOUNT', icon: '🏦', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.12)' };
+        return { label: 'BANK ACCOUNT', Icon: Landmark, color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.12)' };
     }
   };
 
@@ -512,7 +530,7 @@ export default function AccountsPage() {
       {/* 1. Neon Glowing Hero: Total Liquid vs Net Worth */}
       <div className="panel p-4 expense-total-panel">
         <div className="finance-summary-heading">
-          <span className="finance-summary-icon">🏦</span>
+          <Landmark size={18} strokeWidth={ICON_STROKE} className="finance-summary-icon" aria-hidden="true" />
           <h2>CAPITAL & ASSETS COMMAND CENTER</h2>
         </div>
 
@@ -537,15 +555,19 @@ export default function AccountsPage() {
             type="button"
             onClick={handleOpenTransfer}
             className="bank-add-action-btn transfer-btn"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            <span>⇄</span> Transfer Funds
+            <ArrowLeftRight size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Transfer Funds</span>
           </button>
           <button
             type="button"
             onClick={handleOpenAddAccount}
             className="bank-add-action-btn add-btn"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            <span>+</span> Add Account
+            <Plus size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Add Account</span>
           </button>
         </div>
       </div>
@@ -553,8 +575,9 @@ export default function AccountsPage() {
       {/* 2. Headline Metrics Grid: Liquid, FDR, Physical Assets, Net Worth */}
       <div className="bank-metrics-grid">
         <div className="bank-metric-card">
-          <div className="bank-metric-tag" style={{ color: '#38bdf8' }}>
-            💳 Liquid Capital
+          <div className="bank-metric-tag" style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Wallet size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Liquid Capital</span>
           </div>
           <div className="bank-metric-val">{fmt(totalLiquidBalance)}</div>
           <p className="bank-metric-sub">
@@ -563,8 +586,9 @@ export default function AccountsPage() {
         </div>
 
         <div className="bank-metric-card">
-          <div className="bank-metric-tag" style={{ color: '#a855f7' }}>
-            📜 Fixed Deposits & DPS
+          <div className="bank-metric-tag" style={{ color: '#a855f7', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ScrollText size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Fixed Deposits & DPS</span>
           </div>
           <div className="bank-metric-val">{fmt(totalFdrBalance)}</div>
           <p className="bank-metric-sub">
@@ -573,8 +597,9 @@ export default function AccountsPage() {
         </div>
 
         <div className="bank-metric-card">
-          <div className="bank-metric-tag" style={{ color: '#f59e0b' }}>
-            🏆 Physical Assets
+          <div className="bank-metric-tag" style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Gem size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Physical Assets</span>
           </div>
           <div className="bank-metric-val">{fmt(totalAssetBalance)}</div>
           <p className="bank-metric-sub">
@@ -583,8 +608,9 @@ export default function AccountsPage() {
         </div>
 
         <div className="bank-metric-card" style={{ border: '1px solid rgba(56, 189, 248, 0.35)', background: '#0a101d' }}>
-          <div className="bank-metric-tag" style={{ color: '#34d399' }}>
-            💎 Total Net Worth
+          <div className="bank-metric-tag" style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Landmark size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            <span>Total Net Worth</span>
           </div>
           <div className="bank-metric-val" style={{ color: '#34d399' }}>{fmt(totalNetWorth)}</div>
           <p className="bank-metric-sub">
@@ -623,9 +649,13 @@ export default function AccountsPage() {
               style={{
                 background: activeTab === 'liquid' ? '#38bdf8' : '#141a27',
                 color: activeTab === 'liquid' ? '#000' : '#94a3b8',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              💳 Liquid ({liquidAccounts.length})
+              <Wallet size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Liquid ({liquidAccounts.length})</span>
             </button>
             <button
               type="button"
@@ -634,9 +664,13 @@ export default function AccountsPage() {
               style={{
                 background: activeTab === 'fdr' ? '#a855f7' : '#141a27',
                 color: activeTab === 'fdr' ? '#fff' : '#94a3b8',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              📜 Fixed Deposits ({fdrAccounts.length})
+              <ScrollText size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Fixed Deposits ({fdrAccounts.length})</span>
             </button>
             <button
               type="button"
@@ -645,9 +679,13 @@ export default function AccountsPage() {
               style={{
                 background: activeTab === 'asset' ? '#f59e0b' : '#141a27',
                 color: activeTab === 'asset' ? '#000' : '#94a3b8',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              🏆 Assets ({assetAccounts.length})
+              <Gem size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Assets ({assetAccounts.length})</span>
             </button>
           </div>
         </div>
@@ -689,7 +727,7 @@ export default function AccountsPage() {
                   <div className="bank-account-card-main">
                     <div className="bank-account-info">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>{meta.icon}</span>
+                        <meta.Icon size={18} strokeWidth={ICON_STROKE} color={meta.color} style={{ flexShrink: 0 }} aria-hidden="true" />
                         <span className="bank-account-name">{acc.name}</span>
                         <span
                           style={{
@@ -709,14 +747,28 @@ export default function AccountsPage() {
                       </div>
 
                       <div className="bank-account-meta">
-                        {acc.institution && <span>🏛️ {acc.institution}</span>}
-                        {acc.accountNumber && <span>🔢 {acc.accountNumber}</span>}
-                        {acc.maturityDate && (
-                          <span style={{ color: '#a855f7' }}>
-                            ⏳ Matures: {new Date(acc.maturityDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
+                        {acc.institution && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Building2 size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                            <span>{acc.institution}</span>
                           </span>
                         )}
-                        <span>📊 {entriesCount} entries</span>
+                        {acc.accountNumber && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Hash size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                            <span>{acc.accountNumber}</span>
+                          </span>
+                        )}
+                        {acc.maturityDate && (
+                          <span style={{ color: '#a855f7', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                            <span>Matures: {new Date(acc.maturityDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span>
+                          </span>
+                        )}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <BarChart3 size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                          <span>{entriesCount} entries</span>
+                        </span>
                         {acc.documentUrl && (
                           <button
                             type="button"
@@ -743,7 +795,8 @@ export default function AccountsPage() {
                             }}
                             title="View attached deed / memo"
                           >
-                            📎 {acc.documentName ? (acc.documentName.length > 16 ? acc.documentName.substring(0, 16) + '...' : acc.documentName) : 'Deed / Memo'}
+                            <Paperclip size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                            <span>{acc.documentName ? (acc.documentName.length > 16 ? acc.documentName.substring(0, 16) + '...' : acc.documentName) : 'Deed / Memo'}</span>
                           </button>
                         )}
                       </div>
@@ -757,8 +810,9 @@ export default function AccountsPage() {
                   </div>
 
                   <div className="bank-account-action-row">
-                    <span style={{ fontSize: '0.76rem', color: '#38bdf8', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      📋 Statement & history ›
+                    <span style={{ fontSize: '0.76rem', color: '#38bdf8', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <FileText size={13} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                      <span>Statement & history ›</span>
                     </span>
 
                     <button
@@ -768,8 +822,11 @@ export default function AccountsPage() {
                         handleOpenEditAccount(acc);
                       }}
                       className="bank-edit-balance-pill"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      aria-label={`Edit ${acc.name}`}
                     >
-                      ✏️ Edit
+                      <Pencil size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                      <span>Edit</span>
                     </button>
                   </div>
                 </div>

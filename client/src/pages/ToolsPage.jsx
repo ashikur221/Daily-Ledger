@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { Banknote, Pencil, Trash2, CreditCard } from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 import db from '../db/localDb';
 import { useAuth } from '../context/AuthContext';
 import { queueSync, syncTwoWay } from '../services/syncService';
@@ -771,8 +773,10 @@ export default function ToolsPage() {
                           onClick={() => handleOpenRepay(d.localId)}
                           className="debt-action-btn btn-repay"
                           title="Record a repayment for this debt"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                         >
-                          💰 Repay
+                          <Banknote size={13} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                          <span>Repay</span>
                         </button>
                       )}
                       <button
@@ -780,16 +784,20 @@ export default function ToolsPage() {
                         onClick={() => handleStartEditDebt(d)}
                         className="debt-action-btn btn-edit"
                         title="Edit debt amount, person, date or note"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
-                        ✏️ Edit
+                        <Pencil size={13} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                        <span>Edit</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDeleteDebt(d.localId)}
                         className="debt-action-btn btn-delete"
                         title="Delete this debt record"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
-                        🗑️ Delete
+                        <Trash2 size={13} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                        <span>Delete</span>
                       </button>
                     </div>
                   </div>
@@ -904,8 +912,10 @@ export default function ToolsPage() {
                           onClick={() => handleOpenRepay(d.localId)}
                           className="debt-action-btn btn-repay"
                           title="Record a repayment for this debt"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                         >
-                          💰 Repay
+                          <Banknote size={13} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                          <span>Repay</span>
                         </button>
                       )}
                       <button
@@ -913,16 +923,20 @@ export default function ToolsPage() {
                         onClick={() => handleStartEditDebt(d)}
                         className="debt-action-btn btn-edit"
                         title="Edit debt amount, person, date or note"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
-                        ✏️ Edit
+                        <Pencil size={13} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                        <span>Edit</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDeleteDebt(d.localId)}
                         className="debt-action-btn btn-delete"
                         title="Delete this debt record"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
-                        🗑️ Delete
+                        <Trash2 size={13} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                        <span>Delete</span>
                       </button>
                     </div>
                   </div>
@@ -937,8 +951,9 @@ export default function ToolsPage() {
       <div className="repayment-history-panel">
         <div className="debt-section-header">
           <div className="debt-section-title-wrap">
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800 }}>
-              <span>💳</span> Repayment Settlements History
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CreditCard size={18} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
+              <span>Repayment Settlements History</span>
             </h3>
             <p>Audit trail of all partial and full repayments received or paid.</p>
           </div>

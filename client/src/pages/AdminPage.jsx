@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { KeyRound, Trash2 } from 'lucide-react';
+import { ICON_STROKE } from '../components/AppIcons';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
@@ -327,9 +329,13 @@ export default function AdminPage() {
                       fontWeight: 600,
                       color: '#38bdf8',
                       borderColor: 'rgba(56, 189, 248, 0.3)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
                     }}
                   >
-                    🔑 Reset / View Password
+                    <KeyRound size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                    <span>Reset / View Password</span>
                   </button>
                   {u._id !== user?._id && (
                     <button
@@ -363,10 +369,14 @@ export default function AdminPage() {
                         border: '1px solid rgba(239, 68, 68, 0.3)',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
                       }}
                       title="Permanently delete user account"
                     >
-                      🗑️ Delete
+                      <Trash2 size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                      <span>Delete</span>
                     </button>
                   )}
                 </div>
