@@ -4,7 +4,7 @@ class GeminiProvider extends BaseAiProvider {
   constructor() {
     super('gemini');
     this.apiKey = process.env.GEMINI_API_KEY || '';
-    this.model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+    this.model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
     this.maxTokens = parseInt(process.env.AI_MAX_TOKENS || '1024', 10);
     this.temperature = parseFloat(process.env.AI_TEMPERATURE || '0.3');
   }
