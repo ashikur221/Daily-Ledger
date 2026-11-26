@@ -37,7 +37,7 @@ export default function ProductivityPage() {
   const [todos, setTodos] = useState([]);
   const [newTodoText, setNewTodoText] = useState('');
   const [newTodoPriority, setNewTodoPriority] = useState('medium');
-  const [todoFilter, setTodoFilter] = useState('all'); // 'all' | 'active' | 'completed'
+  const [todoFilter, setTodoFilter] = useState('active'); // 'active' | 'completed'
   const [showAddTodoModal, setShowAddTodoModal] = useState(false);
 
   // --- 2. Vault (Bank & bKash Security) State ---
@@ -437,7 +437,7 @@ export default function ProductivityPage() {
 
             <div className="tasks-controls-group">
               <div className="tasks-filter-group" role="group" aria-label="Filter tasks">
-                {['all', 'active', 'completed'].map((f) => (
+                {['active', 'completed'].map((f) => (
                   <button
                     key={f}
                     type="button"
