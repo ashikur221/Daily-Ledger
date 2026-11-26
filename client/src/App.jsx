@@ -7,6 +7,7 @@ import { ConfirmProvider } from './context/ConfirmContext';
 import { syncTwoWay } from './services/syncService';
 import DashboardPage from './pages/DashboardPage';
 import LedgerPage from './pages/LedgerPage';
+import TransactionsPage from './pages/TransactionsPage';
 import DepositsPage from './pages/DepositsPage';
 import AccountsPage from './pages/AccountsPage';
 import ToolsPage from './pages/ToolsPage';
@@ -166,6 +167,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/ledger" element={<LedgerPage />} />
+          <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/deposits" element={<DepositsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/tools" element={<ToolsPage />} />
@@ -267,7 +269,7 @@ function AppContent() {
               <div className="mobile-drawer-section-title">Finance & Tools</div>
 
               <NavLink
-                to="/ledger"
+                to="/transactions"
                 className={({ isActive }) => `mobile-drawer-link ${isActive ? 'active' : ''}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -275,7 +277,7 @@ function AppContent() {
                   <span style={{ fontSize: '1.25rem' }}>🧾</span>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Transaction List</div>
-                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Expenses, search & daily history</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Date-grouped expense history</div>
                   </div>
                 </div>
                 <span>›</span>
