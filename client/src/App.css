@@ -332,11 +332,14 @@ html, body {
   border-color: #556477 !important;
 }
 
-.balance-action span {
+.balance-action span,
+.balance-action .balance-action-chevron {
   position: absolute;
   right: 18px;
   font-size: 22px;
   color: #9aa8bb;
+  display: inline-flex;
+  align-items: center;
 }
 
 .balance-note {

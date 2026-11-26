@@ -338,21 +338,21 @@ export default function DashboardPage() {
             type="button"
             onClick={() => handleOpenAddExpense(todayStr)}
             className="balance-action"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            style={{ gap: '8px' }}
           >
             <Plus size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
-            <span>Add Expense</span>
-            <ChevronRight size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            Add Expense
+            <ChevronRight size={17} strokeWidth={ICON_STROKE} className="balance-action-chevron" aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={() => navigate('/accounts')}
             className="balance-action"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            style={{ gap: '8px' }}
           >
             <Wallet size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
-            <span>Banks & Assets</span>
-            <ChevronRight size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+            Banks & Assets
+            <ChevronRight size={17} strokeWidth={ICON_STROKE} className="balance-action-chevron" aria-hidden="true" />
           </button>
         </div>
 
