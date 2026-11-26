@@ -15,6 +15,7 @@ import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
 import DeveloperPage from './pages/DeveloperPage';
 import ProductivityPage from './pages/ProductivityPage';
+import AiPage from './pages/AiPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { seedInitialDataIfNeeded } from './db/seedHelper';
@@ -134,6 +135,18 @@ function AppContent() {
         <NavLink to="/reports" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
           Reports & Insights
         </NavLink>
+        <NavLink
+          to="/ai"
+          className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
+          style={({ isActive }) => ({
+            background: isActive ? 'linear-gradient(105deg, #5145e5 0%, #278bfa 100%)' : 'rgba(56, 189, 248, 0.08)',
+            color: isActive ? '#ffffff' : '#38bdf8',
+            border: '1px solid rgba(56, 189, 248, 0.35)',
+            fontWeight: 700,
+          })}
+        >
+          ✨ Ledger AI
+        </NavLink>
         {user?.role === 'admin' && (
           <NavLink
             to="/admin"
@@ -158,6 +171,7 @@ function AppContent() {
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/tasks" element={<ProductivityPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/ai" element={<AiPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/developer" element={<DeveloperPage />} />
           {user?.role === 'admin' && <Route path="/admin" element={<AdminPage />} />}
@@ -262,6 +276,22 @@ function AppContent() {
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Debts & Loans</div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Lending, borrowing & repayments</div>
+                  </div>
+                </div>
+                <span>›</span>
+              </NavLink>
+
+              <div className="mobile-drawer-section-title" style={{ marginTop: '16px' }}>AI Intelligence</div>
+              <NavLink
+                to="/ai"
+                className={({ isActive }) => `mobile-drawer-link ${isActive ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '1.25rem' }}>✨</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#38bdf8' }}>Ledger AI Advisor</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Read-only insights, goals & reports</div>
                   </div>
                 </div>
                 <span>›</span>
