@@ -4,6 +4,21 @@ import api from './api';
 const LAST_SYNC_KEY = 'daily_ledger_last_sync_time';
 
 /**
+ * Clear all local user-scoped IndexedDB tables and sync metadata
+ * to prevent cross-account data leakage when switching accounts.
+ */
+export const clearLocalUserData = async () => {
+  await Promise.all([
+    db.transactions.clear(),
+    db.accounts.clear(),
+    db.tools.clear(),
+    db.syncQueue.clear(),
+  ]);
+  localStorage.removeItem(LAST_SYNC_KEY);
+  window.dispatchEvent(new CustomEvent('daily_ledger:data_updated', { detail: { cleared: true } }));
+};
+
+/**
  * 1. PUSH: Flush local changes to the server
  */
 export const flushSyncQueue = async () => {

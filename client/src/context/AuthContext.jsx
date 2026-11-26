@@ -1,7 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api, { setAccessToken, setOnTokenRefreshed, requestTokenRefresh } from '../services/api';
-import { syncTwoWay, initNetworkSync, getPendingCount } from '../services/syncService';
+import { syncTwoWay, initNetworkSync, getPendingCount, clearLocalUserData, flushSyncQueue } from '../services/syncService';
 import { useToast } from './ToastContext';
+
+const ACTIVE_USER_KEY = 'daily_ledger_active_user_id';
+const getUserKey = (u) => String(u?._id || u?.id || u?.email || '').toLowerCase();
 
 const AuthContext = createContext(null);
 
@@ -49,8 +52,17 @@ export const AuthProvider = ({ children }) => {
       const data = await requestTokenRefresh();
       setUser(data.user);
 
-      // Run two-way delta sync on session restore (pull updates from other devices)
-      syncTwoWay()
+      const newKey = getUserKey(data.user);
+      const prevKey = localStorage.getItem(ACTIVE_USER_KEY);
+      let needsFullPull = false;
+      if (newKey && (!prevKey || prevKey !== newKey)) {
+        await clearLocalUserData();
+        localStorage.setItem(ACTIVE_USER_KEY, newKey);
+        needsFullPull = true;
+      }
+
+      // Run two-way sync on session restore (full pull if user switched or first isolation check)
+      syncTwoWay(needsFullPull)
         .then(({ pulled }) => {
           refreshPendingCount();
           if (pulled > 0) {
@@ -142,6 +154,15 @@ export const AuthProvider = ({ children }) => {
     setAccessToken(data.accessToken);
     setUser(data.user);
 
+    const newKey = getUserKey(data.user);
+    const prevKey = localStorage.getItem(ACTIVE_USER_KEY);
+    let needsFullPull = false;
+    if (newKey && (!prevKey || prevKey !== newKey)) {
+      await clearLocalUserData();
+      localStorage.setItem(ACTIVE_USER_KEY, newKey);
+      needsFullPull = true;
+    }
+
     if (rememberMe) {
       localStorage.setItem('daily_ledger_remember_me', 'true');
       localStorage.setItem('daily_ledger_remembered_email', email);
@@ -154,8 +175,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('daily_ledger_auth');
     }
 
-    // Two-way sync on login
-    syncTwoWay()
+    // Two-way sync on login (force full pull if switching accounts)
+    syncTwoWay(needsFullPull)
       .then(({ pulled }) => {
         refreshPendingCount();
         if (pulled > 0) {
@@ -171,11 +192,20 @@ export const AuthProvider = ({ children }) => {
     const { data } = await api.post('/auth/register', { name, email, password, inviteToken });
     setAccessToken(data.accessToken);
     setUser(data.user);
+    await clearLocalUserData();
+    const newKey = getUserKey(data.user);
+    if (newKey) {
+      localStorage.setItem(ACTIVE_USER_KEY, newKey);
+    }
+    syncTwoWay(true).then(() => refreshPendingCount()).catch(() => {});
     return data.user;
   };
 
   const logout = async () => {
     try {
+      if (navigator.onLine) {
+        await flushSyncQueue().catch(() => {});
+      }
       let refreshBody = {};
       const storedAuth = localStorage.getItem('daily_ledger_auth');
       if (storedAuth) {
@@ -188,7 +218,10 @@ export const AuthProvider = ({ children }) => {
         await api.post('/auth/logout', refreshBody);
       }
     } catch {}
+    await clearLocalUserData().catch(() => {});
+    localStorage.removeItem(ACTIVE_USER_KEY);
     localStorage.removeItem('daily_ledger_auth');
+    setPendingSync(0);
     setAccessToken(null);
     setUser(null);
     toast.info('Signed out successfully');
