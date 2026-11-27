@@ -276,7 +276,24 @@ export default function TransactionsPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#0a0a0f', border: '1px solid #252936', borderRadius: '10px', padding: '4px 10px' }}>
+            <label
+              htmlFor="txDateFilter"
+              style={{ fontSize: '0.8rem', fontWeight: 650, color: '#9ca3af' }}
+            >
+              Filter by Date:
+            </label>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                height: '40px',
+                background: '#171a23',
+                border: selectedDate ? '1px solid #38bdf8' : '1px solid #2e3648',
+                borderRadius: '10px',
+                padding: '0 12px',
+              }}
+            >
               <CalendarDays size={16} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
               <input
                 id="txDateFilter"
@@ -288,7 +305,7 @@ export default function TransactionsPage() {
                   background: 'transparent',
                   border: 'none',
                   color: '#f5f7fa',
-                  fontSize: '0.84rem',
+                  fontSize: '0.86rem',
                   fontWeight: 600,
                   outline: 'none',
                   cursor: 'pointer',
@@ -303,7 +320,7 @@ export default function TransactionsPage() {
                 className="secondary"
                 onClick={() => setSelectedDate('')}
                 style={{
-                  height: '36px',
+                  height: '40px',
                   padding: '0 12px',
                   borderRadius: '10px',
                   fontSize: '0.8rem',
