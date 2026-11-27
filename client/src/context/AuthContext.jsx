@@ -111,6 +111,7 @@ export const AuthProvider = ({ children }) => {
     };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('daily_ledger:sync_completed', refreshPendingCount);
 
     // Init auto-sync on reconnect or focus
     const cleanup = initNetworkSync(({ synced, pulled }) => {
@@ -130,6 +131,7 @@ export const AuthProvider = ({ children }) => {
       window.removeEventListener('auth:logout', handleLogout);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('daily_ledger:sync_completed', refreshPendingCount);
       cleanup();
     };
   }, [restoreSession, toast]);

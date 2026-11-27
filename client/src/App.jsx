@@ -124,7 +124,11 @@ function AppContent() {
             }}
           >
             <span className={`status-indicator-dot ${isOnline ? 'online' : 'offline'}`} />
-            {isOnline ? 'Cloud Synced' : 'Offline-ready · Saved on this device'}
+            {isOnline
+              ? pendingSync > 0
+                ? 'Syncing'
+                : 'Cloud Synced'
+              : 'Offline-ready · Saved on this device'}
             {pendingSync > 0 && <span className="sync-count">({pendingSync})</span>}
           </div>
           <NavLink to="/settings" className="settings-link-btn" title="Settings & Family Invites" aria-label="Settings">

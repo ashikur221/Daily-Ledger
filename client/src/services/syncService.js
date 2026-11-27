@@ -167,12 +167,24 @@ export const syncTwoWay = async (forceFull = false) => {
   };
 };
 
+let autoFlushTimer = null;
+
 /**
- * Queue a record to be synced upstream
+ * Queue a record to be synced upstream and auto-flush in background if online
  */
 export const queueSync = async (entity, localId) => {
   await db.syncQueue.where({ entity, localId }).delete();
   await db.syncQueue.add({ entity, localId, operation: 'upsert', retries: 0, createdAt: new Date() });
+
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
+    if (autoFlushTimer) clearTimeout(autoFlushTimer);
+    autoFlushTimer = setTimeout(async () => {
+      try {
+        await flushSyncQueue();
+        window.dispatchEvent(new CustomEvent('daily_ledger:sync_completed'));
+      } catch {}
+    }, 450);
+  }
 };
 
 /**
