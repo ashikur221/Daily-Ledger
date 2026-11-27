@@ -4,7 +4,8 @@ import {
   Target,
   FileText,
   Plus,
-  Bot,
+  ShieldCheck,
+  TrendingUp,
   Lock,
   ArrowUp,
   BarChart3,
@@ -111,11 +112,11 @@ export default function AiPage() {
 
   // Suggested prompt chips
   const quickPrompts = [
-    { label: '📊 Analyze My Spending', query: 'Can you analyze my top spending categories and tell me where I can cut costs?' },
-    { label: '🛡️ Emergency Fund Plan', query: 'How much should I set aside for an emergency fund based on my actual expenses?' },
-    { label: '💡 Boost Savings Rate', query: 'What is my current savings rate, and what practical steps will help increase it?' },
-    { label: '🎯 Plan Financial Goal', query: 'I want to plan a savings goal. How much can I comfortably save each month without debt risk?' },
-    { label: '📑 Monthly Briefing', query: 'Please give me an executive summary of my financial health, net worth, and cash flow.' },
+    { label: 'Analyze My Spending', Icon: BarChart3, color: '#38bdf8', query: 'Can you analyze my top spending categories and tell me where I can cut costs?' },
+    { label: 'Emergency Fund Plan', Icon: ShieldCheck, color: '#34d399', query: 'How much should I set aside for an emergency fund based on my actual expenses?' },
+    { label: 'Boost Savings Rate', Icon: TrendingUp, color: '#a855f7', query: 'What is my current savings rate, and what practical steps will help increase it?' },
+    { label: 'Plan Financial Goal', Icon: Target, color: '#f59e0b', query: 'I want to plan a savings goal. How much can I comfortably save each month without debt risk?' },
+    { label: 'Monthly Briefing', Icon: FileText, color: '#06b6d4', query: 'Please give me an executive summary of my financial health, net worth, and cash flow.' },
   ];
 
   useEffect(() => {
@@ -461,26 +462,58 @@ export default function AiPage() {
       >
         {/* Messages Stream */}
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '22px', padding: '6px 2px 20px' }}>
-          {/* Welcome Card if no messages */}
+          {/* Unique Welcome Hero if no messages */}
           {messages.length === 0 && (
             <div
               style={{
-                background: 'radial-gradient(circle at 50% 0%, rgba(39, 139, 250, 0.08) 0%, rgba(10, 10, 15, 0.85) 75%)',
+                background: 'radial-gradient(circle at 50% 0%, rgba(39, 139, 250, 0.1) 0%, rgba(10, 10, 15, 0.9) 75%)',
                 border: '1px solid #1e283d',
-                borderRadius: '18px',
-                padding: '28px 20px',
+                borderRadius: '20px',
+                padding: '32px 20px',
                 textAlign: 'center',
                 margin: 'auto 0',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', color: '#38bdf8' }}>
-                <Bot size={36} strokeWidth={1.6} aria-hidden="true" />
+              <div
+                style={{
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '16px',
+                  margin: '0 auto 14px',
+                  background: 'linear-gradient(135deg, #5145E5 0%, #278BFA 50%, #06B6D4 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  boxShadow: '0 0 28px rgba(39, 139, 250, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+                }}
+              >
+                <Sparkles size={26} strokeWidth={1.9} aria-hidden="true" />
               </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', marginBottom: '6px' }}>
-                Welcome to Ledger AI
+
+              <h3
+                style={{
+                  fontSize: '1.28rem',
+                  fontWeight: 850,
+                  color: '#f8fafc',
+                  marginBottom: '8px',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                হ্যালো, {user?.name?.split(' ')[0] || 'বন্ধু'}! আজ আপনার টাকা{' '}
+                <span
+                  style={{
+                    background: 'linear-gradient(105deg, #60a5fa, #22d3ee)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                >
+                  কীভাবে কাজ করবে?
+                </span>
               </h3>
-              <p style={{ fontSize: '0.84rem', color: '#94a3b8', maxWidth: '580px', margin: '0 auto 18px', lineHeight: 1.55 }}>
-                আপনার আয়, খরচ, বাজেট বা সেভিংস লক্ষ্য নিয়ে যেকোনো প্রশ্ন করুন। প্রতিটি বিশ্লেষণ আপনার আসল লেজার ডেটা থেকে তৈরি।
+
+              <p style={{ fontSize: '0.84rem', color: '#94a3b8', maxWidth: '520px', margin: '0 auto 22px', lineHeight: 1.6 }}>
+                আয় বাড়ান, অপ্রয়োজনীয় খরচ কমান—আপনার আসল লেজার হিসাব থেকে সরাসরি স্মার্ট পরামর্শ নিন।
               </p>
 
               {/* Quick Prompt Chips */}
@@ -500,6 +533,9 @@ export default function AiPage() {
                       color: '#cbd5e1',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = '#38bdf8';
@@ -512,7 +548,8 @@ export default function AiPage() {
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
-                    {qp.label}
+                    <qp.Icon size={14} strokeWidth={ICON_STROKE} color={qp.color} aria-hidden="true" />
+                    <span>{qp.label}</span>
                   </button>
                 ))}
               </div>
