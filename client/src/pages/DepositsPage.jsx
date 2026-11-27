@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { TrendingUp, Plus, Wallet, Pencil } from 'lucide-react';
 import { ICON_STROKE } from '../components/AppIcons';
+import DateFilterBar from '../components/DateFilterBar';
+import { formatDateGroupHeading } from '../components/TransactionRow';
 import db from '../db/localDb';
 import api from '../services/api';
 import { queueSync } from '../services/syncService';
@@ -92,10 +94,23 @@ export default function DepositsPage() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions]);
 
-  // Total Income
+  const [selectedDate, setSelectedDate] = useState('');
+
+  const filteredDeposits = useMemo(() => {
+    if (!selectedDate) return depositsList;
+    return depositsList.filter(
+      (t) => new Date(t.date).toISOString().split('T')[0] === selectedDate
+    );
+  }, [depositsList, selectedDate]);
+
+  // Total Income (overall)
   const totalDepositsAmount = useMemo(() => {
     return depositsList.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }, [depositsList]);
+
+  const filteredDepositsTotal = useMemo(() => {
+    return filteredDeposits.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [filteredDeposits]);
 
   // Format date helper: "15 Oct 2026"
   const formatDateLabel = (dateString) => {
@@ -321,13 +336,16 @@ export default function DepositsPage() {
 
       {/* 2. Full-Width Income Ledger List */}
       <div className="deposit-list-panel">
-        <div className="deposit-list-header">
+        <div className="deposit-list-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
           <div>
             <h3 className="bank-panel-title" style={{ fontSize: '1.15rem' }}>Income History</h3>
             <p className="deposit-list-sub">
-              Showing {depositsList.length} recorded inflow {depositsList.length === 1 ? 'entry' : 'entries'}.
+              {selectedDate
+                ? `Showing ${filteredDeposits.length} ${filteredDeposits.length === 1 ? 'entry' : 'entries'} on ${formatDateGroupHeading(selectedDate)} · Total: ৳${filteredDepositsTotal.toLocaleString('en-US')}`
+                : `Showing ${depositsList.length} recorded inflow ${depositsList.length === 1 ? 'entry' : 'entries'}.`}
             </p>
           </div>
+          <DateFilterBar selectedDate={selectedDate} onChangeDate={setSelectedDate} />
         </div>
 
         <div className="deposit-entries-list">
@@ -336,32 +354,49 @@ export default function DepositsPage() {
               <div className="spinner-sm" />
               <p>Loading income records...</p>
             </div>
-          ) : depositsList.length === 0 ? (
+          ) : filteredDeposits.length === 0 ? (
             <div className="deposit-empty-state" style={{ padding: '48px 0' }}>
-              <p style={{ fontSize: '1rem', fontWeight: 650 }}>No income records yet.</p>
+              <p style={{ fontSize: '1rem', fontWeight: 650 }}>
+                {selectedDate
+                  ? `No income recorded on ${formatDateGroupHeading(selectedDate)}.`
+                  : 'No income records yet.'}
+              </p>
               <span className="text-xs text-slate-500" style={{ display: 'block', marginTop: '4px' }}>
-                Tap the button above to record your first salary or deposit.
+                {selectedDate
+                  ? 'Try selecting another date or reset the filter.'
+                  : 'Tap the button above to record your first salary or deposit.'}
               </span>
-              <button
-                type="button"
-                onClick={handleOpenAdd}
-                style={{
-                  marginTop: '16px',
-                  background: 'transparent',
-                  color: '#34d399',
-                  border: '1px dashed #34d399',
-                  borderRadius: '8px',
-                  padding: '8px 18px',
-                  cursor: 'pointer',
-                  fontWeight: 650,
-                  fontSize: '0.85rem',
-                }}
-              >
-                + Record Income
-              </button>
+              {selectedDate ? (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate('')}
+                  className="secondary"
+                  style={{ marginTop: '16px', padding: '8px 18px', borderRadius: '8px', fontWeight: 650, fontSize: '0.85rem' }}
+                >
+                  Show All Dates
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleOpenAdd}
+                  style={{
+                    marginTop: '16px',
+                    background: 'transparent',
+                    color: '#34d399',
+                    border: '1px dashed #34d399',
+                    borderRadius: '8px',
+                    padding: '8px 18px',
+                    cursor: 'pointer',
+                    fontWeight: 650,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  + Record Income
+                </button>
+              )}
             </div>
           ) : (
-            depositsList.map((d) => {
+            filteredDeposits.map((d) => {
               const displaySource = d.note ? d.note.replace(/^From\s+/i, '') : 'Income';
               return (
                 <div

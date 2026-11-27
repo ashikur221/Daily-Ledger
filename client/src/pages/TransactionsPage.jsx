@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ListOrdered, Receipt, CalendarDays, X } from 'lucide-react';
+import { ListOrdered, Receipt } from 'lucide-react';
 import { ICON_STROKE } from '../components/AppIcons';
+import DateFilterBar from '../components/DateFilterBar';
 import db from '../db/localDb';
 import api from '../services/api';
 import { queueSync } from '../services/syncService';
@@ -258,30 +259,6 @@ export default function TransactionsPage() {
 
   const fmt = (n) => `৳${Number(n || 0).toLocaleString('en-IN')}`;
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const yesterdayStr = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().split('T')[0];
-  })();
-  const dateInputRef = useRef(null);
-  const isCustomDate = Boolean(selectedDate && selectedDate !== todayStr && selectedDate !== yesterdayStr);
-
-  const openNativeDatePicker = () => {
-    const el = dateInputRef.current;
-    if (!el) return;
-    if (typeof el.showPicker === 'function') {
-      try {
-        el.showPicker();
-      } catch {
-        el.focus();
-      }
-    } else {
-      el.focus();
-      el.click();
-    }
-  };
-
   return (
     <div className="pitch-dashboard">
       {/* Page Header & Modern Quick-Date + Calendar Filter Bar */}
@@ -300,64 +277,7 @@ export default function TransactionsPage() {
           </div>
         </div>
 
-        <div className="tx-filter-bar" role="group" aria-label="Filter transactions by date">
-          <button
-            type="button"
-            className={`tx-filter-pill ${selectedDate === '' ? 'active' : ''}`}
-            onClick={() => setSelectedDate('')}
-          >
-            All Dates
-          </button>
-
-          <button
-            type="button"
-            className={`tx-filter-pill ${selectedDate === todayStr ? 'active' : ''}`}
-            onClick={() => setSelectedDate(todayStr)}
-          >
-            Today
-          </button>
-
-          <button
-            type="button"
-            className={`tx-filter-pill ${selectedDate === yesterdayStr ? 'active' : ''}`}
-            onClick={() => setSelectedDate(yesterdayStr)}
-          >
-            Yesterday
-          </button>
-
-          <div className="tx-date-picker-wrap">
-            <button
-              type="button"
-              className={`tx-filter-pill ${isCustomDate ? 'active' : ''}`}
-              onClick={openNativeDatePicker}
-              aria-label="Pick a specific date from calendar"
-            >
-              <CalendarDays size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
-              <span>{isCustomDate ? formatDateGroupHeading(selectedDate) : 'Pick Date'}</span>
-            </button>
-            <input
-              ref={dateInputRef}
-              id="txDateFilter"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="tx-date-hidden-input"
-              aria-label="Choose date from calendar"
-            />
-          </div>
-
-          {selectedDate && (
-            <button
-              type="button"
-              className="tx-filter-clear-btn"
-              onClick={() => setSelectedDate('')}
-              aria-label="Clear date filter"
-            >
-              <X size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
-              <span>Reset</span>
-            </button>
-          )}
-        </div>
+        <DateFilterBar selectedDate={selectedDate} onChangeDate={setSelectedDate} />
       </div>
 
       {/* Date-Grouped Banking Transaction History */}
