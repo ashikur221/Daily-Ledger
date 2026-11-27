@@ -318,46 +318,48 @@ export default function DashboardPage() {
 
   return (
     <div className="pitch-dashboard">
-      {/* 1. Neon Glowing Cash in Hand Hero */}
-      <div className="balance-screen">
-        <div className="balance-ring">
-          <div className="balance-inner">
-            <div className="balance-label">CASH IN HAND</div>
-            <div
-              id="homeBalanceHero"
-              className="balance-amount"
-              style={{ color: '#34d399', textShadow: '0 0 20px rgba(52, 211, 153, 0.45)' }}
-            >
-              {fmt(stats.cashInHand)}
+      {/* 1. Neon Glowing Cash in Hand Hero — matching Expense Summary Circle */}
+      <div className="panel p-4 expense-total-panel">
+        <div className="finance-summary-heading">
+          <Wallet size={18} strokeWidth={ICON_STROKE} className="finance-summary-icon" aria-hidden="true" />
+          <h2>CASH SUMMARY</h2>
+        </div>
+
+        <div className="balance-screen" style={{ paddingTop: '8px', paddingBottom: '6px' }}>
+          <div className="balance-ring">
+            <div className="balance-inner">
+              <div className="balance-label">CASH IN HAND</div>
+              <div id="homeBalanceHero" className="balance-amount">
+                {fmt(stats.cashInHand)}
+              </div>
+              <div className="balance-subtitle">
+                Physical cash in hand · Real-time synced
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="balance-actions">
-          <button
-            type="button"
-            onClick={() => handleOpenAddExpense(todayStr)}
-            className="balance-action"
-            style={{ gap: '8px' }}
-          >
-            <Plus size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
-            Add Expense
-            <ChevronRight size={17} strokeWidth={ICON_STROKE} className="balance-action-chevron" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/accounts')}
-            className="balance-action"
-            style={{ gap: '8px' }}
-          >
-            <Wallet size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
-            Banks & Assets
-            <ChevronRight size={17} strokeWidth={ICON_STROKE} className="balance-action-chevron" aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className="balance-note">
-          Physical cash in hand · Real-time synced
+          <div className="balance-actions">
+            <button
+              type="button"
+              onClick={() => handleOpenAddExpense(todayStr)}
+              className="balance-action"
+              style={{ gap: '8px' }}
+            >
+              <Plus size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              Add Expense
+              <ChevronRight size={17} strokeWidth={ICON_STROKE} className="balance-action-chevron" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/accounts')}
+              className="balance-action"
+              style={{ gap: '8px' }}
+            >
+              <Wallet size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              Banks & Assets
+              <ChevronRight size={17} strokeWidth={ICON_STROKE} className="balance-action-chevron" aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </div>
 
