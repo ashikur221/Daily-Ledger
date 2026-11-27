@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ListOrdered, Receipt } from 'lucide-react';
+import { ListOrdered, Receipt, Search, Tag, X } from 'lucide-react';
 import { ICON_STROKE } from '../components/AppIcons';
 import DateFilterBar from '../components/DateFilterBar';
 import db from '../db/localDb';
@@ -12,6 +12,19 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
 import TransactionRow, { formatDateGroupHeading } from '../components/TransactionRow';
 
+const EXPENSE_CATEGORIES = [
+  { value: 'Food & drinks', label: 'Food & Drinks' },
+  { value: 'Transport', label: 'Transport / Fare' },
+  { value: 'Phone & communication', label: 'Phone & Internet' },
+  { value: 'Health', label: 'Health & Medicine' },
+  { value: 'Personal care', label: 'Personal Care' },
+  { value: 'Clothing', label: 'Clothing' },
+  { value: 'Study & supplies', label: 'Study & Supplies' },
+  { value: 'Housing', label: 'Housing & Rent' },
+  { value: 'Laundry & household', label: 'Household & Utilities' },
+  { value: 'General', label: 'General / Other' },
+];
+
 export default function TransactionsPage() {
   const { isOnline, refreshPendingCount } = useAuth();
   const toast = useToast();
@@ -21,6 +34,8 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [availableAccounts, setAvailableAccounts] = useState([]);
   const [selectedDate, setSelectedDate] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Edit modal state
   const [showModal, setShowModal] = useState(false);
@@ -90,11 +105,68 @@ export default function TransactionsPage() {
     return transactions.filter((t) => t.type === 'expense' && t.category !== 'Banking');
   }, [transactions]);
 
+  const categoryOptions = useMemo(() => {
+    const map = new Map();
+    EXPENSE_CATEGORIES.forEach((c) => map.set(c.value.toLowerCase(), c));
+    allExpenses.forEach((tx) => {
+      const cat = (tx.category || '').trim();
+      if (cat && !map.has(cat.toLowerCase())) {
+        map.set(cat.toLowerCase(), { value: cat, label: cat });
+      }
+    });
+    return Array.from(map.values());
+  }, [allExpenses]);
+
+  const categoryLabelMap = useMemo(() => {
+    const map = new Map();
+    categoryOptions.forEach((c) => map.set(c.value.toLowerCase(), c.label));
+    return map;
+  }, [categoryOptions]);
+
+  const filteredExpenses = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return allExpenses.filter((tx) => {
+      if (selectedDate) {
+        const dateKey = new Date(tx.date).toISOString().split('T')[0];
+        if (dateKey !== selectedDate) return false;
+      }
+      const txCat = (tx.category || 'General').trim();
+      if (selectedCategory !== 'all' && txCat.toLowerCase() !== selectedCategory.toLowerCase()) {
+        return false;
+      }
+      if (q) {
+        const note = (tx.note || '').toLowerCase();
+        const account = (tx.account || '').toLowerCase();
+        const cat = txCat.toLowerCase();
+        const catLabel = (categoryLabelMap.get(cat) || cat).toLowerCase();
+        if (!note.includes(q) && !cat.includes(q) && !catLabel.includes(q) && !account.includes(q)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [allExpenses, selectedDate, selectedCategory, searchQuery, categoryLabelMap]);
+
+  const filteredTotal = useMemo(() => {
+    return filteredExpenses.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+  }, [filteredExpenses]);
+
+  const hasActiveFilters = Boolean(selectedDate || selectedCategory !== 'all' || searchQuery.trim());
+
+  const clearAllFilters = () => {
+    setSelectedDate('');
+    setSelectedCategory('all');
+    setSearchQuery('');
+  };
+
+  useEffect(() => {
+    setVisibleCount(INITIAL_BATCH_SIZE);
+  }, [selectedDate, selectedCategory, searchQuery]);
+
   const groupedByDate = useMemo(() => {
     const groups = {};
-    allExpenses.forEach((tx) => {
+    filteredExpenses.forEach((tx) => {
       const dateKey = new Date(tx.date).toISOString().split('T')[0];
-      if (selectedDate && dateKey !== selectedDate) return;
       if (!groups[dateKey]) {
         groups[dateKey] = {
           date: dateKey,
@@ -115,7 +187,7 @@ export default function TransactionsPage() {
     });
 
     return Object.values(groups).sort((a, b) => b.date.localeCompare(a.date));
-  }, [allExpenses, selectedDate]);
+  }, [filteredExpenses]);
 
   useEffect(() => {
     if (!loadMoreRef.current) return;
@@ -270,14 +342,66 @@ export default function TransactionsPage() {
               <span>Transaction List</span>
             </h2>
             <p className="panel-sub">
-              {selectedDate
-                ? `Showing expenses for ${formatDateGroupHeading(selectedDate)}`
+              {hasActiveFilters
+                ? `Showing ${filteredExpenses.length} matching ${filteredExpenses.length === 1 ? 'entry' : 'entries'} · Total: ${fmt(filteredTotal)}`
                 : `Chronological expense history grouped by date (${allExpenses.length} entries).`}
             </p>
           </div>
         </div>
 
         <DateFilterBar selectedDate={selectedDate} onChangeDate={setSelectedDate} />
+
+        <div className="tx-search-filter-row">
+          <div className="tx-search-input-wrap">
+            <Search size={16} strokeWidth={ICON_STROKE} className="tx-search-icon" aria-hidden="true" />
+            <input
+              type="text"
+              className="tx-search-input"
+              placeholder="Search by title, category, or account..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search expenses by title, category, or account"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="tx-search-clear-icon"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+              >
+                <X size={13} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+
+          <div className="tx-category-select-wrap">
+            <Tag size={15} strokeWidth={ICON_STROKE} className="tx-category-icon" aria-hidden="true" />
+            <select
+              className="tx-category-select"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              aria-label="Filter expenses by category"
+            >
+              <option value="all">All Categories</option>
+              {categoryOptions.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {(selectedCategory !== 'all' || searchQuery.trim()) && (
+            <button
+              type="button"
+              className="tx-filter-clear-btn"
+              onClick={clearAllFilters}
+            >
+              <X size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Clear</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Date-Grouped Banking Transaction History */}
@@ -292,19 +416,19 @@ export default function TransactionsPage() {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', color: '#64748b' }}>
               <Receipt size={32} strokeWidth={ICON_STROKE} aria-hidden="true" />
             </div>
-            <p className="panel-sub" style={{ marginBottom: selectedDate ? '14px' : '0' }}>
-              {selectedDate
-                ? `No expenses recorded on ${formatDateGroupHeading(selectedDate)}.`
+            <p className="panel-sub" style={{ marginBottom: hasActiveFilters ? '14px' : '0' }}>
+              {hasActiveFilters
+                ? 'No expenses match your current filters.'
                 : 'No recorded expenses yet.'}
             </p>
-            {selectedDate && (
+            {hasActiveFilters && (
               <button
                 type="button"
                 className="secondary"
-                onClick={() => setSelectedDate('')}
+                onClick={clearAllFilters}
                 style={{ padding: '7px 16px', fontSize: '0.82rem', fontWeight: 600 }}
               >
-                Show All Dates
+                Show All Expenses
               </button>
             )}
           </div>
@@ -465,16 +589,11 @@ export default function TransactionsPage() {
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                 >
-                  <option value="Food & drinks">Food & Drinks</option>
-                  <option value="Transport">Transport / Fare</option>
-                  <option value="Phone & communication">Phone & Internet</option>
-                  <option value="Health">Health & Medicine</option>
-                  <option value="Personal care">Personal Care</option>
-                  <option value="Clothing">Clothing</option>
-                  <option value="Study & supplies">Study & Supplies</option>
-                  <option value="Housing">Housing & Rent</option>
-                  <option value="Laundry & household">Household & Utilities</option>
-                  <option value="General">General / Other</option>
+                  {EXPENSE_CATEGORIES.map((cat) => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
