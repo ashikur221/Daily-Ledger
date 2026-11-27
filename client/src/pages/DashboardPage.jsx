@@ -387,7 +387,12 @@ export default function DashboardPage() {
           <div className="metric-sub">Across Banks, Wallets & Cash</div>
         </div>
 
-        <div className="panel p-4">
+        <div
+          className="panel p-4"
+          onClick={() => navigate('/transactions')}
+          style={{ cursor: 'pointer' }}
+          title="Click to view full transaction list"
+        >
           <div className="tiny-label">All recorded expenses</div>
           <div id="allTotal" className="metric-value">{fmt(stats.allExpenses)}</div>
           <div className="metric-sub">Calculated from itemized entries</div>
