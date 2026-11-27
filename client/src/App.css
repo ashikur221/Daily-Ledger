@@ -3550,32 +3550,62 @@ html, body {
     width: 100%;
   }
 
+  .deposit-list-panel {
+    padding: 14px 12px !important;
+  }
+
+  .tx-date-group-header {
+    padding: 4px 2px;
+    gap: 8px;
+  }
+
+  .tx-date-group-label {
+    font-size: 0.71rem;
+    white-space: nowrap;
+  }
+
+  .tx-date-group-total {
+    font-size: 0.73rem;
+    white-space: nowrap;
+  }
+
   .bkash-tx-row {
-    padding: 13px 12px;
-    gap: 10px;
+    padding: 12px 10px;
+    gap: 8px;
   }
 
   .bkash-tx-icon {
-    width: 38px;
-    height: 38px;
-    font-size: 1.15rem;
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
   }
 
   .bkash-tx-title {
-    font-size: 0.92rem;
+    font-size: 0.9rem;
   }
 
   .bkash-tx-meta {
-    font-size: 0.74rem;
+    font-size: 0.72rem;
+    gap: 4px 5px;
+  }
+
+  .bkash-tx-meta span {
+    white-space: nowrap;
   }
 
   .bkash-tx-amount {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+
+  .bkash-tx-actions {
+    gap: 5px;
   }
 
   .bkash-action-btn {
-    min-height: 32px;
-    padding: 4px 10px;
+    min-height: 28px;
+    padding: 3px 8px;
+    font-size: 0.7rem;
   }
 }
 
