@@ -384,7 +384,7 @@ export default function AiPage() {
   const fmt = (n) => `৳${Number(n || 0).toLocaleString('en-US')}`;
 
   return (
-    <div className="pitch-dashboard" style={{ maxWidth: '940px', margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 140px)' }}>
+    <div className="pitch-dashboard" style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: 'calc(100dvh - 190px)' }}>
       {/* 1. Minimal ChatGPT-Style Top Bar */}
       <div
         style={{
@@ -686,34 +686,34 @@ export default function AiPage() {
         </div>
 
         {/* ChatGPT-Style Floating Composer Pill */}
-        <div style={{ position: 'sticky', bottom: '0', paddingTop: '8px', background: 'linear-gradient(180deg, rgba(5,5,5,0) 0%, #050505 22%)' }}>
+        <div style={{ marginTop: 'auto', position: 'sticky', bottom: '68px', paddingTop: '10px', background: 'linear-gradient(180deg, rgba(5,5,5,0) 0%, #050505 26%)' }}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendMessage();
             }}
             style={{
-              background: '#101116',
+              background: '#171a23',
               border: '1px solid #252936',
-              borderRadius: '22px',
-              padding: '10px 14px 10px 16px',
+              borderRadius: '26px',
+              padding: '10px 12px 10px 16px',
               display: 'flex',
               flexDirection: 'column',
               gap: '8px',
-              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.65)',
+              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.7)',
             }}
           >
             <input
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Ask Ledger AI..."
+              placeholder="Ask Ledger AI"
               style={{
                 width: '100%',
                 background: 'transparent',
                 border: 'none',
                 color: '#f5f7fa',
-                fontSize: '0.94rem',
+                fontSize: '0.95rem',
                 outline: 'none',
                 padding: '4px 2px',
               }}
@@ -722,45 +722,39 @@ export default function AiPage() {
             />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={handleStartNewChat}
-                  title="Start New Chat"
-                  aria-label="Start New Chat"
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '50%',
-                    background: '#171a23',
-                    border: '1px solid #252936',
-                    color: '#cbd5e1',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Plus size={17} strokeWidth={ICON_STROKE} aria-hidden="true" />
-                </button>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <Lock size={11} strokeWidth={ICON_STROKE} aria-hidden="true" />
-                  <span>Read-only · Free Tier</span>
-                </span>
-              </div>
+              <button
+                type="button"
+                onClick={handleStartNewChat}
+                title="Start New Chat"
+                aria-label="Start New Chat"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'transparent',
+                  border: '1px solid #2e3444',
+                  color: '#cbd5e1',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <Plus size={17} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              </button>
 
               <button
                 type="submit"
                 disabled={loading || !prompt.trim()}
                 aria-label="Send message"
                 style={{
-                  width: '36px',
-                  height: '36px',
+                  width: '34px',
+                  height: '34px',
                   borderRadius: '50%',
                   border: 'none',
                   background:
                     loading || !prompt.trim()
-                      ? '#1f2430'
+                      ? '#252936'
                       : 'linear-gradient(135deg, #5145E5 0%, #278BFA 55%, #06B6D4 100%)',
                   color: loading || !prompt.trim() ? '#64748b' : '#ffffff',
                   display: 'inline-flex',
@@ -771,10 +765,13 @@ export default function AiPage() {
                   flexShrink: 0,
                 }}
               >
-                <ArrowUp size={18} strokeWidth={2.2} aria-hidden="true" />
+                <ArrowUp size={17} strokeWidth={2.2} aria-hidden="true" />
               </button>
             </div>
           </form>
+          <div style={{ textAlign: 'center', fontSize: '0.68rem', color: '#64748b', marginTop: '6px' }}>
+            Ledger AI · Read-only verified insights
+          </div>
         </div>
       </div>
 

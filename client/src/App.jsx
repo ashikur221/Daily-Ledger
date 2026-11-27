@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
 import {
   Menu,
   Settings,
@@ -52,6 +52,8 @@ function AppContent() {
   const { user, loading, isOnline, pendingSync, refreshPendingCount } = useAuth();
   const toast = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const location = useLocation();
+  const isAiPage = location.pathname === '/ai';
 
   React.useEffect(() => {
     if (!user) return;
@@ -221,45 +223,47 @@ function AppContent() {
         </Routes>
       </main>
 
-      {/* Global App Footer */}
-      <footer
-        style={{
-          borderTop: '1px solid #141a27',
-          padding: '24px 16px 80px',
-          marginTop: 'auto',
-          textAlign: 'center',
-          fontSize: '0.82rem',
-          color: '#64748b',
-        }}
-      >
-        <div style={{ maxWidth: '980px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <span>Daily Ledger · Private in this browser · Cloud Synced</span>
-          </div>
+      {/* Global App Footer (hidden on Ledger AI for ChatGPT-style full-height chat) */}
+      {!isAiPage && (
+        <footer
+          style={{
+            borderTop: '1px solid #141a27',
+            padding: '24px 16px 80px',
+            marginTop: 'auto',
+            textAlign: 'center',
+            fontSize: '0.82rem',
+            color: '#64748b',
+          }}
+        >
+          <div style={{ maxWidth: '980px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <span>Daily Ledger · Private in this browser · Cloud Synced</span>
+            </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <NavLink
-              to="/developer"
-              style={{
-                color: '#ffffff',
-                fontWeight: 600,
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 0',
-              }}
-            >
-              <Code2 size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
-              <span>Developer: Ashikur Rahman</span>
-            </NavLink>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <NavLink
+                to="/developer"
+                style={{
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 0',
+                }}
+              >
+                <Code2 size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                <span>Developer: Ashikur Rahman</span>
+              </NavLink>
 
-            <NavLink to="/settings" style={{ color: '#94a3b8', textDecoration: 'none' }}>
-              Settings
-            </NavLink>
+              <NavLink to="/settings" style={{ color: '#94a3b8', textDecoration: 'none' }}>
+                Settings
+              </NavLink>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
 
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
