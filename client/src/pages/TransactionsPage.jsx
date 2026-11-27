@@ -258,11 +258,35 @@ export default function TransactionsPage() {
 
   const fmt = (n) => `৳${Number(n || 0).toLocaleString('en-IN')}`;
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const yesterdayStr = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0];
+  })();
+  const dateInputRef = useRef(null);
+  const isCustomDate = Boolean(selectedDate && selectedDate !== todayStr && selectedDate !== yesterdayStr);
+
+  const openNativeDatePicker = () => {
+    const el = dateInputRef.current;
+    if (!el) return;
+    if (typeof el.showPicker === 'function') {
+      try {
+        el.showPicker();
+      } catch {
+        el.focus();
+      }
+    } else {
+      el.focus();
+      el.click();
+    }
+  };
+
   return (
     <div className="pitch-dashboard">
-      {/* Page Header & Calendar Date Filter */}
+      {/* Page Header & Modern Quick-Date + Calendar Filter Bar */}
       <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h2 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ListOrdered size={20} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
@@ -274,68 +298,65 @@ export default function TransactionsPage() {
                 : `Chronological expense history grouped by date (${allExpenses.length} entries).`}
             </p>
           </div>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <label
-              htmlFor="txDateFilter"
-              style={{ fontSize: '0.8rem', fontWeight: 650, color: '#9ca3af' }}
-            >
-              Filter by Date:
-            </label>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                height: '40px',
-                background: '#171a23',
-                border: selectedDate ? '1px solid #38bdf8' : '1px solid #2e3648',
-                borderRadius: '10px',
-                padding: '0 12px',
-              }}
-            >
-              <CalendarDays size={16} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
-              <input
-                id="txDateFilter"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                aria-label="Filter transactions by date"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#f5f7fa',
-                  fontSize: '0.86rem',
-                  fontWeight: 600,
-                  outline: 'none',
-                  cursor: 'pointer',
-                  colorScheme: 'dark',
-                }}
-              />
-            </div>
+        <div className="tx-filter-bar" role="group" aria-label="Filter transactions by date">
+          <button
+            type="button"
+            className={`tx-filter-pill ${selectedDate === '' ? 'active' : ''}`}
+            onClick={() => setSelectedDate('')}
+          >
+            All Dates
+          </button>
 
-            {selectedDate && (
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setSelectedDate('')}
-                style={{
-                  height: '40px',
-                  padding: '0 12px',
-                  borderRadius: '10px',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                }}
-                aria-label="Clear date filter"
-              >
-                <X size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
-                <span>Clear</span>
-              </button>
-            )}
+          <button
+            type="button"
+            className={`tx-filter-pill ${selectedDate === todayStr ? 'active' : ''}`}
+            onClick={() => setSelectedDate(todayStr)}
+          >
+            Today
+          </button>
+
+          <button
+            type="button"
+            className={`tx-filter-pill ${selectedDate === yesterdayStr ? 'active' : ''}`}
+            onClick={() => setSelectedDate(yesterdayStr)}
+          >
+            Yesterday
+          </button>
+
+          <div className="tx-date-picker-wrap">
+            <button
+              type="button"
+              className={`tx-filter-pill ${isCustomDate ? 'active' : ''}`}
+              onClick={openNativeDatePicker}
+              aria-label="Pick a specific date from calendar"
+            >
+              <CalendarDays size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>{isCustomDate ? formatDateGroupHeading(selectedDate) : 'Pick Date'}</span>
+            </button>
+            <input
+              ref={dateInputRef}
+              id="txDateFilter"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="tx-date-hidden-input"
+              aria-label="Choose date from calendar"
+            />
           </div>
+
+          {selectedDate && (
+            <button
+              type="button"
+              className="tx-filter-clear-btn"
+              onClick={() => setSelectedDate('')}
+              aria-label="Clear date filter"
+            >
+              <X size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 
