@@ -53,7 +53,7 @@ function AppContent() {
   const toast = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const location = useLocation();
-  const isAiPage = location.pathname === '/ai';
+  const isAiPage = location.pathname.startsWith('/ai') || location.pathname.startsWith('/reports');
 
   React.useEffect(() => {
     if (!user) return;
