@@ -33,10 +33,14 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    // Refresh token storage
+    // Refresh token storage (multi-device array + legacy single-token fields)
     refreshToken: {
       type: String,
       default: null,
+    },
+    refreshTokens: {
+      type: [String],
+      default: [],
     },
     previousRefreshToken: {
       type: String,

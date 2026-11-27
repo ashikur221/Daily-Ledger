@@ -237,6 +237,8 @@ export default function AiPage() {
 
         const header = isActuallyOffline
           ? `📱 **Phone Offline Mode (No Wi-Fi / Data)**\n\nYou are currently offline. Conversational responses with Google Gemini require an internet connection, but your phone's stored ledger data remains 100% accessible:`
+          : statusCode === 401
+          ? `🔐 **Session Expired on This Device (401)**\n\nYour login session on this device was invalidated (\`${errDetail}\`). Please **Sign Out** in Settings and **Sign In** again to reconnect to Ledger AI.\n\nMeanwhile, here is your local ledger summary:`
           : `⚠️ **Cloud AI Server Unreachable${statusCode ? ` (${statusCode})` : ''}**\n\nYour device is online, but the backend AI service did not respond (\`${errDetail}\`). If your backend is hosted on Render's free tier, it may be waking up or redeploying—please wait 15–30 seconds and retry.\n\nMeanwhile, here is your local ledger summary:`;
 
         fallbackSummary =

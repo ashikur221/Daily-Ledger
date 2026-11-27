@@ -53,6 +53,7 @@ const register = async (req, res) => {
 
     const { accessToken, refreshToken } = generateTokens(invitee._id);
     invitee.refreshToken = refreshToken;
+    invitee.refreshTokens = [refreshToken];
     invitee.lastLoginAt = new Date();
     await invitee.save();
 
@@ -102,6 +103,8 @@ const login = async (req, res) => {
 
     const { accessToken, refreshToken } = generateTokens(user._id, rememberMe);
     user.refreshToken = refreshToken;
+    const existingTokens = Array.isArray(user.refreshTokens) ? user.refreshTokens : [];
+    user.refreshTokens = [...existingTokens.filter((t) => t && t !== refreshToken), refreshToken].slice(-10);
     user.lastLoginAt = new Date();
     await user.save();
 
@@ -128,17 +131,23 @@ const refreshAccessToken = async (req, res) => {
     }
 
     const isCurrentToken = user.refreshToken === token;
+    const isInDeviceList = Array.isArray(user.refreshTokens) && user.refreshTokens.includes(token);
     const isRecentPrevious =
       user.previousRefreshToken === token &&
       Date.now() - new Date(user.refreshTokenUpdatedAt || 0).getTime() < 60000;
 
-    if (!isCurrentToken && !isRecentPrevious) {
+    if (!isCurrentToken && !isInDeviceList && !isRecentPrevious) {
       return res.status(401).json({ message: 'Invalid refresh token' });
     }
 
     const { accessToken, refreshToken } = generateTokens(user._id, true);
     user.previousRefreshToken = user.refreshToken;
     user.refreshToken = refreshToken;
+    const existingTokens = Array.isArray(user.refreshTokens) ? user.refreshTokens : [];
+    user.refreshTokens = [
+      ...existingTokens.filter((t) => t && t !== token && t !== refreshToken),
+      refreshToken,
+    ].slice(-10);
     user.refreshTokenUpdatedAt = new Date();
     await user.save();
 
@@ -154,6 +163,10 @@ const logout = async (req, res) => {
   try {
     const token = req.cookies.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'];
     if (token) {
+      await User.updateMany(
+        { $or: [{ refreshToken: token }, { refreshTokens: token }] },
+        { $pull: { refreshTokens: token } }
+      );
       await User.findOneAndUpdate({ refreshToken: token }, { refreshToken: null });
     }
     res.clearCookie('refreshToken');
