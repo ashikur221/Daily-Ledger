@@ -365,7 +365,12 @@ export default function DashboardPage() {
 
       {/* 2. 4-Box Summary Grid */}
       <div className="metrics-grid">
-        <div className="panel p-4">
+        <div
+          className="panel p-4"
+          onClick={() => navigate('/transactions')}
+          style={{ cursor: 'pointer' }}
+          title="Click to view full transaction list"
+        >
           <div className="tiny-label">Today's total</div>
           <div id="todayTotal" className="metric-value">{fmt(stats.todayTotal)}</div>
           <div id="todayDateLabel" className="metric-sub">{todayLabel}</div>
