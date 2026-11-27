@@ -22,6 +22,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { ConfirmProvider } from './context/ConfirmContext';
 import { syncTwoWay } from './services/syncService';
+import { checkAndDispatchDailyNotification } from './services/budgetNotificationService';
 import DashboardPage from './pages/DashboardPage';
 import LedgerPage from './pages/LedgerPage';
 import TransactionsPage from './pages/TransactionsPage';
@@ -51,6 +52,18 @@ function AppContent() {
   const { user, loading, isOnline, pendingSync, refreshPendingCount } = useAuth();
   const toast = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!user) return;
+    checkAndDispatchDailyNotification().catch(() => {});
+    const onFocus = () => checkAndDispatchDailyNotification().catch(() => {});
+    const interval = setInterval(() => checkAndDispatchDailyNotification().catch(() => {}), 30 * 60 * 1000);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [user]);
 
   if (loading) {
     return (

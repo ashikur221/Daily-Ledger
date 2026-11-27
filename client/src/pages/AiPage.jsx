@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Sparkles, Target, FileText, MessageSquare, Plus, Bot, Lock, Send, BarChart3, Pencil } from 'lucide-react';
+import { Sparkles, Target, FileText, MessageSquare, Plus, Bot, Lock, Send, BarChart3, Pencil, Bell, BellOff } from 'lucide-react';
 import { ICON_STROKE } from '../components/AppIcons';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import db from '../db/localDb';
+import {
+  getNotificationSettings,
+  enableSmartNotifications,
+  disableSmartNotifications,
+  buildPersonalizedNotifications,
+  showNativeNotification,
+} from '../services/budgetNotificationService';
 
 export default function AiPage() {
   const { user } = useAuth();
@@ -32,6 +39,44 @@ export default function AiPage() {
     () => localStorage.getItem('daily_ledger_monthly_budget') || '12000'
   );
   const [editingBudget, setEditingBudget] = useState(false);
+  const [notifEnabled, setNotifEnabled] = useState(() => getNotificationSettings().enabled);
+
+  const handleToggleNotifications = async () => {
+    if (notifEnabled) {
+      disableSmartNotifications();
+      setNotifEnabled(false);
+      toast.info('Daily Smart Alerts turned off.');
+    } else {
+      try {
+        await enableSmartNotifications();
+        setNotifEnabled(true);
+        toast.success('Daily Smart Alerts enabled! (5 catchy alerts/day)');
+      } catch (err) {
+        toast.error(err.message || 'Could not enable notifications.');
+      }
+    }
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted') {
+        await enableSmartNotifications();
+        setNotifEnabled(true);
+        toast.success('Test notification sent!');
+        return;
+      }
+      const list = await buildPersonalizedNotifications();
+      const randomItem = list[Math.floor(Math.random() * list.length)];
+      const ok = await showNativeNotification(randomItem);
+      if (ok) {
+        toast.success('Notification sent! Check your system tray.');
+      } else {
+        toast.info(`${randomItem.title} — ${randomItem.body}`);
+      }
+    } catch (err) {
+      toast.error(err.message || 'Notification failed');
+    }
+  };
 
   // Goal Calculator Form State
   const [goalForm, setGoalForm] = useState({
@@ -1014,6 +1059,41 @@ export default function AiPage() {
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* Smart Daily Coaching Notifications (4-5/day) */}
+                <div style={{ background: '#050608', border: '1px solid #1a2233', borderRadius: '12px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ flex: 1, minWidth: '210px' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 750, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {notifEnabled ? (
+                        <Bell size={15} strokeWidth={ICON_STROKE} color="#34d399" aria-hidden="true" />
+                      ) : (
+                        <BellOff size={15} strokeWidth={ICON_STROKE} color="#94a3b8" aria-hidden="true" />
+                      )}
+                      <span>Daily Smart Coaching Alerts (5/day)</span>
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '3px', lineHeight: 1.45 }}>
+                      Catchy Bangla reminders to trim top expenses, stay under budget, and boost your income.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={handleTestNotification}
+                      style={{ height: '34px', padding: '0 12px', fontSize: '0.76rem', borderRadius: '8px' }}
+                    >
+                      Test Alert
+                    </button>
+                    <button
+                      type="button"
+                      className={notifEnabled ? 'secondary' : 'primary'}
+                      onClick={handleToggleNotifications}
+                      style={{ height: '34px', padding: '0 14px', fontSize: '0.76rem', borderRadius: '8px', fontWeight: 700 }}
+                    >
+                      {notifEnabled ? 'Turn Off' : 'Enable Alerts'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Key Metrics Grid */}
