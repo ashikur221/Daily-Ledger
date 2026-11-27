@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { TrendingUp, Plus, Wallet, Pencil } from 'lucide-react';
 import { ICON_STROKE } from '../components/AppIcons';
 import DateFilterBar from '../components/DateFilterBar';
-import { formatDateGroupHeading } from '../components/TransactionRow';
+import { formatDateGroupHeading, getTransactionTime } from '../components/TransactionRow';
 import db from '../db/localDb';
 import api from '../services/api';
 import { queueSync } from '../services/syncService';
@@ -110,6 +110,33 @@ export default function DepositsPage() {
 
   const filteredDepositsTotal = useMemo(() => {
     return filteredDeposits.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [filteredDeposits]);
+
+  // Group filtered deposits by date (newest first, matching Transaction List)
+  const groupedDeposits = useMemo(() => {
+    const groups = {};
+    filteredDeposits.forEach((tx) => {
+      const dateKey = new Date(tx.date).toISOString().split('T')[0];
+      if (!groups[dateKey]) {
+        groups[dateKey] = {
+          date: dateKey,
+          items: [],
+          total: 0,
+        };
+      }
+      groups[dateKey].items.push(tx);
+      groups[dateKey].total += Number(tx.amount) || 0;
+    });
+
+    Object.values(groups).forEach((group) => {
+      group.items.sort((a, b) => {
+        const timeA = new Date(a.clientUpdatedAt || a.createdAt || a.date).getTime() || 0;
+        const timeB = new Date(b.clientUpdatedAt || b.createdAt || b.date).getTime() || 0;
+        return timeB - timeA;
+      });
+    });
+
+    return Object.values(groups).sort((a, b) => b.date.localeCompare(a.date));
   }, [filteredDeposits]);
 
   // Format date helper: "15 Oct 2026"
@@ -396,63 +423,82 @@ export default function DepositsPage() {
               )}
             </div>
           ) : (
-            filteredDeposits.map((d) => {
-              const displaySource = d.note ? d.note.replace(/^From\s+/i, '') : 'Income';
-              return (
-                <div
-                  key={d.localId || d._id}
-                  className="deposit-row-card"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => handleStartEdit(d)}
-                  title="Click to edit income entry"
-                >
-                  <div className="deposit-row-left">
-                    <div className="deposit-source-name" style={{ fontSize: '1.02rem', fontWeight: 700 }}>
-                      {displaySource}
-                    </div>
-                    <div className="deposit-date-tag">
-                      <span>{formatDateLabel(d.date)}</span>
-                      <span style={{ margin: '0 6px', opacity: 0.35 }}>•</span>
-                      <span
-                        style={{
-                          fontSize: '0.74rem',
-                          padding: '1px 7px',
-                          borderRadius: '5px',
-                          background: 'rgba(16, 185, 129, 0.1)',
-                          color: '#34d399',
-                          border: '1px solid rgba(16, 185, 129, 0.25)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        <Wallet size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
-                        <span>{d.account || 'Cash in Hand'}</span>
-                      </span>
-                    </div>
+            <div className="tx-history-stream" style={{ marginBottom: 0 }}>
+              {groupedDeposits.map((group) => (
+                <div key={group.date} className="tx-date-group">
+                  <div className="tx-date-group-header">
+                    <span className="tx-date-group-label">
+                      {formatDateGroupHeading(group.date)}
+                    </span>
+                    <span className="tx-date-group-total" style={{ color: '#34d399' }}>
+                      Daily total: +৳{Number(group.total).toLocaleString('en-US')}
+                    </span>
                   </div>
 
-                  <div className="deposit-row-right">
-                    <div className="deposit-amount-pill" style={{ color: '#34d399', fontWeight: 800 }}>
-                      +৳{Number(d.amount).toLocaleString('en-US')}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartEdit(d);
-                      }}
-                      className="deposit-edit-btn"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      aria-label={`Edit ${displaySource}`}
-                    >
-                      <Pencil size={13} strokeWidth={ICON_STROKE} aria-hidden="true" />
-                      <span>Edit</span>
-                    </button>
+                  <div className="tx-date-group-list">
+                    {group.items.map((d) => {
+                      const displaySource = d.note ? d.note.replace(/^From\s+/i, '') : 'Income';
+                      const txTime = getTransactionTime(d);
+                      return (
+                        <div
+                          key={d.localId || d._id}
+                          className="bkash-tx-row"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleStartEdit(d)}
+                          title="Click to edit income entry"
+                        >
+                          <div className="bkash-tx-left">
+                            <div
+                              className="bkash-tx-icon"
+                              style={{ background: 'rgba(16, 185, 129, 0.14)', color: '#34d399' }}
+                              aria-hidden="true"
+                            >
+                              <TrendingUp size={20} strokeWidth={ICON_STROKE} />
+                            </div>
+                            <div className="bkash-tx-details">
+                              <div className="bkash-tx-title">{displaySource}</div>
+                              <div className="bkash-tx-meta">
+                                <span>Income</span>
+                                <span style={{ opacity: 0.45 }}>·</span>
+                                <span style={{ color: '#34d399' }}>
+                                  {d.account || 'Cash in Hand'}
+                                </span>
+                                {txTime && (
+                                  <>
+                                    <span style={{ opacity: 0.45 }}>·</span>
+                                    <span className="bkash-tx-time">{txTime}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bkash-tx-right">
+                            <div className="bkash-tx-amount" style={{ color: '#34d399' }}>
+                              +৳{Number(d.amount).toLocaleString('en-US')}
+                            </div>
+                            <div className="bkash-tx-actions">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartEdit(d);
+                                }}
+                                className="bkash-action-btn"
+                                aria-label={`Edit ${displaySource}`}
+                              >
+                                <Pencil size={13} strokeWidth={ICON_STROKE} aria-hidden="true" style={{ marginRight: '4px' }} />
+                                <span>Edit</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })
+              ))}
+            </div>
           )}
         </div>
       </div>
