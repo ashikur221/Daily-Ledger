@@ -460,8 +460,8 @@ export default function AiPage() {
           minHeight: '460px',
         }}
       >
-        {/* Messages Stream */}
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '22px', padding: '6px 2px 20px' }}>
+        {/* Messages Stream (padded at bottom so messages clear the fixed composer) */}
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '22px', padding: '6px 2px 130px' }}>
           {/* Unique Welcome Hero if no messages */}
           {messages.length === 0 && (
             <div
