@@ -554,7 +554,7 @@ export default function LedgerPage({ initialType = '' }) {
 
         {/* Category Filter Row */}
         <div className="tx-search-filter-row" style={{ marginTop: '10px' }}>
-          <div className="tx-category-select-wrap" style={{ flex: '1 1 180px', maxWidth: '280px' }}>
+          <div className="tx-category-select-wrap" style={{ flex: '1 1 100%', maxWidth: '100%' }}>
             <Tag size={15} strokeWidth={ICON_STROKE} className="tx-category-icon" aria-hidden="true" />
             <select
               className="tx-category-select"
