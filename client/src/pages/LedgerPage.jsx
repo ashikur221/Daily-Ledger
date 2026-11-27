@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Receipt, Search, X, Copy, Share2 } from 'lucide-react';
+import { Receipt, Search, X, Copy, Share2, Tag } from 'lucide-react';
+
+const EXPENSE_CATEGORIES = [
+  { value: 'Food & drinks', label: 'Food & Drinks' },
+  { value: 'Transport', label: 'Transport / Fare' },
+  { value: 'Phone & communication', label: 'Phone & Internet' },
+  { value: 'Health', label: 'Health & Medicine' },
+  { value: 'Personal care', label: 'Personal Care' },
+  { value: 'Clothing', label: 'Clothing' },
+  { value: 'Study & supplies', label: 'Study & Supplies' },
+  { value: 'Housing', label: 'Housing & Rent' },
+  { value: 'Laundry & household', label: 'Household & Utilities' },
+  { value: 'General', label: 'General / Other' },
+];
 import { ICON_STROKE } from '../components/AppIcons';
 import db from '../db/localDb';
 import api from '../services/api';
@@ -22,6 +35,7 @@ export default function LedgerPage({ initialType = '' }) {
   // Search state
   const [searchInput, setSearchInput] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Date Range Share state
   const [fromDate, setFromDate] = useState('');
@@ -129,19 +143,28 @@ export default function LedgerPage({ initialType = '' }) {
   // Submitted search matches & calculation
   const searchResults = useMemo(() => {
     const q = activeSearch.trim().toLowerCase();
-    if (!q) return null;
+    const hasFilter = q || selectedCategory !== 'all';
+    if (!hasFilter) return null;
 
-    const matches = allExpenses.filter((t) =>
-      (t.note || '').toLowerCase().includes(q)
-    );
+    const matches = allExpenses.filter((t) => {
+      const txCat = (t.category || 'General').trim();
+      const catMatch = selectedCategory === 'all' || txCat.toLowerCase() === selectedCategory.toLowerCase();
+      const textMatch = !q || (t.note || '').toLowerCase().includes(q) ||
+        txCat.toLowerCase().includes(q);
+      return catMatch && textMatch;
+    });
 
     const sum = matches.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
+    const label = [
+      activeSearch.trim() ? `"${activeSearch.trim()}"` : null,
+      selectedCategory !== 'all' ? EXPENSE_CATEGORIES.find(c => c.value === selectedCategory)?.label || selectedCategory : null,
+    ].filter(Boolean).join(' · ');
     return {
-      query: activeSearch.trim(),
+      query: label,
       count: matches.length,
       total: sum,
     };
-  }, [allExpenses, activeSearch]);
+  }, [allExpenses, activeSearch, selectedCategory]);
 
   // Group expenses by Date
   const groupedByDate = useMemo(() => {
@@ -149,8 +172,11 @@ export default function LedgerPage({ initialType = '' }) {
     const groups = {};
 
     allExpenses.forEach((tx) => {
+      const txCat = (tx.category || 'General').trim();
+      const catMatch = selectedCategory === 'all' || txCat.toLowerCase() === selectedCategory.toLowerCase();
+      if (!catMatch) return;
       if (q) {
-        const titleMatch = (tx.note || '').toLowerCase().includes(q);
+        const titleMatch = (tx.note || '').toLowerCase().includes(q) || txCat.toLowerCase().includes(q);
         if (!titleMatch) return;
       }
 
@@ -183,7 +209,7 @@ export default function LedgerPage({ initialType = '' }) {
   // Reset visibleCount when search changes so first matches show up immediately
   useEffect(() => {
     setVisibleCount(INITIAL_BATCH_SIZE);
-  }, [activeSearch]);
+  }, [activeSearch, selectedCategory]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -193,6 +219,7 @@ export default function LedgerPage({ initialType = '' }) {
   const handleClearSearch = () => {
     setSearchInput('');
     setActiveSearch('');
+    setSelectedCategory('all');
   };
 
   // Infinite Scroll / Virtual batching via IntersectionObserver
@@ -486,11 +513,11 @@ export default function LedgerPage({ initialType = '' }) {
         </div>
       </div>
 
-      {/* 2. Search by Title */}
+      {/* 2. Search by Title & Category */}
       <div className="panel">
         <div>
-          <h2 className="panel-title">Search by Title</h2>
-          <p className="panel-sub">Find your expenses quickly using their title.</p>
+          <h2 className="panel-title">Search & Filter</h2>
+          <p className="panel-sub">Find your expenses by title or filter by category.</p>
         </div>
 
         <form onSubmit={handleSearchSubmit} className="expense-search-form">
@@ -499,7 +526,7 @@ export default function LedgerPage({ initialType = '' }) {
               id="historySearch"
               type="text"
               className="field"
-              placeholder="Enter expense title..."
+              placeholder="Search by expense title..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -525,12 +552,40 @@ export default function LedgerPage({ initialType = '' }) {
           </button>
         </form>
 
-        {/* Submitted Search Summary */}
+        {/* Category Filter Row */}
+        <div className="tx-search-filter-row" style={{ marginTop: '10px' }}>
+          <div className="tx-category-select-wrap" style={{ flex: '1 1 auto' }}>
+            <Tag size={15} strokeWidth={ICON_STROKE} className="tx-category-icon" aria-hidden="true" />
+            <select
+              className="tx-category-select"
+              value={selectedCategory}
+              onChange={(e) => { setSelectedCategory(e.target.value); setVisibleCount(INITIAL_BATCH_SIZE); }}
+              aria-label="Filter expenses by category"
+            >
+              <option value="all">All Categories</option>
+              {EXPENSE_CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+          </div>
+          {selectedCategory !== 'all' && (
+            <button
+              type="button"
+              className="tx-filter-clear-btn"
+              onClick={() => setSelectedCategory('all')}
+            >
+              <X size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Clear</span>
+            </button>
+          )}
+        </div>
+
+        {/* Submitted Search/Filter Summary */}
         {searchResults && (
           <div className="expense-search-summary">
             <div>
               <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                Total spent on <strong style={{ color: '#f8fafc' }}>"{searchResults.query}"</strong>
+                Total spent on <strong style={{ color: '#f8fafc' }}>{searchResults.query}</strong>
               </div>
               <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#38bdf8', marginTop: '2px' }}>
                 {fmt(searchResults.total)}{' '}
@@ -545,14 +600,14 @@ export default function LedgerPage({ initialType = '' }) {
               onClick={handleClearSearch}
               style={{ padding: '6px 12px', fontSize: '0.78rem', fontWeight: 600, borderRadius: '8px' }}
             >
-              Clear Search
+              Clear All
             </button>
           </div>
         )}
       </div>
 
-      {/* 3. Search Results (shown only when searching by title) */}
-      {activeSearch && (
+      {/* 3. Search/Filter Results */}
+      {(activeSearch || selectedCategory !== 'all') && (
         <div className="tx-history-stream">
           {groupedByDate.length === 0 ? (
             <div className="panel text-center py-8">
@@ -560,7 +615,11 @@ export default function LedgerPage({ initialType = '' }) {
                 <Search size={32} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </div>
               <p className="panel-sub" style={{ marginBottom: '14px' }}>
-                No expenses found matching "{activeSearch}".
+                {activeSearch && selectedCategory !== 'all'
+                  ? `No expenses found matching "${activeSearch}" in that category.`
+                  : activeSearch
+                  ? `No expenses found matching "${activeSearch}".`
+                  : 'No expenses found in that category.'}
               </p>
               <button
                 type="button"
@@ -803,16 +862,9 @@ export default function LedgerPage({ initialType = '' }) {
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                 >
-                  <option value="Food & drinks">Food & Drinks</option>
-                  <option value="Transport">Transport / Fare</option>
-                  <option value="Phone & communication">Phone & Internet</option>
-                  <option value="Health">Health & Medicine</option>
-                  <option value="Personal care">Personal Care</option>
-                  <option value="Clothing">Clothing</option>
-                  <option value="Study & supplies">Study & Supplies</option>
-                  <option value="Housing">Housing & Rent</option>
-                  <option value="Laundry & household">Household & Utilities</option>
-                  <option value="General">General / Other</option>
+                  {EXPENSE_CATEGORIES.map((cat) => (
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  ))}
                 </select>
               </div>
 
