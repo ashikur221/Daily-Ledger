@@ -134,8 +134,12 @@ export default function AiPage() {
         loadConversations();
       }
     } catch (err) {
-      console.warn('AI request failed or offline:', err);
-      let offlineSummary = '';
+      console.warn('AI request failed:', err);
+      const isActuallyOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+      const errDetail = err.response?.data?.message || err.message || 'Network error';
+      const statusCode = err.response?.status;
+
+      let fallbackSummary = '';
       try {
         const txs = (await db.transactions?.toArray()) || [];
         const activeTxs = txs.filter((t) => !t.isDeleted);
@@ -147,28 +151,29 @@ export default function AiPage() {
           .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         const netCash = totalIncome - totalExpense;
 
-        offlineSummary =
-          `📱 **Phone Offline Mode (No Wi-Fi / Data)**\n\n` +
-          `You are currently offline. Conversational responses with Google Gemini require an internet connection, but your phone's stored ledger data remains 100% accessible:\n\n` +
-          `* **Local Offline Income:** ৳${totalIncome.toLocaleString('en-US')}\n` +
-          `* **Local Offline Outflow:** ৳${totalExpense.toLocaleString('en-US')}\n` +
+        const header = isActuallyOffline
+          ? `📱 **Phone Offline Mode (No Wi-Fi / Data)**\n\nYou are currently offline. Conversational responses with Google Gemini require an internet connection, but your phone's stored ledger data remains 100% accessible:`
+          : `⚠️ **Cloud AI Server Unreachable${statusCode ? ` (${statusCode})` : ''}**\n\nYour device is online, but the backend AI service did not respond (\`${errDetail}\`). If your backend is hosted on Render's free tier, it may be waking up or redeploying—please wait 15–30 seconds and retry.\n\nMeanwhile, here is your local ledger summary:`;
+
+        fallbackSummary =
+          `${header}\n\n` +
+          `* **Local Income:** ৳${totalIncome.toLocaleString('en-US')}\n` +
+          `* **Local Outflow:** ৳${totalExpense.toLocaleString('en-US')}\n` +
           `* **Net Balance:** ৳${netCash.toLocaleString('en-US')}\n` +
-          `* **Local Records on Phone:** ${activeTxs.length} transactions stored\n\n` +
-          `*Tip: Connect your phone to Wi-Fi to chat freely with Gemini and sync your pending transactions with the cloud!*`;
-      } catch (dbErr) {
-        offlineSummary =
-          `📱 **Phone Offline Mode (No Wi-Fi / Data)**\n\n` +
-          `Your phone is not connected to Wi-Fi or mobile data. Google Gemini requires an internet connection to generate conversational answers.\n\n` +
-          `Your recorded expenses and income remain safely stored on this phone and will automatically sync when you reconnect.`;
+          `* **Local Records:** ${activeTxs.length} transactions stored`;
+      } catch {
+        fallbackSummary = isActuallyOffline
+          ? `📱 **Phone Offline Mode (No Wi-Fi / Data)**\n\nYour phone is not connected to Wi-Fi or mobile data. Google Gemini requires an internet connection to generate conversational answers.`
+          : `⚠️ **Cloud AI Server Unreachable${statusCode ? ` (${statusCode})` : ''}**\n\nUnable to reach the backend AI service (\`${errDetail}\`). Please wait a few seconds and try again.`;
       }
 
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: offlineSummary,
+          content: fallbackSummary,
           timestamp: new Date().toISOString(),
-          metadata: { provider: 'client-offline-storage' },
+          metadata: { provider: isActuallyOffline ? 'client-offline-storage' : 'client-error-fallback' },
         },
       ]);
     } finally {
