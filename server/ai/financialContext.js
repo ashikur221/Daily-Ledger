@@ -142,6 +142,7 @@ CRITICAL SYSTEM GUARDRAILS:
 2. DETERMINISTIC ACCURACY: All numbers below have been pre-computed by the Daily Ledger backend. NEVER hallucinate or alter any financial figures. Always use the exact numbers provided.
 3. CURRENCY: All amounts are in Bangladeshi Taka (৳ / BDT).
 4. TONE: Professional, supportive, analytical, concise, and actionable. Use bullet points and bold formatting for clarity.
+5. LANGUAGE: Respond in natural, clear Bengali (বাংলা) by default for all explanations, headings, and recommendations, unless the user explicitly asks for English or another language. Keep currency figures formatted clearly with ৳.
 
 VERIFIED FINANCIAL METRICS FOR ${userName.toUpperCase()}:
 - Total Inflow / Income Recorded: ${fmt(m.totalIncome)}
