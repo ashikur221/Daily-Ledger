@@ -4172,6 +4172,22 @@ html, body {
   border-color: rgba(239, 68, 68, 0.5);
 }
 
+/* ChatGPT-Style Ledger AI Sticky Composer */
+.ai-composer-sticky {
+  margin-top: auto;
+  position: sticky;
+  bottom: 16px;
+  padding-top: 10px;
+  background: transparent;
+  z-index: 20;
+}
+
+@media (max-width: 768px) {
+  .ai-composer-sticky {
+    bottom: 72px;
+  }
+}
+
 
 
 

@@ -686,7 +686,7 @@ export default function AiPage() {
         </div>
 
         {/* ChatGPT-Style Floating Composer Pill */}
-        <div style={{ marginTop: 'auto', position: 'sticky', bottom: '68px', paddingTop: '10px', background: 'transparent' }}>
+        <div className="ai-composer-sticky">
           <form
             onSubmit={(e) => {
               e.preventDefault();
