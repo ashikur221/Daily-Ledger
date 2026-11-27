@@ -1,6 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { TrendingUp, Plus, Wallet, Pencil } from 'lucide-react';
+import {
+  TrendingUp,
+  Plus,
+  Wallet,
+  Pencil,
+  Trash2,
+  Briefcase,
+  Laptop,
+  Store,
+  Gift,
+  Users,
+  Landmark,
+} from 'lucide-react';
 import { ICON_STROKE } from '../components/AppIcons';
 import DateFilterBar from '../components/DateFilterBar';
 import { formatDateGroupHeading, getTransactionTime } from '../components/TransactionRow';
@@ -111,6 +123,29 @@ export default function DepositsPage() {
   const filteredDepositsTotal = useMemo(() => {
     return filteredDeposits.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }, [filteredDeposits]);
+
+  const getIncomeSourceMeta = (source = '') => {
+    const s = String(source).toLowerCase();
+    if (s.includes('salary') || s.includes('job') || s.includes('office') || s.includes('pay')) {
+      return { Icon: Briefcase, color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.14)' };
+    }
+    if (s.includes('freelance') || s.includes('upwork') || s.includes('fiverr') || s.includes('project') || s.includes('client')) {
+      return { Icon: Laptop, color: '#a855f7', bg: 'rgba(168, 85, 247, 0.14)' };
+    }
+    if (s.includes('business') || s.includes('shop') || s.includes('sell') || s.includes('sale') || s.includes('profit')) {
+      return { Icon: Store, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.14)' };
+    }
+    if (s.includes('gift') || s.includes('bonus') || s.includes('eid') || s.includes('salami') || s.includes('reward')) {
+      return { Icon: Gift, color: '#f472b6', bg: 'rgba(236, 72, 153, 0.14)' };
+    }
+    if (s.includes('ammu') || s.includes('abbu') || s.includes('mom') || s.includes('dad') || s.includes('family') || s.includes('friend')) {
+      return { Icon: Users, color: '#22d3ee', bg: 'rgba(6, 182, 212, 0.14)' };
+    }
+    if (s.includes('bank') || s.includes('interest') || s.includes('dividend') || s.includes('fdr') || s.includes('dps')) {
+      return { Icon: Landmark, color: '#818cf8', bg: 'rgba(129, 140, 248, 0.14)' };
+    }
+    return { Icon: TrendingUp, color: '#34d399', bg: 'rgba(16, 185, 129, 0.14)' };
+  };
 
   // Group filtered deposits by date (newest first, matching Transaction List)
   const groupedDeposits = useMemo(() => {
@@ -439,6 +474,7 @@ export default function DepositsPage() {
                     {group.items.map((d) => {
                       const displaySource = d.note ? d.note.replace(/^From\s+/i, '') : 'Income';
                       const txTime = getTransactionTime(d);
+                      const srcMeta = getIncomeSourceMeta(displaySource);
                       return (
                         <div
                           key={d.localId || d._id}
@@ -450,10 +486,10 @@ export default function DepositsPage() {
                           <div className="bkash-tx-left">
                             <div
                               className="bkash-tx-icon"
-                              style={{ background: 'rgba(16, 185, 129, 0.14)', color: '#34d399' }}
+                              style={{ background: srcMeta.bg, color: srcMeta.color }}
                               aria-hidden="true"
                             >
-                              <TrendingUp size={20} strokeWidth={ICON_STROKE} />
+                              <srcMeta.Icon size={20} strokeWidth={ICON_STROKE} />
                             </div>
                             <div className="bkash-tx-details">
                               <div className="bkash-tx-title">{displaySource}</div>
@@ -489,6 +525,18 @@ export default function DepositsPage() {
                               >
                                 <Pencil size={13} strokeWidth={ICON_STROKE} aria-hidden="true" style={{ marginRight: '4px' }} />
                                 <span>Edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(d);
+                                }}
+                                className="bkash-action-btn danger"
+                                aria-label={`Delete ${displaySource}`}
+                              >
+                                <Trash2 size={13} strokeWidth={ICON_STROKE} aria-hidden="true" style={{ marginRight: '4px' }} />
+                                <span>Delete</span>
                               </button>
                             </div>
                           </div>
