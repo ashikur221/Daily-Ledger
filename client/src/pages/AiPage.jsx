@@ -1,5 +1,23 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Sparkles, Target, FileText, MessageSquare, Plus, Bot, Lock, ArrowUp, BarChart3, Pencil, Bell, BellOff, Copy, Check } from 'lucide-react';
+import {
+  Sparkles,
+  Target,
+  FileText,
+  Plus,
+  Bot,
+  Lock,
+  ArrowUp,
+  BarChart3,
+  Pencil,
+  Bell,
+  BellOff,
+  Copy,
+  Check,
+  PanelLeft,
+  SquarePen,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { ICON_STROKE } from '../components/AppIcons';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -366,97 +384,69 @@ export default function AiPage() {
 
   return (
     <div className="pitch-dashboard" style={{ maxWidth: '940px', margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 140px)' }}>
-      {/* 1. Masthead Header */}
+      {/* 1. Minimal ChatGPT-Style Top Bar */}
       <div
         style={{
-          background: 'radial-gradient(circle at 0% 0%, #0d121c 0%, #050608 85%)',
-          border: '1px solid #1a2233',
-          borderRadius: '18px',
-          padding: '20px 22px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.7)',
-          marginBottom: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '8px 4px 14px',
+          borderBottom: '1px solid #141a27',
+          marginBottom: '14px',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #5145E5 0%, #278BFA 50%, #06B6D4 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                  boxShadow: '0 4px 16px rgba(39, 139, 250, 0.35)',
-                }}
-              >
-                <Sparkles size={20} strokeWidth={ICON_STROKE} aria-hidden="true" />
-              </div>
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.01em' }}>
-                  Ledger AI <span style={{ fontSize: '0.78rem', color: '#06b6d4', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', background: 'rgba(6, 182, 212, 0.12)', border: '1px solid rgba(6, 182, 212, 0.3)' }}>Read-Only Verified</span>
-                </h2>
-                <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '3px 0 0' }}>
-                  Deterministic financial advisory powered by your verified ledger records
-                </p>
-              </div>
-            </div>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={() => setShowHistoryDrawer(true)}
+            aria-label="Open Ledger AI Menu & History"
+            title="Menu & History"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: '#101116',
+              border: '1px solid #252936',
+              color: '#e2e8f0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <PanelLeft size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => {
-                loadLocalExpenses();
-                setShowInsightsModal(true);
-              }}
-              className="secondary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', fontWeight: 650, borderRadius: '9px', borderColor: 'rgba(168, 85, 247, 0.3)', color: '#c084fc' }}
-            >
-              <BarChart3 size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
-              <span>Budget &amp; Insights</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowGoalModal(true)}
-              className="secondary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', fontWeight: 650, borderRadius: '9px', borderColor: 'rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}
-            >
-              <Target size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
-              <span>Goal Planner</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleGenerateReport}
-              className="secondary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', fontWeight: 650, borderRadius: '9px', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#34d399' }}
-            >
-              <FileText size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
-              <span>Executive Report</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowHistoryDrawer(!showHistoryDrawer)}
-              className="secondary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', fontWeight: 650, borderRadius: '9px' }}
-            >
-              <MessageSquare size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
-              <span>History ({conversations.length})</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleStartNewChat}
-              className="primary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 16px', fontSize: '0.8rem', fontWeight: 700, borderRadius: '9px' }}
-            >
-              <Plus size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
-              <span>New Chat</span>
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.08rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+              Ledger AI
+            </span>
+            <span style={{ fontSize: '0.68rem', color: '#06b6d4', fontWeight: 650, padding: '2px 7px', borderRadius: '999px', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+              Gemini
+            </span>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={handleStartNewChat}
+          aria-label="New chat"
+          title="New chat"
+          style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
+            background: '#101116',
+            border: '1px solid #252936',
+            color: '#e2e8f0',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <SquarePen size={17} strokeWidth={ICON_STROKE} aria-hidden="true" />
+        </button>
       </div>
 
       {/* 2. Main ChatGPT-Style Workspace */}
@@ -751,61 +741,166 @@ export default function AiPage() {
         </div>
       </div>
 
-      {/* 3. Conversation History Drawer Modal */}
+      {/* 3. ChatGPT-Style Slide-Out Sidebar (Menu + Recents) */}
       {showHistoryDrawer && (
-        <div className="modal-overlay" onClick={() => setShowHistoryDrawer(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-            <div className="modal-header">
-              <h3 className="modal-title">💬 Consultation History</h3>
-              <button type="button" className="modal-close-btn" onClick={() => setShowHistoryDrawer(false)}>✕</button>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px 0' }}>
-              {conversations.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#64748b', padding: '24px 0', fontSize: '0.85rem' }}>No saved conversations yet.</p>
-              ) : (
-                conversations.map((c) => (
-                  <div
-                    key={c._id}
-                    onClick={() => handleSelectConversation(c._id)}
-                    style={{
-                      background: c._id === conversationId ? 'rgba(56, 189, 248, 0.12)' : '#090d16',
-                      border: c._id === conversationId ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid #1a2233',
-                      borderRadius: '10px',
-                      padding: '12px 14px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                      <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {c.title}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
-                        {new Date(c.updatedAt).toLocaleDateString()} · {c.messageCount} messages
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeleteConversation(e, c._id)}
-                      className="debt-action-btn btn-delete"
-                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                      title="Delete conversation"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #141a27', display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => setShowHistoryDrawer(false)} className="secondary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
-                Close
+        <div
+          className="mobile-drawer-overlay"
+          onClick={() => setShowHistoryDrawer(false)}
+          style={{ justifyContent: 'flex-start' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 'min(300px, 84vw)',
+              height: '100%',
+              background: '#0a0a0f',
+              borderRight: '1px solid #252936',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '16px 12px',
+              boxShadow: '12px 0 36px rgba(0, 0, 0, 0.75)',
+            }}
+          >
+            {/* Sidebar Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={18} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f5f7fa' }}>Ledger AI</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHistoryDrawer(false)}
+                aria-label="Close sidebar"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#9ca3af',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
               </button>
+            </div>
+
+            {/* ChatGPT-Style Action Links */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '18px' }}>
+              {[
+                { label: 'New chat', Icon: SquarePen, onClick: handleStartNewChat },
+                {
+                  label: 'Budget & Insights',
+                  Icon: BarChart3,
+                  onClick: () => {
+                    setShowHistoryDrawer(false);
+                    loadLocalExpenses();
+                    setShowInsightsModal(true);
+                  },
+                },
+                {
+                  label: 'Goal Planner',
+                  Icon: Target,
+                  onClick: () => {
+                    setShowHistoryDrawer(false);
+                    setShowGoalModal(true);
+                  },
+                },
+                {
+                  label: 'Executive Report',
+                  Icon: FileText,
+                  onClick: () => {
+                    setShowHistoryDrawer(false);
+                    handleGenerateReport();
+                  },
+                },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={item.onClick}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#f5f7fa',
+                    fontSize: '0.9rem',
+                    fontWeight: 550,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.14s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#171a23'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <item.Icon size={18} strokeWidth={ICON_STROKE} color="#cbd5e1" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Recents Section */}
+            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', padding: '0 12px 8px', letterSpacing: '0.03em' }}>
+              Recents
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {conversations.length === 0 ? (
+                <p style={{ color: '#64748b', padding: '12px', fontSize: '0.82rem', margin: 0 }}>
+                  No recent chats yet.
+                </p>
+              ) : (
+                conversations.map((c) => {
+                  const isActive = c._id === conversationId;
+                  return (
+                    <div
+                      key={c._id}
+                      onClick={() => handleSelectConversation(c._id)}
+                      style={{
+                        background: isActive ? '#171a23' : 'transparent',
+                        borderRadius: '10px',
+                        padding: '9px 12px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        transition: 'background 0.14s ease',
+                      }}
+                    >
+                      <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                        <div style={{ fontWeight: isActive ? 650 : 500, color: isActive ? '#f5f7fa' : '#cbd5e1', fontSize: '0.86rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {c.title}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteConversation(e, c._id)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#64748b',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          display: 'inline-flex',
+                          borderRadius: '6px',
+                        }}
+                        title="Delete conversation"
+                        aria-label={`Delete ${c.title}`}
+                      >
+                        <Trash2 size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
