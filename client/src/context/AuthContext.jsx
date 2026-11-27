@@ -61,12 +61,12 @@ export const AuthProvider = ({ children }) => {
         needsFullPull = true;
       }
 
-      // Run two-way sync on session restore (full pull if user switched or first isolation check)
-      syncTwoWay(needsFullPull)
-        .then(({ pulled }) => {
+      // Run full two-way sync on session restore so another device's updates always appear on refresh
+      syncTwoWay(true)
+        .then(() => {
           refreshPendingCount();
-          if (pulled > 0) {
-            toast.info(`Updated with ${pulled} change(s) from cloud.`);
+          if (needsFullPull) {
+            toast.info('Synced latest records from cloud.');
           }
         })
         .catch(() => {});

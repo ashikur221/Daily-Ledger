@@ -6,10 +6,10 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
 import db from '../db/localDb';
 import api from '../services/api';
-import { syncTwoWay } from '../services/syncService';
+import { syncTwoWay, flushSyncQueue, clearLocalUserData } from '../services/syncService';
 
 export default function SettingsPage() {
-  const { user, logout, isOnline } = useAuth();
+  const { user, logout, isOnline, refreshPendingCount } = useAuth();
   const toast = useToast();
   const { confirm } = useConfirm();
   const [inviteEmail, setInviteEmail] = useState('');
@@ -25,8 +25,14 @@ export default function SettingsPage() {
   const handleForceSync = async () => {
     setSyncLoading(true);
     try {
+      await flushSyncQueue().catch(() => {});
+      const pending = await db.syncQueue.count();
+      if (pending === 0) {
+        await clearLocalUserData();
+      }
       const res = await syncTwoWay(true);
-      toast.success(`Cloud sync completed! Pulled ${res.pulled} records from cloud.`);
+      if (refreshPendingCount) refreshPendingCount();
+      toast.success(`Synced all ${res.pulled} records from cloud!`);
       window.dispatchEvent(new CustomEvent('daily_ledger:data_updated', { detail: res }));
     } catch (err) {
       toast.error('Sync failed: ' + (err.response?.data?.message || err.message));
