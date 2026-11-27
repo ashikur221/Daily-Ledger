@@ -686,7 +686,7 @@ export default function AiPage() {
         </div>
 
         {/* ChatGPT-Style Floating Composer Pill */}
-        <div style={{ marginTop: 'auto', position: 'sticky', bottom: '68px', paddingTop: '10px', background: 'linear-gradient(180deg, rgba(5,5,5,0) 0%, #050505 26%)' }}>
+        <div style={{ marginTop: 'auto', position: 'sticky', bottom: '68px', paddingTop: '10px', background: '#050505' }}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -700,7 +700,6 @@ export default function AiPage() {
               display: 'flex',
               flexDirection: 'column',
               gap: '8px',
-              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.7)',
             }}
           >
             <input
@@ -769,9 +768,6 @@ export default function AiPage() {
               </button>
             </div>
           </form>
-          <div style={{ textAlign: 'center', fontSize: '0.68rem', color: '#64748b', marginTop: '6px' }}>
-            Ledger AI · Read-only verified insights
-          </div>
         </div>
       </div>
 
