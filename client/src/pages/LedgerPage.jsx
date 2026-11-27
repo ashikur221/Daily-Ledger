@@ -148,7 +148,15 @@ export default function LedgerPage({ initialType = '' }) {
 
     const matches = allExpenses.filter((t) => {
       const txCat = (t.category || 'General').trim();
-      const catMatch = selectedCategory === 'all' || txCat.toLowerCase() === selectedCategory.toLowerCase();
+      let catMatch = true;
+      if (selectedCategory !== 'all') {
+        const catOption = EXPENSE_CATEGORIES.find(c => c.value === selectedCategory);
+        const matchValue = txCat.toLowerCase() === selectedCategory.toLowerCase();
+        const matchLabel = catOption && txCat.toLowerCase() === catOption.label.toLowerCase();
+        const matchPartial = selectedCategory.toLowerCase().startsWith(txCat.toLowerCase()) ||
+          txCat.toLowerCase().startsWith(selectedCategory.toLowerCase().split('&')[0].trim());
+        catMatch = matchValue || matchLabel || matchPartial;
+      }
       const textMatch = !q || (t.note || '').toLowerCase().includes(q) ||
         txCat.toLowerCase().includes(q);
       return catMatch && textMatch;
@@ -173,8 +181,16 @@ export default function LedgerPage({ initialType = '' }) {
 
     allExpenses.forEach((tx) => {
       const txCat = (tx.category || 'General').trim();
-      const catMatch = selectedCategory === 'all' || txCat.toLowerCase() === selectedCategory.toLowerCase();
-      if (!catMatch) return;
+      if (selectedCategory !== 'all') {
+        // Match exact value OR label (handles legacy stored values)
+        const catOption = EXPENSE_CATEGORIES.find(c => c.value === selectedCategory);
+        const matchValue = txCat.toLowerCase() === selectedCategory.toLowerCase();
+        const matchLabel = catOption && txCat.toLowerCase() === catOption.label.toLowerCase();
+        // Also match if the stored value starts with or is contained in the selected value (e.g. 'Food' in 'Food & drinks')
+        const matchPartial = selectedCategory.toLowerCase().startsWith(txCat.toLowerCase()) ||
+          txCat.toLowerCase().startsWith(selectedCategory.toLowerCase().split('&')[0].trim());
+        if (!matchValue && !matchLabel && !matchPartial) return;
+      }
       if (q) {
         const titleMatch = (tx.note || '').toLowerCase().includes(q) || txCat.toLowerCase().includes(q);
         if (!titleMatch) return;
@@ -204,7 +220,7 @@ export default function LedgerPage({ initialType = '' }) {
 
     // Sort dates newest to oldest
     return Object.values(groups).sort((a, b) => b.date.localeCompare(a.date));
-  }, [allExpenses, activeSearch]);
+  }, [allExpenses, activeSearch, selectedCategory]);
 
   // Reset visibleCount when search changes so first matches show up immediately
   useEffect(() => {
