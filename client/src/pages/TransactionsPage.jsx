@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ListOrdered, Receipt } from 'lucide-react';
+import { ListOrdered, Receipt, CalendarDays, X } from 'lucide-react';
 import { ICON_STROKE } from '../components/AppIcons';
 import db from '../db/localDb';
 import api from '../services/api';
@@ -19,6 +19,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [availableAccounts, setAvailableAccounts] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
 
   // Edit modal state
   const [showModal, setShowModal] = useState(false);
@@ -92,6 +93,7 @@ export default function TransactionsPage() {
     const groups = {};
     allExpenses.forEach((tx) => {
       const dateKey = new Date(tx.date).toISOString().split('T')[0];
+      if (selectedDate && dateKey !== selectedDate) return;
       if (!groups[dateKey]) {
         groups[dateKey] = {
           date: dateKey,
@@ -112,7 +114,7 @@ export default function TransactionsPage() {
     });
 
     return Object.values(groups).sort((a, b) => b.date.localeCompare(a.date));
-  }, [allExpenses]);
+  }, [allExpenses, selectedDate]);
 
   useEffect(() => {
     if (!loadMoreRef.current) return;
@@ -258,17 +260,64 @@ export default function TransactionsPage() {
 
   return (
     <div className="pitch-dashboard">
-      {/* Page Header */}
+      {/* Page Header & Calendar Date Filter */}
       <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
           <div>
             <h2 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ListOrdered size={20} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
               <span>Transaction List</span>
             </h2>
             <p className="panel-sub">
-              Chronological expense history grouped by date ({allExpenses.length} entries).
+              {selectedDate
+                ? `Showing expenses for ${formatDateGroupHeading(selectedDate)}`
+                : `Chronological expense history grouped by date (${allExpenses.length} entries).`}
             </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#0a0a0f', border: '1px solid #252936', borderRadius: '10px', padding: '4px 10px' }}>
+              <CalendarDays size={16} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
+              <input
+                id="txDateFilter"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                aria-label="Filter transactions by date"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#f5f7fa',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                  cursor: 'pointer',
+                  colorScheme: 'dark',
+                }}
+              />
+            </div>
+
+            {selectedDate && (
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setSelectedDate('')}
+                style={{
+                  height: '36px',
+                  padding: '0 12px',
+                  borderRadius: '10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+                aria-label="Clear date filter"
+              >
+                <X size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                <span>Clear</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -285,7 +334,21 @@ export default function TransactionsPage() {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', color: '#64748b' }}>
               <Receipt size={32} strokeWidth={ICON_STROKE} aria-hidden="true" />
             </div>
-            <p className="panel-sub">No recorded expenses yet.</p>
+            <p className="panel-sub" style={{ marginBottom: selectedDate ? '14px' : '0' }}>
+              {selectedDate
+                ? `No expenses recorded on ${formatDateGroupHeading(selectedDate)}.`
+                : 'No recorded expenses yet.'}
+            </p>
+            {selectedDate && (
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setSelectedDate('')}
+                style={{ padding: '7px 16px', fontSize: '0.82rem', fontWeight: 600 }}
+              >
+                Show All Dates
+              </button>
+            )}
           </div>
         ) : (
           <>
