@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Target, FileText, MessageSquare, Plus, Bot, Lock, Send } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Sparkles, Target, FileText, MessageSquare, Plus, Bot, Lock, Send, BarChart3, Pencil } from 'lucide-react';
 import { ICON_STROKE } from '../components/AppIcons';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +21,17 @@ export default function AiPage() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [financialReport, setFinancialReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
+
+  // Budget & Spending Insights (consolidated from legacy Reports page)
+  const [showInsightsModal, setShowInsightsModal] = useState(false);
+  const [localExpenses, setLocalExpenses] = useState([]);
+  const [monthlyBudget, setMonthlyBudget] = useState(
+    () => localStorage.getItem('daily_ledger_monthly_budget') || '12000'
+  );
+  const [budgetInput, setBudgetInput] = useState(
+    () => localStorage.getItem('daily_ledger_monthly_budget') || '12000'
+  );
+  const [editingBudget, setEditingBudget] = useState(false);
 
   // Goal Calculator Form State
   const [goalForm, setGoalForm] = useState({
@@ -45,7 +56,80 @@ export default function AiPage() {
 
   useEffect(() => {
     loadConversations();
+    loadLocalExpenses();
+    const handleUpdate = () => loadLocalExpenses();
+    window.addEventListener('daily_ledger:data_updated', handleUpdate);
+    return () => window.removeEventListener('daily_ledger:data_updated', handleUpdate);
   }, []);
+
+  const loadLocalExpenses = async () => {
+    try {
+      const txs = await db.transactions.where('isDeleted').equals(0).toArray();
+      setLocalExpenses(txs.filter((t) => t.type === 'expense' && t.category !== 'Banking'));
+    } catch {}
+  };
+
+  const insights = useMemo(() => {
+    const itemizedTotal = localExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const daysMap = {};
+    const catTotals = {};
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth();
+    const prevDate = new Date(curY, curM - 1, 1);
+    const prevY = prevDate.getFullYear();
+    const prevM = prevDate.getMonth();
+    let currentMonthSpend = 0;
+    let prevMonthSpend = 0;
+
+    localExpenses.forEach((e) => {
+      const d = new Date(e.date);
+      if (isNaN(d.getTime())) return;
+      const key = d.toISOString().split('T')[0];
+      const amt = Number(e.amount) || 0;
+      daysMap[key] = (daysMap[key] || 0) + amt;
+
+      const cat = e.category && e.category !== 'General' ? e.category : 'General';
+      catTotals[cat] = (catTotals[cat] || 0) + amt;
+
+      if (d.getFullYear() === curY && d.getMonth() === curM) currentMonthSpend += amt;
+      if (d.getFullYear() === prevY && d.getMonth() === prevM) prevMonthSpend += amt;
+    });
+
+    const dayEntries = Object.entries(daysMap);
+    const avgPerDay = dayEntries.length ? itemizedTotal / dayEntries.length : 0;
+    const highestDay = dayEntries.sort((a, b) => b[1] - a[1])[0] || null;
+    const categories = Object.entries(catTotals)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, amount]) => ({
+        name,
+        amount,
+        pct: itemizedTotal ? Math.round((amount / itemizedTotal) * 100) : 0,
+      }));
+
+    return {
+      itemizedTotal,
+      recordedDays: dayEntries.length,
+      avgPerDay,
+      highestDay,
+      currentMonthSpend,
+      prevMonthSpend,
+      categories,
+    };
+  }, [localExpenses]);
+
+  const handleSaveBudget = (e) => {
+    e.preventDefault();
+    const val = parseFloat(budgetInput);
+    if (isNaN(val) || val < 0) {
+      toast.warning('Please enter a valid monthly target');
+      return;
+    }
+    localStorage.setItem('daily_ledger_monthly_budget', String(val));
+    setMonthlyBudget(String(val));
+    setEditingBudget(false);
+    toast.success('Monthly spending target updated!');
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -275,6 +359,18 @@ export default function AiPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => {
+                loadLocalExpenses();
+                setShowInsightsModal(true);
+              }}
+              className="secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', fontWeight: 650, borderRadius: '9px', borderColor: 'rgba(168, 85, 247, 0.3)', color: '#c084fc' }}
+            >
+              <BarChart3 size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
+              <span>Budget &amp; Insights</span>
+            </button>
             <button
               type="button"
               onClick={() => setShowGoalModal(true)}
@@ -829,6 +925,170 @@ export default function AiPage() {
           </div>
         </div>
       )}
+
+      {/* 6. Budget & Spending Insights Modal (consolidated from legacy Reports) */}
+      {showInsightsModal && (() => {
+        const budgetNum = parseFloat(monthlyBudget) || 0;
+        const pctUsed = budgetNum > 0 ? Math.min(100, Math.round((insights.currentMonthSpend / budgetNum) * 100)) : 0;
+        const rawPct = budgetNum > 0 ? Math.round((insights.currentMonthSpend / budgetNum) * 100) : 0;
+        const overBudget = budgetNum > 0 && insights.currentMonthSpend > budgetNum;
+
+        return (
+          <div className="modal-overlay" onClick={() => setShowInsightsModal(false)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px', maxHeight: '86vh', display: 'flex', flexDirection: 'column' }}>
+              <div className="modal-header">
+                <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <BarChart3 size={19} strokeWidth={ICON_STROKE} color="#c084fc" aria-hidden="true" />
+                  <span>Budget &amp; Spending Insights</span>
+                </h2>
+                <button type="button" className="modal-close-btn" onClick={() => setShowInsightsModal(false)}>✕</button>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto', padding: '8px 2px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Monthly Spending Target */}
+                <div style={{ background: '#050608', border: '1px solid #1a2233', borderRadius: '12px', padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <div>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Monthly Spending Target
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
+                        Target: <strong style={{ color: '#f8fafc' }}>{budgetNum ? fmt(budgetNum) : 'Not set'}</strong> · Spent: <strong style={{ color: overBudget ? '#fb7185' : '#38bdf8' }}>{fmt(insights.currentMonthSpend)}</strong>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => {
+                        setBudgetInput(monthlyBudget || '');
+                        setEditingBudget(!editingBudget);
+                      }}
+                      style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                    >
+                      <Pencil size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                      <span>{editingBudget ? 'Cancel' : budgetNum ? 'Edit Target' : 'Set Target'}</span>
+                    </button>
+                  </div>
+
+                  {editingBudget && (
+                    <form onSubmit={handleSaveBudget} style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={budgetInput}
+                        onChange={(e) => setBudgetInput(e.target.value)}
+                        placeholder="e.g. 15000"
+                        className="field"
+                        style={{ flex: 1, height: '38px' }}
+                        required
+                      />
+                      <button type="submit" className="primary" style={{ height: '38px', padding: '0 16px', fontSize: '0.82rem' }}>
+                        Save
+                      </button>
+                    </form>
+                  )}
+
+                  {budgetNum > 0 && (
+                    <div>
+                      <div style={{ height: '8px', background: '#0d131f', borderRadius: '999px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${pctUsed}%`,
+                            borderRadius: '999px',
+                            background: overBudget ? '#f43f5e' : 'linear-gradient(90deg, #5145E5, #278BFA, #06B6D4)',
+                            transition: 'width 0.3s ease',
+                          }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', color: '#94a3b8', marginTop: '6px' }}>
+                        <span>{rawPct}% consumed</span>
+                        <span style={{ color: overBudget ? '#fb7185' : '#34d399', fontWeight: 600 }}>
+                          {overBudget
+                            ? `Exceeded by ${fmt(insights.currentMonthSpend - budgetNum)}`
+                            : `Remaining: ${fmt(budgetNum - insights.currentMonthSpend)}`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Key Metrics Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
+                  <div style={{ background: '#050608', border: '1px solid #1a2233', borderRadius: '10px', padding: '12px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>ITEMIZED SPENDING</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', marginTop: '3px' }}>{fmt(insights.itemizedTotal)}</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{insights.recordedDays} recorded days</div>
+                  </div>
+                  <div style={{ background: '#050608', border: '1px solid #1a2233', borderRadius: '10px', padding: '12px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>DAILY AVERAGE</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#38bdf8', marginTop: '3px' }}>{fmt(Math.round(insights.avgPerDay))}</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Per active spend day</div>
+                  </div>
+                  <div style={{ background: '#050608', border: '1px solid #1a2233', borderRadius: '10px', padding: '12px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>HIGHEST-SPEND DAY</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fb7185', marginTop: '3px' }}>
+                      {insights.highestDay ? fmt(insights.highestDay[1]) : '৳0'}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      {insights.highestDay ? insights.highestDay[0] : 'No records yet'}
+                    </div>
+                  </div>
+                  <div style={{ background: '#050608', border: '1px solid #1a2233', borderRadius: '10px', padding: '12px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>MONTH VS LAST</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', marginTop: '3px' }}>{fmt(insights.currentMonthSpend)}</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Last month: {fmt(insights.prevMonthSpend)}</div>
+                  </div>
+                </div>
+
+                {/* Spending by Category */}
+                <div style={{ background: '#050608', border: '1px solid #1a2233', borderRadius: '12px', padding: '14px 16px' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 750, color: '#f8fafc', marginBottom: '10px' }}>
+                    Spending by Category
+                  </div>
+                  {insights.categories.length === 0 ? (
+                    <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>No categorized expenses yet.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {insights.categories.map((c) => (
+                        <div key={c.name}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '4px' }}>
+                            <span style={{ color: '#e2e8f0', fontWeight: 600 }}>{c.name}</span>
+                            <span style={{ color: '#94a3b8' }}>
+                              <strong style={{ color: '#f8fafc' }}>{fmt(c.amount)}</strong> ({c.pct}%)
+                            </span>
+                          </div>
+                          <div style={{ height: '6px', background: '#0d131f', borderRadius: '999px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${c.pct}%`, background: 'linear-gradient(90deg, #5145E5, #06B6D4)', borderRadius: '999px' }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #141a27', display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowInsightsModal(false);
+                    handleSendMessage(`My monthly spending target is ৳${budgetNum || 0} and I have spent ৳${insights.currentMonthSpend} so far this month. Based on my spending categories, how can I stay under budget?`);
+                  }}
+                  className="primary"
+                  style={{ padding: '6px 16px', fontSize: '0.82rem' }}
+                >
+                  Ask AI to Optimize Budget ›
+                </button>
+                <button type="button" onClick={() => setShowInsightsModal(false)} className="secondary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -9,7 +9,6 @@ import {
   Wallet,
   CreditCard,
   Lock,
-  ChartNoAxesCombined,
   Sparkles,
   Shield,
   X,
@@ -29,7 +28,6 @@ import TransactionsPage from './pages/TransactionsPage';
 import DepositsPage from './pages/DepositsPage';
 import AccountsPage from './pages/AccountsPage';
 import ToolsPage from './pages/ToolsPage';
-import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
 import DeveloperPage from './pages/DeveloperPage';
@@ -163,10 +161,6 @@ function AppContent() {
           <Lock size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
           <span>Vault & Tasks</span>
         </NavLink>
-        <NavLink to="/reports" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-          <ChartNoAxesCombined size={16} strokeWidth={ICON_STROKE} aria-hidden="true" />
-          <span>Reports & Insights</span>
-        </NavLink>
         <NavLink
           to="/ai"
           className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
@@ -205,7 +199,7 @@ function AppContent() {
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/tasks" element={<ProductivityPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/reports" element={<Navigate to="/ai" replace />} />
           <Route path="/ai" element={<AiPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/developer" element={<DeveloperPage />} />
@@ -272,9 +266,9 @@ function AppContent() {
           <Wallet size={19} strokeWidth={ICON_STROKE} className="nav-icon" aria-hidden="true" />
           <span>Banks</span>
         </NavLink>
-        <NavLink to="/reports" className={({ isActive }) => (isActive ? 'active' : '')}>
-          <ChartNoAxesCombined size={19} strokeWidth={ICON_STROKE} className="nav-icon" aria-hidden="true" />
-          <span>Reports</span>
+        <NavLink to="/ai" className={({ isActive }) => (isActive ? 'active' : '')}>
+          <Sparkles size={19} strokeWidth={ICON_STROKE} className="nav-icon" aria-hidden="true" />
+          <span>Ledger AI</span>
         </NavLink>
       </nav>
 
@@ -328,22 +322,6 @@ function AppContent() {
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Debts & Loans</div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Lending, borrowing & repayments</div>
-                  </div>
-                </div>
-                <ChevronRight size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
-              </NavLink>
-
-              <div className="mobile-drawer-section-title" style={{ marginTop: '16px' }}>AI Intelligence</div>
-              <NavLink
-                to="/ai"
-                className={({ isActive }) => `mobile-drawer-link ${isActive ? 'active' : ''}`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Sparkles size={20} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#38bdf8' }}>Ledger AI Advisor</div>
-                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Read-only insights, goals & reports</div>
                   </div>
                 </div>
                 <ChevronRight size={18} strokeWidth={ICON_STROKE} aria-hidden="true" />
