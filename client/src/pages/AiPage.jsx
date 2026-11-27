@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Sparkles, Target, FileText, MessageSquare, Plus, Bot, Lock, Send, BarChart3, Pencil, Bell, BellOff } from 'lucide-react';
+import { Sparkles, Target, FileText, MessageSquare, Plus, Bot, Lock, ArrowUp, BarChart3, Pencil, Bell, BellOff, Copy, Check } from 'lucide-react';
 import { ICON_STROKE } from '../components/AppIcons';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -39,6 +39,7 @@ export default function AiPage() {
     () => localStorage.getItem('daily_ledger_monthly_budget') || '12000'
   );
   const [editingBudget, setEditingBudget] = useState(false);
+  const [copiedMsgIdx, setCopiedMsgIdx] = useState(null);
   const [notifEnabled, setNotifEnabled] = useState(() => getNotificationSettings().enabled);
 
   const handleToggleNotifications = async () => {
@@ -458,32 +459,26 @@ export default function AiPage() {
         </div>
       </div>
 
-      {/* 2. Main Chat Workspace */}
+      {/* 2. Main ChatGPT-Style Workspace */}
       <div
         style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          background: '#090d16',
-          border: '1px solid #1a2233',
-          borderRadius: '18px',
-          padding: '20px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6)',
           position: 'relative',
-          overflow: 'hidden',
-          minHeight: '440px',
+          minHeight: '460px',
         }}
       >
         {/* Messages Stream */}
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', paddingRight: '4px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '22px', padding: '6px 2px 20px' }}>
           {/* Welcome Card if no messages */}
           {messages.length === 0 && (
             <div
               style={{
-                background: 'radial-gradient(circle at 50% 0%, rgba(39, 139, 250, 0.08) 0%, rgba(5, 6, 9, 0.8) 75%)',
+                background: 'radial-gradient(circle at 50% 0%, rgba(39, 139, 250, 0.08) 0%, rgba(10, 10, 15, 0.85) 75%)',
                 border: '1px solid #1e283d',
-                borderRadius: '16px',
-                padding: '24px 20px',
+                borderRadius: '18px',
+                padding: '28px 20px',
                 textAlign: 'center',
                 margin: 'auto 0',
               }}
@@ -494,8 +489,8 @@ export default function AiPage() {
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', marginBottom: '6px' }}>
                 Welcome to Ledger AI
               </h3>
-              <p style={{ fontSize: '0.84rem', color: '#94a3b8', maxWidth: '580px', margin: '0 auto 18px', lineHeight: 1.5 }}>
-                I am your personal finance analyst. All financial figures are deterministically calculated by the backend engine from your verified accounts, expenses, income, and debts.
+              <p style={{ fontSize: '0.84rem', color: '#94a3b8', maxWidth: '580px', margin: '0 auto 18px', lineHeight: 1.55 }}>
+                আপনার আয়, খরচ, বাজেট বা সেভিংস লক্ষ্য নিয়ে যেকোনো প্রশ্ন করুন। প্রতিটি বিশ্লেষণ আপনার আসল লেজার ডেটা থেকে তৈরি।
               </p>
 
               {/* Quick Prompt Chips */}
@@ -506,10 +501,10 @@ export default function AiPage() {
                     type="button"
                     onClick={() => handleSendMessage(qp.query)}
                     style={{
-                      background: 'rgba(15, 23, 42, 0.7)',
-                      border: '1px solid #243046',
+                      background: '#101116',
+                      border: '1px solid #252936',
                       borderRadius: '999px',
-                      padding: '7px 14px',
+                      padding: '8px 14px',
                       fontSize: '0.78rem',
                       fontWeight: 600,
                       color: '#cbd5e1',
@@ -522,7 +517,7 @@ export default function AiPage() {
                       e.currentTarget.style.transform = 'translateY(-1px)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#243046';
+                      e.currentTarget.style.borderColor = '#252936';
                       e.currentTarget.style.color = '#cbd5e1';
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
@@ -534,47 +529,119 @@ export default function AiPage() {
             </div>
           )}
 
-          {/* Conversation Messages */}
+          {/* Conversation Messages (ChatGPT Style: pill for user, full-width clean prose for AI) */}
           {messages.map((msg, index) => {
             const isUser = msg.role === 'user';
+            if (isUser) {
+              return (
+                <div
+                  key={index}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    width: '100%',
+                  }}
+                >
+                  <div
+                    style={{
+                      maxWidth: '82%',
+                      background: '#171a23',
+                      border: '1px solid #252936',
+                      borderRadius: '20px',
+                      padding: '10px 16px',
+                      color: '#f5f7fa',
+                      lineHeight: 1.55,
+                      fontSize: '0.92rem',
+                      wordBreak: 'break-word',
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              );
+            }
+
+            const isCopied = copiedMsgIdx === index;
             return (
               <div
                 key={index}
                 style={{
-                  display: 'flex',
-                  justifyContent: isUser ? 'flex-end' : 'flex-start',
                   width: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
                 }}
               >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #5145E5 0%, #278BFA 50%, #06B6D4 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                    }}
+                  >
+                    <Sparkles size={13} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                  </div>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#e2e8f0', letterSpacing: '0.01em' }}>
+                    Ledger AI
+                  </span>
+                </div>
+
                 <div
                   style={{
-                    maxWidth: '82%',
-                    background: isUser
-                      ? 'linear-gradient(135deg, #5145E5 0%, #278BFA 100%)'
-                      : '#050608',
-                    border: isUser ? 'none' : '1px solid #1a2233',
-                    borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                    padding: '14px 18px',
-                    color: isUser ? '#ffffff' : '#f1f5f9',
-                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.4)',
-                    lineHeight: 1.6,
-                    fontSize: '0.9rem',
+                    width: '100%',
+                    color: '#f1f5f9',
+                    lineHeight: 1.75,
+                    fontSize: '0.95rem',
                     wordBreak: 'break-word',
+                    paddingLeft: '2px',
                   }}
                 >
-                  {!isUser && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid #141a27' }}>
-                      <Sparkles size={14} strokeWidth={ICON_STROKE} color="#38bdf8" aria-hidden="true" />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#38bdf8', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                        Ledger AI
-                      </span>
-                    </div>
-                  )}
-                  {isUser ? (
-                    <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
-                  ) : (
-                    <MarkdownRenderer content={msg.content} />
-                  )}
+                  <MarkdownRenderer content={msg.content} />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(msg.content || '');
+                      setCopiedMsgIdx(index);
+                      setTimeout(() => setCopiedMsgIdx(null), 1800);
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: isCopied ? '#34d399' : '#64748b',
+                      cursor: 'pointer',
+                      padding: '4px 6px',
+                      borderRadius: '6px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                    }}
+                    title="Copy response"
+                    aria-label="Copy response"
+                  >
+                    {isCopied ? (
+                      <>
+                        <Check size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             );
@@ -582,88 +649,105 @@ export default function AiPage() {
 
           {/* Thinking / Loading Indicator */}
           {loading && (
-            <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
-              <div
-                style={{
-                  background: '#050608',
-                  border: '1px solid #1a2233',
-                  borderRadius: '16px 16px 16px 4px',
-                  padding: '12px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  color: '#94a3b8',
-                  fontSize: '0.85rem',
-                }}
-              >
-                <span className="spinner-sm" style={{ width: '16px', height: '16px' }} />
-                <span>Analyzing ledger metrics with Gemini AI...</span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8', fontSize: '0.88rem', padding: '6px 0' }}>
+              <span className="spinner-sm" style={{ width: '16px', height: '16px' }} />
+              <span>Ledger AI is analyzing...</span>
             </div>
           )}
 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Bar */}
-        <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #141a27' }}>
+        {/* ChatGPT-Style Floating Composer Pill */}
+        <div style={{ position: 'sticky', bottom: '0', paddingTop: '8px', background: 'linear-gradient(180deg, rgba(5,5,5,0) 0%, #050505 22%)' }}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendMessage();
             }}
-            style={{ display: 'flex', gap: '10px', alignItems: 'center' }}
+            style={{
+              background: '#101116',
+              border: '1px solid #252936',
+              borderRadius: '22px',
+              padding: '10px 14px 10px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.65)',
+            }}
           >
             <input
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Ask about your finances, savings goals, or net worth..."
-              className="field"
+              placeholder="Ask Ledger AI..."
               style={{
-                flex: 1,
-                height: '46px',
-                borderRadius: '12px',
-                background: '#04060a',
-                border: '1px solid #20283a',
-                padding: '0 16px',
-                fontSize: '0.9rem',
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                color: '#f5f7fa',
+                fontSize: '0.94rem',
+                outline: 'none',
+                padding: '4px 2px',
               }}
               disabled={loading}
               autoFocus
             />
-            <button
-              type="submit"
-              className="primary"
-              disabled={loading || !prompt.trim()}
-              style={{
-                height: '46px',
-                padding: '0 20px',
-                borderRadius: '12px',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                flexShrink: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              {loading ? '...' : (
-                <>
-                  <span>Send</span>
-                  <Send size={15} strokeWidth={ICON_STROKE} aria-hidden="true" />
-                </>
-              )}
-            </button>
-          </form>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', fontSize: '0.72rem', color: '#64748b' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-              <Lock size={12} strokeWidth={ICON_STROKE} aria-hidden="true" />
-              <span>Read-only security · Cannot alter database</span>
-            </span>
-            <span>Free Tier Gemini Powered</span>
-          </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleStartNewChat}
+                  title="Start New Chat"
+                  aria-label="Start New Chat"
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '50%',
+                    background: '#171a23',
+                    border: '1px solid #252936',
+                    color: '#cbd5e1',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Plus size={17} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                </button>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Lock size={11} strokeWidth={ICON_STROKE} aria-hidden="true" />
+                  <span>Read-only · Free Tier</span>
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !prompt.trim()}
+                aria-label="Send message"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  background:
+                    loading || !prompt.trim()
+                      ? '#1f2430'
+                      : 'linear-gradient(135deg, #5145E5 0%, #278BFA 55%, #06B6D4 100%)',
+                  color: loading || !prompt.trim() ? '#64748b' : '#ffffff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: loading || !prompt.trim() ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+              >
+                <ArrowUp size={18} strokeWidth={2.2} aria-hidden="true" />
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
